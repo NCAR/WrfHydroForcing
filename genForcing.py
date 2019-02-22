@@ -1,7 +1,7 @@
-from core import errmod
+from core import errMod
 import argparse
 import os
-from core import configmod
+from core import configMod
 import sys
 
 
@@ -23,24 +23,24 @@ def main():
     args = parser.parse_args()
 
     if len(args.config_file) > 1:
-        errmod.err_out_screen('Improper arguments passed to main calling program')
+        errMod.err_out_screen('Improper arguments passed to main calling program')
 
     if not os.path.isfile(args.config_file[0]):
-        errmod.err_out_screen('Specified configuration file: ' + args.config_file[0] + ' not found.')
+        errMod.err_out_screen('Specified configuration file: ' + args.config_file[0] + ' not found.')
 
     # Initialize the configuration object that will contain all
     # user-specified options.
-    jobMeta = configmod.ConfigOptions(args.config_file[0])
+    jobMeta = configMod.ConfigOptions(args.config_file[0])
 
     # Parse the configuration options
     try:
         jobMeta.read_config()
     except KeyboardInterrupt:
-        errmod.err_out_screen('User keyboard interrupt')
+        errMod.err_out_screen('User keyboard interrupt')
     except ImportError:
-        errmod.err_out_screen('Missing Python packages')
+        errMod.err_out_screen('Missing Python packages')
     except InterruptedError:
-        errmod.err_out_screen('External kill signal detected')
+        errMod.err_out_screen('External kill signal detected')
 
     # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
     # workflow into either retrospective or forecasts (realtime/reforecasts)
