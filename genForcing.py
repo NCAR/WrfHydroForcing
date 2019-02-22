@@ -30,17 +30,24 @@ def main():
 
     # Initialize the configuration object that will contain all
     # user-specified options.
-    force_options = configmod.ConfigOptions(args.config_file[0])
+    jobMeta = configmod.ConfigOptions(args.config_file[0])
 
     # Parse the configuration options
     try:
-        force_options.read_config()
+        jobMeta.read_config()
     except KeyboardInterrupt:
         errmod.err_out_screen('User keyboard interrupt')
     except ImportError:
         errmod.err_out_screen('Missing Python packages')
     except InterruptedError:
         errmod.err_out_screen('External kill signal detected')
+
+    # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
+    # workflow into either retrospective or forecasts (realtime/reforecasts)
+    #if jobMeta.retro_flag:
+    #    # Place code into here for calling the retro run mod.
+    #if jobMeta.refcst_flag or jobMeta.realtime_flag:
+    #    # Place code in here for calling the forecasting module.
 
 
 if __name__ == "__main__":

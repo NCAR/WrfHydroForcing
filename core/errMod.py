@@ -1,6 +1,5 @@
 import sys
 
-
 def err_out_screen(err_msg):
     """
     Generic routine to exit the program gracefully. This specific error function does not log
