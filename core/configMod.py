@@ -17,6 +17,7 @@ class ConfigOptions:
         param config: The user-specified path to the configuration file.
         """
         self.input_forcings = None
+        self.input_force_dirs = None
         self.number_inputs = None
         self.output_freq = None
         self.output_dir = None
@@ -68,6 +69,23 @@ class ConfigOptions:
             if forceOpt < 0 or forceOpt > 10:
                 errMod.err_out_screen('Please specify InputForcings values between '
                                       '1 and 10.')
+
+        # Read in the input directories for each forcing option.
+        try:
+            self.input_force_dirs = config.get('Input','InputForcingDirectories').split(',')
+        except KeyError:
+            errMod.err_out_screen('Unable to locate InputForcingDirectories in Input section '
+                                  'in the configuration file.')
+        if len(self.input_force_dirs) != self.number_inputs:
+            errMod.err_out_screen('Number of InputForcingDirectories must match the number '
+                                  'of InputForcings in the configuration file.')
+        # Loop through and ensure all input directories exist. Also strip out any whitespace
+        # or new line characters.
+        for dirTmp in range(0,len(self.input_force_dirs)):
+            self.input_force_dirs[dirTmp] = self.input_force_dirs[dirTmp].strip()
+            if not os.path.isdir(self.input_force_dirs[dirTmp]):
+                errMod.err_out_screen('Unable to locate forcing directory: ' +
+                                      self.input_force_dirs[dirTmp])
 
         # Read in the output frequency
         try:

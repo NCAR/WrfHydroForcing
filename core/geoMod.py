@@ -80,3 +80,8 @@ class GeoMetaWrfHydro:
 
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
+
+        print(self.x_lower_bound)
+        print(self.x_upper_bound)
+        print(self.y_lower_bound)
+        print(self.y_upper_bound)
