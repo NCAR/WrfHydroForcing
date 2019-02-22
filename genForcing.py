@@ -2,6 +2,7 @@ from core import errMod
 import argparse
 import os
 from core import configMod
+from core import parallelMod
 import sys
 
 
@@ -41,6 +42,13 @@ def main():
         errMod.err_out_screen('Missing Python packages')
     except InterruptedError:
         errMod.err_out_screen('External kill signal detected')
+
+    # Initialize our MPI communication
+    mpiMeta = parallelMod.MpiConfig()
+    try:
+        mpiMeta.initialize_comm(jobMeta)
+    except:
+        errMod.err_out_screen(jobMeta.errMsg)
 
     # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
     # workflow into either retrospective or forecasts (realtime/reforecasts)
