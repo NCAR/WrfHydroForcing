@@ -101,6 +101,6 @@ class GeoMetaWrfHydro:
         # Close the geogrid file
         try:
             idTmp.close()
-        except
+        except:
             ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
             raise
