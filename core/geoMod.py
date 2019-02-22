@@ -53,17 +53,17 @@ class GeoMetaWrfHydro:
             raise
 
         try:
-            self.nx_global = idTmp.variables['XLAT'].shape[0]
+            self.nx_global = idTmp.variables['XLAT_M'].shape[2]
         except:
             ConfigOptions.errMsg = "Unable to extract X dimension size " \
-                                   "from XLAT in: " + ConfigOptions.geogrid
+                                   "from XLAT_M in: " + ConfigOptions.geogrid
             raise
 
         try:
             self.ny_global = idTmp.variables['XLAT'].shape[1]
         except:
             ConfigOptions.errMsg = "Unable to extract Y dimension size " \
-                                   "from XLAT in: " + ConfigOptions.geogrid
+                                   "from XLAT_M in: " + ConfigOptions.geogrid
             raise
 
         try:
