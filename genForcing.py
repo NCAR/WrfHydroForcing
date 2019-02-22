@@ -3,7 +3,7 @@ import argparse
 import os
 from core import configMod
 from core import parallelMod
-import sys
+from core import geoMod
 
 
 def main():
@@ -49,6 +49,24 @@ def main():
         mpiMeta.initialize_comm(jobMeta)
     except:
         errMod.err_out_screen(jobMeta.errMsg)
+
+    # Initialize our WRF-Hydro geospatial object, which contains
+    # information about the modeling domain, local processor
+    # grid boundaries, and ESMF grid objects/fields to be used
+    # in regridding.
+    wrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
+    try:
+        wrfHydroGeoMeta.initialize_destination_geo(jobMeta)
+    except:
+        errMod.err_out_screen(jobMeta.errMsg)
+
+    if mpiMeta.rank == 0:
+        print("Global WH NX = " + wrfHydroGeoMeta.nx_global)
+        print("Global WH NY = " + wrfHydroGeoMeta.ny_global)
+    print("Proc = " + str(mpiMeta.rank) + " X LB = " + str(wrfHydroGeoMeta.x_lower_bound))
+    print("Proc = " + str(mpiMeta.rank) + " X UB = " + str(wrfHydroGeoMeta.x_upper_bound))
+    print("Proc = " + str(mpiMeta.rank) + " Y LB = " + str(wrfHydroGeoMeta.y_lower_bound))
+    print("Proc = " + str(mpiMeta.rank) + " Y UB = " + str(wrfHydroGeoMeta.y_upper_bound))
 
     # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
     # workflow into either retrospective or forecasts (realtime/reforecasts)
