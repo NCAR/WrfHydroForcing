@@ -2,6 +2,7 @@
 # calculations in the forcing engine.
 from core import errmod
 import datetime
+import math
 
 def calculate_lookback_window(ConfigOptions):
     """
@@ -11,29 +12,29 @@ def calculate_lookback_window(ConfigOptions):
     :param ConfigOptions: Abstract class holding job information.
     :return: Updated abstract class with updated datetime variables.
     """
+    # First calculate the current time in UTC.
     dCurrentUtc = datetime.datetime.utcnow()
-    current_year = dCurrentUtc.year
-    current_month = dCurrentUtc.month
-    current_day = dCurrentUtc.day
-    current_hour = dCurrentUtc.hour
-    current_minute = dCurrentUtc.minute
 
-    # First calculate the end of the processing window. If the
-    # forecast frequency is greater than or equal to an hour,
-    # we will set the end of the processing window to be the beginning
-    # of the current window.
-    if ConfigOptions.fcst_freq >= 60:
-        ConfigOptions.e_date_proc = datetime.datetime(current_year,current_month,
-                                                      current_day,current_hour)
-    else:
-        dProcTmp = datetime.datetime(current_year,current_month,current_day,
-                                     current_hour)
-        numSubIntervals = int(current_minute/ConfigOptions.fcst_freq)
-        ConfigOptions.e_date_proc = dProcTmp + datetime.timedelta(
-            seconds=3600.0*numSubIntervals*ConfigOptions.fcst_freq
-        )
+    # Next, subtract the lookup window (specified in minutes) to get a crude window
+    # of processing.
+    dLookback = dCurrentUtc - datetime.timedelta(seconds=60*ConfigOptions.look_back)
 
-    # Calculate the beginning of the processing window.
-    ConfigOptions.e_date_proc - datetime.timedelta(
-        seconds=3600.0*:calculate_lookback_window()
-    )
+    # Determine the first forecast iteration that will be processed on this day
+    # based on the forecast frequency and where in the day we are at.
+    fcstStepTmp = math.ceil((dLookback.hour*60 + dLookback.minute)/ConfigOptions.fcst_freq)
+    dLookTmp1 = datetime.datetime(dLookback.year,dLookback.month,dLookback.day)
+    dLookTmp1 = dLookTmp1 + datetime.timedelta(seconds=60*ConfigOptions.fcst_freq*fcstStepTmp)
+
+    # If we are offsetting the forecasts, apply here.
+    if ConfigOptions.fcst_shift > 0:
+        dLookTmp1 = dLookTmp1 + datetime.timedelta(seconds=60*ConfigOptions.fcst_shift)
+
+    ConfigOptions.b_date_proc = dLookTmp1
+
+
+    # Now calculate the end of the processing window based on the time from the
+    # beginning of the processing window.
+    dtTmp = dCurrentUtc - ConfigOptions.b_date_proc
+    nFcstSteps = math.floor((dtTmp.days*1440+dtTmp.seconds/60.0)/ConfigOptions.fcst_freq)
+    ConfigOptions.nFcsts = int(nFcstSteps)
+    ConfigOptions.e_date_proc = ConfigOptions.b_date_proc + datetime.timedelta(seconds=nFcstSteps*ConfigOptions.fcst_freq*60)
