@@ -81,7 +81,26 @@ class GeoMetaWrfHydro:
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
 
-        print(self.x_lower_bound)
-        print(self.x_upper_bound)
-        print(self.y_lower_bound)
-        print(self.y_upper_bound)
+        # Place the local lat/lon grid slices from the parent geogrid file into
+        # the ESMF lat/lon grids.
+        try:
+            self.esmf_lat[:,:] = idTmp.variables['XLAT_M'][0,
+                                 self.y_lower_bound:self.y_upper_bound,
+                                 self.x_lower_bound:self.x_upper_bound]
+        except:
+            ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
+            raise
+        try:
+            self.esmf_lon[:,:] = idTmp.variables['XLONG_M'][0,
+                                 self.y_lower_bound:self.y_upper_bound,
+                                 self.x_lower_bound:self.x_upper_bound]
+        except:
+            ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
+            raise
+
+        # Close the geogrid file
+        try:
+            idTmp.close()
+        except
+            ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
+            raise

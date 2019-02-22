@@ -61,8 +61,10 @@ def main():
         errMod.err_out_screen(jobMeta.errMsg)
 
     if mpiMeta.rank == 0:
-        print("Global WH NX = " + wrfHydroGeoMeta.nx_global)
-        print("Global WH NY = " + wrfHydroGeoMeta.ny_global)
+        print("Global WH NX = " + str(wrfHydroGeoMeta.nx_global))
+        print("Global WH NY = " + str(wrfHydroGeoMeta.ny_global))
+        print(wrfHydroGeoMeta.esmf_lat)
+        print(wrfHydroGeoMeta.esmf_lon)
     print("Proc = " + str(mpiMeta.rank) + " X LB = " + str(wrfHydroGeoMeta.x_lower_bound))
     print("Proc = " + str(mpiMeta.rank) + " X UB = " + str(wrfHydroGeoMeta.x_upper_bound))
     print("Proc = " + str(mpiMeta.rank) + " Y LB = " + str(wrfHydroGeoMeta.y_lower_bound))
