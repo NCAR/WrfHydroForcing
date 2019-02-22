@@ -1,4 +1,4 @@
-from core import errmod
+from core import errMod
 
 class GeoMetaWrfHydro:
     """

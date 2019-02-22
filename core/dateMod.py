@@ -1,6 +1,6 @@
 # This is a datetime module for handling datetime
 # calculations in the forcing engine.
-from core import errmod
+from core import errMod
 import datetime
 import math
 

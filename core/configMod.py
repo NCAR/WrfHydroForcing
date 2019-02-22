@@ -1,5 +1,5 @@
 import configparser
-from core import errmod
+from core import errMod
 import json
 import datetime
 import os
@@ -47,64 +47,64 @@ class ConfigOptions:
         try:
             config.read(self.config_path)
         except KeyError:
-            errmod.err_out_screen('Unable to open the configuration file: ' + self.config_path)
+            errMod.err_out_screen('Unable to open the configuration file: ' + self.config_path)
 
         # Read in the base input forcing options as an array of values to map.
         try:
             self.input_forcings = json.loads(config['Input']['InputForcings'])
         except KeyError:
-            errmod.err_out_screen('Unable to locate InputForcings under Input section in'
+            errMod.err_out_screen('Unable to locate InputForcings under Input section in'
                                   'configuration file.')
         except json.decoder.JSONDecodeError:
-            errmod.err_out_screen('Improper InputForcings option specified in '
+            errMod.err_out_screen('Improper InputForcings option specified in '
                                   'configuration file')
         if len(self.input_forcings) == 0:
-            errmod.err_out_screen('Please choose at least one InputForcings dataset'
+            errMod.err_out_screen('Please choose at least one InputForcings dataset'
                                   ' to process')
         self.number_inputs = len(self.input_forcings)
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
             if forceOpt < 0 or forceOpt > 10:
-                errmod.err_out_screen('Please specify InputForcings values between '
+                errMod.err_out_screen('Please specify InputForcings values between '
                                       '1 and 10.')
 
         # Read in the output frequency
         try:
             self.output_freq = int(config['Output']['OutputFrequency'])
         except ValueError:
-            errmod.err_out_screen('Improper OutputFrequency value specified'
+            errMod.err_out_screen('Improper OutputFrequency value specified'
                                   ' in the configuration file.')
         except KeyError:
-            errmod.err_out_screen('Unable to locate OutputFrequency in '
+            errMod.err_out_screen('Unable to locate OutputFrequency in '
                                   'the configuration file.')
         if self.output_freq <= 0:
-            errmod.err_out_screen('Please specify an OutputFrequency that'
+            errMod.err_out_screen('Please specify an OutputFrequency that'
                                   ' is greater than zero minutes.')
 
         # Read in the output directory
         try:
             self.output_dir = config['Output']['OutDir']
         except ValueError:
-            errmod.err_out_screen('Improper OutDir specified in the '
+            errMod.err_out_screen('Improper OutDir specified in the '
                                   'configuration file.')
         except KeyError:
-            errmod.err_out_screen('Unable to locate OutDir in the '
+            errMod.err_out_screen('Unable to locate OutDir in the '
                                   'configuration file.')
         if not os.path.isdir(self.output_dir):
-            errmod.err_out_screen('Specified output directory: ' + \
+            errMod.err_out_screen('Specified output directory: ' + \
                                   self.output_dir + ' not found.')
 
         # Read in retrospective options
         try:
             self.retro_flag = int(config['Retrospective']['RetroFlag'])
         except KeyError:
-            errmod.err_out_screen('Unable to locate RetroFlag in the'
+            errMod.err_out_screen('Unable to locate RetroFlag in the'
                                   'configuration file.')
         except ValueError:
-            errmod.err_out_screen('Improper RetroFlag value ')
+            errMod.err_out_screen('Improper RetroFlag value ')
         if self.retro_flag < 0 or self.retro_flag > 1:
-            errmod.err_out_screen('Please choose a RetroFlag value of '
+            errMod.err_out_screen('Please choose a RetroFlag value of '
                                   '0 or 1.')
             
         # Process the beginning date of forcings to process.
@@ -115,16 +115,16 @@ class ConfigOptions:
             try:
                 beg_date_tmp = config['Retrospective']['BDateProc']
             except KeyError:
-                errmod.err_out_screen('Unable to locate BDateProc under Logistics section in'
+                errMod.err_out_screen('Unable to locate BDateProc under Logistics section in'
                                       'configuration file.')
             if beg_date_tmp != '-9999':
                 if len(beg_date_tmp) != 12:
-                    errmod.err_out_screen('Improper BDateProc length entered into the '
+                    errMod.err_out_screen('Improper BDateProc length entered into the '
                                           'configuration file. Please check your entry.')
                 try:
                     self.b_date_proc = datetime.datetime.strptime(beg_date_tmp, '%Y%m%d%H%M')
                 except ValueError:
-                    errmod.err_out_screen('Improper BDateProc value entered into the'
+                    errMod.err_out_screen('Improper BDateProc value entered into the'
                                           ' configuration file. Please check your entry.')
             else:
                 self.b_date_proc = -9999
@@ -133,26 +133,26 @@ class ConfigOptions:
             try:
                 end_date_tmp = config['Retrospective']['EDateProc']
             except KeyError:
-                errmod.err_out_screen('Unable to locate EDateProc under Logistics section in'
+                errMod.err_out_screen('Unable to locate EDateProc under Logistics section in'
                                       'configuration file.')
             if end_date_tmp != '-9999':
                 if len(end_date_tmp) != 12:
-                    errmod.err_out_screen('Improper EDateProc length entered into the'
+                    errMod.err_out_screen('Improper EDateProc length entered into the'
                                           'configuration file. Please check your entry.')
                 try:
                     self.e_date_proc = datetime.datetime.strptime(end_date_tmp, '%Y%m%d%H%M')
                 except ValueError:
-                    errmod.err_out_screen('Improper EDateProc value entered into the'
+                    errMod.err_out_screen('Improper EDateProc value entered into the'
                                           ' configuration file. Please check your entry.')
                 if self.b_date_proc == -9999 and self.e_date_proc != -9999:
-                    errmod.err_out_screen('If choosing retrospective forecasting, dates must not be -9999')
+                    errMod.err_out_screen('If choosing retrospective forecasting, dates must not be -9999')
                 if self.e_date_proc <= self.b_date_proc:
-                    errmod.err_out_screen('Please choose an ending EDateProc that is greater'
+                    errMod.err_out_screen('Please choose an ending EDateProc that is greater'
                                           ' than BDateProc.')
             else:
                 self.e_date_proc = -9999
             if self.e_date_proc == -9999 and self.b_date_proc != -9999:
-                errmod.err_out_screen('If choosing retrospective forcings, dates must not be -9999')
+                errMod.err_out_screen('If choosing retrospective forcings, dates must not be -9999')
 
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
@@ -160,12 +160,12 @@ class ConfigOptions:
             try:
                 self.look_back = int(config['Forecast']['LookBack'])
                 if self.look_back <= 0 and self.look_back != -9999:
-                    errmod.err_out_screen('Please specify a positive LookBack or -9999 for realtime.')
+                    errMod.err_out_screen('Please specify a positive LookBack or -9999 for realtime.')
             except ValueError:
-                errmod.err_out_screen('Improper LookBack value entered into the '
+                errMod.err_out_screen('Improper LookBack value entered into the '
                                       'configuration file. Please check your entry.')
             except KeyError:
-                errmod.err_out_screen('Unable to locate LookBack in the configuration '
+                errMod.err_out_screen('Unable to locate LookBack in the configuration '
                                       'file. Please verify entries exist.')
 
             # If the Retro flag is off, and lookback is off, then we assume we are
@@ -177,43 +177,43 @@ class ConfigOptions:
                 try:
                     beg_date_tmp = config['Forecast']['RefcstBDateProc']
                 except KeyError:
-                    errmod.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in'
+                    errMod.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in'
                                           'configuration file.')
                 if beg_date_tmp != '-9999':
                     if len(beg_date_tmp) != 12:
-                        errmod.err_out_screen('Improper RefcstBDateProc length entered into the '
+                        errMod.err_out_screen('Improper RefcstBDateProc length entered into the '
                                               'configuration file. Please check your entry.')
                     try:
                         self.b_date_proc = datetime.datetime.strptime(beg_date_tmp, '%Y%m%d%H%M')
                     except ValueError:
-                        errmod.err_out_screen('Improper RefcstBDateProc value entered into the'
+                        errMod.err_out_screen('Improper RefcstBDateProc value entered into the'
                                               ' configuration file. Please check your entry.')
                 else:
                     # This is an error. The user MUST specify a date range if reforecasts.
-                    errmod.err_out_screen('Please either specify a reforecast range, or change '
+                    errMod.err_out_screen('Please either specify a reforecast range, or change '
                                           'the configuration to process refrospective or realtime.')
 
                 # Process the ending date of reforecast forcings to process
                 try:
                     end_date_tmp = config['Forecast']['RefcstEDateProc']
                 except KeyError:
-                    errmod.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in'
+                    errMod.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in'
                                           'configuration file.')
                 if end_date_tmp != '-9999':
                     if len(end_date_tmp) != 12:
-                        errmod.err_out_screen('Improper RefcstEDateProc length entered into the'
+                        errMod.err_out_screen('Improper RefcstEDateProc length entered into the'
                                               'configuration file. Please check your entry.')
                     try:
                         self.e_date_proc = datetime.datetime.strptime(end_date_tmp, '%Y%m%d%H%M')
                     except ValueError:
-                        errmod.err_out_screen('Improper RefcstEDateProc value entered into the'
+                        errMod.err_out_screen('Improper RefcstEDateProc value entered into the'
                                               ' configuration file. Please check your entry.')
                 else:
                     # This is an error. The user MUST specify a date range if reforecasts.
-                    errmod.err_out_screen('Please either specify a reforecast range, or change '
+                    errMod.err_out_screen('Please either specify a reforecast range, or change '
                                           'the configuration to process refrospective or realtime.')
                 if self.e_date_proc <= self.b_date_proc:
-                    errmod.err_out_screen('Please choose an ending RefcstEDateProc that is greater'
+                    errMod.err_out_screen('Please choose an ending RefcstEDateProc that is greater'
                                           ' than RefcstBDateProc.')
 
                 # Calculate the number of forecasts to issue, and verify the user has chosen a
@@ -221,7 +221,7 @@ class ConfigOptions:
                 #dtTmp = self.e_date_proc - self.b_date_proc
                 #print(self.fcst_freq)
                 #if (dtTmp.days*1440+dtTmp.seconds/60.0)%self.fcst_freq != 0:
-                #    errmod.err_out_screen('Please choose an equal divider forecast frequency for your'
+                #    errMod.err_out_screen('Please choose an equal divider forecast frequency for your'
                 #                          ' specified reforecast range.')
             else:
                 # The processing window will be calculated based on current time and the
@@ -239,18 +239,18 @@ class ConfigOptions:
             try:
                 self.fcst_freq = int(config['Forecast']['ForecastFrequency'])
             except ValueError:
-                errmod.err_out_screen('Improper ForecastFrequency value entered into '
+                errMod.err_out_screen('Improper ForecastFrequency value entered into '
                                       'the configuration file. Please check your entry.')
             except KeyError:
-                errmod.err_out_screen('Unable to locate ForecastFrequency in the configuration '
+                errMod.err_out_screen('Unable to locate ForecastFrequency in the configuration '
                                       'file. Please verify entries exist.')
             if self.fcst_freq <= 0:
-                errmod.err_out_screen('Please specify a ForecastFrequency in the configuration '
+                errMod.err_out_screen('Please specify a ForecastFrequency in the configuration '
                                       'file greater than zero.')
             # Currently, we only support daily or sub-daily forecasts. Any other iterations should
             # be done using custom config files for each forecast cycle.
             if self.fcst_freq > 1440:
-                errmod.err_out_screen('Only forecast cycles of daily or sub-daily are supported '
+                errMod.err_out_screen('Only forecast cycles of daily or sub-daily are supported '
                                       'at this time')
 
             # Read in the ForecastShift option. This is ONLY done for the realtime instance as
@@ -260,13 +260,13 @@ class ConfigOptions:
                 try:
                     self.fcst_shift = int(config['Forecast']['ForecastShift'])
                 except ValueError:
-                    errmod.err_out_screen('Improper ForecastShift value entered into the '
+                    errMod.err_out_screen('Improper ForecastShift value entered into the '
                                           'configuration file. Please check your entry.')
                 except KeyError:
-                    errmod.err_out_screen('Unable to locate ForecastShift in the configuration '
+                    errMod.err_out_screen('Unable to locate ForecastShift in the configuration '
                                            'file. Please verify entries exist.')
                 if self.fcst_shift < 0:
-                    errmod.err_out_screen('Please specify a ForecastShift in the configuration '
+                    errMod.err_out_screen('Please specify a ForecastShift in the configuration '
                                           'file greater than or equal to zero.')
 
                 # Calculate the beginning/ending processing dates if we are running realtime
@@ -278,7 +278,7 @@ class ConfigOptions:
                 # correct divider based on the dates
                 dtTmp = self.e_date_proc - self.b_date_proc
                 if (dtTmp.days*1440+dtTmp.seconds/60.0)%self.fcst_freq != 0:
-                    errmod.err_out_screen('Please choose an equal divider forecast frequency for your'
+                    errMod.err_out_screen('Please choose an equal divider forecast frequency for your'
                                           ' specified reforecast range.')
                 self.nFcsts = int((dtTmp.days*1440+dtTmp.seconds/60.0)/self.fcst_freq)
 
@@ -286,39 +286,39 @@ class ConfigOptions:
             try:
                 self.fcst_input_horizons = json.loads(config['Forecast']['ForecastInputHorizons'])
             except KeyError:
-                errmod.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in'
+                errMod.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in'
                                       'configuration file.')
             except json.decoder.JSONDecodeError:
-                errmod.err_out_screen('Improper ForecastInputHorizons option specified in '
+                errMod.err_out_screen('Improper ForecastInputHorizons option specified in '
                                       'configuration file')
             if len(self.fcst_input_horizons) != self.number_inputs:
-                errmod.err_out_screen('Please specify ForecastInputHorizon values for'
+                errMod.err_out_screen('Please specify ForecastInputHorizon values for'
                                       ' each corresponding input forcings for forecasts.')
 
             # Check to make sure the horizons options make sense. There will be additional
             # checking later when input choices are mapped to input products.
             for horizonOpt in self.fcst_input_horizons:
                 if horizonOpt <= 0:
-                    errmod.err_out_screen('Please specify ForecastInputHorizon values greater '
+                    errMod.err_out_screen('Please specify ForecastInputHorizon values greater '
                                           'than zero.')
 
             # Read in the ForecastInputOffsets options.
             try:
                 self.fcst_input_offsets = json.loads(config['Forecast']['ForecastInputOffsets'])
             except KeyError:
-                errmod.err_out_screen('Unable to locate ForecastInputOffsets under Forecast'
+                errMod.err_out_screen('Unable to locate ForecastInputOffsets under Forecast'
                                       ' section in the configuration file.')
             except json.decoder.JSONDecodeError:
-                errmod.err_out_screen('Improper ForecastInputOffsets option specified in '
+                errMod.err_out_screen('Improper ForecastInputOffsets option specified in '
                                       'the configuration file.')
             if len(self.fcst_input_offsets) != self.number_inputs:
-                errmod.err_out_screen('Please specify ForecastInputOffset values for each'
+                errMod.err_out_screen('Please specify ForecastInputOffset values for each'
                                       ' corresponding input forcings for forecasts.')
             # Check to make sure the input offset options make sense. There will be additional
             # checking later when input choices are mapped to input products.
             for inputOffset in self.fcst_input_offsets:
                 if inputOffset < 0:
-                    errmod.err_out_screen('Please specify ForecastInputOffset values greater '
+                    errMod.err_out_screen('Please specify ForecastInputOffset values greater '
                                           'than or equal to zero.')
 
             # CALCULATE B/E DATE PROC STUFF
@@ -327,25 +327,25 @@ class ConfigOptions:
         try:
             self.geogrid = config['Geospatial']['GeogridIn']
         except KeyError:
-            errmod.err_out_screen('Unable to locate GeogridIn in the configuration file.')
+            errMod.err_out_screen('Unable to locate GeogridIn in the configuration file.')
         if not os.path.isfile(self.geogrid):
-            errmod.err_out_screen('Unable to locate necessary geogrid file: ' + self.geogrid)
+            errMod.err_out_screen('Unable to locate necessary geogrid file: ' + self.geogrid)
 
         # Process regridding options.
         try:
             self.regrid_opt = json.loads(config['Regridding']['RegridOpt'])
         except KeyError:
-            errmod.err_out_screen('Unable to locate RegridOpt under the Regridding section '
+            errMod.err_out_screen('Unable to locate RegridOpt under the Regridding section '
                                   'in the configuration file.')
         except json.decoder.JSONDecodeError:
-            errmod.err_out_screen('Improper RegridOpt options specified in the configuration file.')
+            errMod.err_out_screen('Improper RegridOpt options specified in the configuration file.')
         if len(self.regrid_opt) != self.number_inputs:
-            errmod.err_out_screen('Please specify RegridOpt values for each corresponding input '
+            errMod.err_out_screen('Please specify RegridOpt values for each corresponding input '
                                   'forcings in the configuration file.')
         # Check to make sure regridding options makes sense.
         for regridOpt in self.regrid_opt:
             if regridOpt < 1 or regridOpt > 3:
-                errmod.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please'
+                errMod.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please'
                                       ' choose a value of 1-3 for each corresponding input forcing.')
 
         # Calculate the beginning/ending processing dates if we are running realtime
