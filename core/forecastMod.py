@@ -78,6 +78,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
 
             # Loop over each of the input forcings specifed.
             for forceKey in ConfigOptions.input_forcings:
+                inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,dOutput)
 
 
 

@@ -5,6 +5,7 @@ include things such as file types, grid definitions (including
 initializing ESMF grids and regrid objects), etc
 """
 #import ESMF
+from core import dateMod
 
 class input_forcings:
     """
@@ -118,6 +119,22 @@ class input_forcings:
         :param dCurrent:
         :return:
         """
+        # First calculate the current input cycle date this
+        # WRF-Hydro output timestep corresponds to.
+        find_neighbor_files = {
+            1: dateMod.find_gfs_neighbors(self,ConfigOptions,dCurrent),
+            9: dateMod.find_gfs_neighbors(self,ConfigOptions,dCurrent)
+        }
+
+        try:
+            find_neighbor_files[self.keyValue]
+        except:
+            raise Exception()
+
+        # Next, calculate the next input cycle date this
+        # WRF-Hydro output timestep corresponds to.
+
+
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """

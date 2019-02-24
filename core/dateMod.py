@@ -38,3 +38,17 @@ def calculate_lookback_window(ConfigOptions):
     nFcstSteps = math.floor((dtTmp.days*1440+dtTmp.seconds/60.0)/ConfigOptions.fcst_freq)
     ConfigOptions.nFcsts = int(nFcstSteps)
     ConfigOptions.e_date_proc = ConfigOptions.b_date_proc + datetime.timedelta(seconds=nFcstSteps*ConfigOptions.fcst_freq*60)
+
+def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
+    """
+    Function to calcualte the previous and after GFS cycles based on the current timestep.
+    :param input_forcings:
+    :param ConfigOptions:
+    :return:
+    """
+    if input_forcings.keyValue == 1:
+        print("She is processing NLDAS GLURL.......")
+    if input_forcings.keyValue == 3:
+        print("We are processing regular GFS data....")
+    if input_forcings.keyValue == 9:
+        print("We are processing 0.25 degree GFS data.....")
