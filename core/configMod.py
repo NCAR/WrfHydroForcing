@@ -21,11 +21,15 @@ class ConfigOptions:
         self.number_inputs = None
         self.output_freq = None
         self.output_dir = None
+        self.num_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
         self.refcst_flag = None
         self.b_date_proc = None
         self.e_date_proc = None
+        self.current_fcst_cycle = None
+        self.cycle_length_minutes = None
+        self.current_output_date = None
         self.look_back = None
         self.fcst_freq = None
         self.nFcsts = None
@@ -37,6 +41,18 @@ class ConfigOptions:
         self.regrid_opt = None
         self.config_path = config
         self.errMsg = None
+        self.statusMsg = None
+        self.logFile = None
+        self.logHandle = None
+        self.t2TemporalInterp = None
+        self.q2TemporalInterp = None
+        self.uTemporalInterp = None
+        self.vTemporalInterp = None
+        self.precipTemporalInterp = None
+        self.swTemporalInterp = None
+        self.psfcTemporalInterpo = None
+        self.lwTemporalInterp = None
+        self.d_program_init = datetime.datetime.utcnow()
 
     def read_config(self):
         """
@@ -172,6 +188,10 @@ class ConfigOptions:
             if self.e_date_proc == -9999 and self.b_date_proc != -9999:
                 errMod.err_out_screen('If choosing retrospective forcings, dates must not be -9999')
 
+            # Calculate the number of output time steps
+            dtTmp = self.e_date_proc - self.b_date_proc
+            self.num_output_steps = int((dtTmp.days*1440 + dtTmp.seconds/60.0)/self.output_freq)
+
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
             # If the retro flag is off, we are assuming a realtime or reforecast simulation.
@@ -234,13 +254,6 @@ class ConfigOptions:
                     errMod.err_out_screen('Please choose an ending RefcstEDateProc that is greater'
                                           ' than RefcstBDateProc.')
 
-                # Calculate the number of forecasts to issue, and verify the user has chosen a
-                # correct divider based on the dates
-                #dtTmp = self.e_date_proc - self.b_date_proc
-                #print(self.fcst_freq)
-                #if (dtTmp.days*1440+dtTmp.seconds/60.0)%self.fcst_freq != 0:
-                #    errMod.err_out_screen('Please choose an equal divider forecast frequency for your'
-                #                          ' specified reforecast range.')
             else:
                 # The processing window will be calculated based on current time and the
                 # lookback option since this is a realtime instance.
@@ -339,7 +352,18 @@ class ConfigOptions:
                     errMod.err_out_screen('Please specify ForecastInputOffset values greater '
                                           'than or equal to zero.')
 
-            # CALCULATE B/E DATE PROC STUFF
+            # Calculate the length of the forecast cycle, based on the maximum
+            # length of the input forcing length chosen by the user.
+            self.cycle_length_minutes = max(self.fcst_input_horizons)
+
+            # Ensure the number maximum cycle length is an equal divider of the output
+            # time step specified by the user.
+            if self.cycle_length_minutes % self.output_freq != 0:
+                errMod.err_out_screen('Please specify an output time step that is '
+                                      'an equal divider of the maximum of the '
+                                      'forecast time horizons specified.')
+            # Calculate the number of output time steps per forecast cycle.
+            self.num_output_steps = int(self.cycle_length_minutes/self.output_freq)
 
         # Process geospatial information
         try:
@@ -374,10 +398,101 @@ class ConfigOptions:
         print("Ending of Processing Window: " + self.e_date_proc.strftime('%Y-%m-%d %H:%M'))
         if not self.retro_flag:
             print("Number of forecast cycles to process: " + str(self.nFcsts))
+        print("Number of output time steps: " + str(self.num_output_steps))
 
         # PLUG FOR READING IN DOWNSCALING OPTIONS
 
         # PLUG FOR READING IN BIAS CORRECTION OPTIONS
+
+        # Read in temporal interpolation options.
+        # Process regridding options.
+        try:
+            self.t2TemporalInterp = json.loads(config['Interpolation']['2mTempTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate 2mTempTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper 2mTempTimeInterp options specified in the configuration file.')
+        if len(self.t2TemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify 2mTempTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.q2TemporalInterp = json.loads(config['Interpolation']['2mQTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate 2mQTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper 2mQTimeInterp options specified in the configuration file.')
+        if len(self.q2TemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify 2mQInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.uTemporalInterp = json.loads(config['Interpolation']['10mUTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate 10mUTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper 10mUTimeInterp options specified in the configuration file.')
+        if len(self.uTemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify 10mUTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.vTemporalInterp = json.loads(config['Interpolation']['10mVTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate 10mVTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper 10mVTimeInterp options specified in the configuration file.')
+        if len(self.vTemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify 10mVTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.swTemporalInterp = json.loads(config['Interpolation']['swTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate swTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper swTimeInterp options specified in the configuration file.')
+        if len(self.swTemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify swTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.lwTemporalInterp = json.loads(config['Interpolation']['lwTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate lwTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper lwTimeInterp options specified in the configuration file.')
+        if len(self.lwTemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify lwTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.precipTemporalInterp = json.loads(config['Interpolation']['precipTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate precipTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper precipTimeInterp options specified in the configuration file.')
+        if len(self.precipTemporalInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify precipTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
+
+        try:
+            self.psfcTemporalInterpo = json.loads(config['Interpolation']['psfcTimeInterp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate psfcTimeInterp under the Interpolation section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper psfcTimeInterp options specified in the configuration file.')
+        if len(self.psfcTemporalInterpo) != self.number_inputs:
+            errMod.err_out_screen('Please specify psfcTimeInterp values for each corresponding input '
+                                  'forcings in the configuration file.')
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 
