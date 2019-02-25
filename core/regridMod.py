@@ -29,12 +29,12 @@ def regrid_gfs(input_forcings,ConfigOptions):
     #print(input_forcings.tmpFile)
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
-    if os.path.isfile(input_forcings.file_in2):
+    if os.path.isfile(input_forcings.tmpFile):
         ConfigOptions.statusMsg = "Found old temporary file: " + \
-            input_forcings.file_in2 + " - Removing....."
+            input_forcings.tmpFile + " - Removing....."
         errMod.log_warning(ConfigOptions)
         try:
-            os.remove(input_forcings.file_in2)
+            os.remove(input_forcings.tmpFile)
         except:
             errMod.err_out(ConfigOptions)
 
