@@ -18,16 +18,21 @@ class input_forcings:
         """
         self.keyValue = None
         self.inDir = None
+        self.userFcstHorizon = None
+        self.userCycleOffset = None
         self.productName = None
         self.fileType = None
         self.nxGlobal = None
         self.nyGlobal = None
-        self.cycleDate = None
-        self.nextCycleDate = None
+        #self.cycleDate1 = None
+        #self.cycleDate2 = None
         self.cycleFreq = None
         self.esmf_lats = None
         self.esmf_lons = None
         self.esmf_grid_in = None
+        self.regridComplete = False
+        self.esmf_field_in1 = None
+        self.esmf_field_in2 = None
         self.prate_field_out = None
         self.u10m_field_out = None
         self.v10m_field_out = None
@@ -53,7 +58,10 @@ class input_forcings:
         self.q2m_field_in1 = None
         self.q2m_field_in2 = None
         self.ndv = None
-        self.file_in = None
+        self.file_in1 = None
+        self.file_in2 = None
+        self.tmpFile1 = None
+        self.tmpFile2 = None
 
     #def read_file(self):
     #    """
@@ -122,19 +130,35 @@ class input_forcings:
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
-            1: dateMod.find_gfs_neighbors(self,ConfigOptions,dCurrent),
-            9: dateMod.find_gfs_neighbors(self,ConfigOptions,dCurrent)
+            3: dateMod.find_gfs_neighbors,
+            9: dateMod.find_gfs_neighbors
         }
 
-        try:
-            find_neighbor_files[self.keyValue]
-        except:
-            raise Exception()
+        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent)
+        #try:
+        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent)
+        #except TypeError:
+        #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
+        #                           "input forcing: " + self.productName
+        #    raise
+        #except:
+        #    raise
 
-        # Next, calculate the next input cycle date this
-        # WRF-Hydro output timestep corresponds to.
-
-
+    def regrid_inputs(self,ConfigOptions):
+        """
+        Polymorphic function that will regrid input forcings to the
+        final output grids for this particular timestep. For
+        timesteps that require interpolation, two sets of input
+        forcing grids will be regridded IF we have come across new
+        files and the process flag has been reset.
+        :param ConfigOptions:
+        :return:
+        """
+        # Establish a mapping dictionary that will point the
+        # code to the functions to that will regrid the data.
+        #regrid_inputs = {
+        #    3: regridMod.regrid_gfs
+        #}
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
@@ -154,6 +178,8 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].keyValue = force_key
         InputDict[force_key].inDir = ConfigOptions.input_force_dirs[force_tmp]
         InputDict[force_key].define_product()
+        InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
+        InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
         #InputDict[force_key].t2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
         #                                                name='T2D')
         #InputDict[force_key].q2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,

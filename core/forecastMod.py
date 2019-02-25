@@ -1,6 +1,7 @@
 from core import errMod
 import datetime
 import os
+import sys
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
     """
@@ -34,6 +35,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
                                            datetime.timedelta(
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
+        print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+        print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
         print('Processing Forecast Cycle: ' + ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M'))
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
             ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
@@ -74,12 +77,18 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
             dOutput = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
+            print('=========================================')
             print("Processing for output timestep: " + dOutput.strftime('%Y-%m-%d %H:%M'))
 
             # Loop over each of the input forcings specifed.
             for forceKey in ConfigOptions.input_forcings:
-                inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,dOutput)
-
+                inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, dOutput)
+                print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
+                print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
+                #try:
+                #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,dOutput)
+                #except:
+                #    errMod.err_out(ConfigOptions)
 
 
         # Close the log file.
