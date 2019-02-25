@@ -6,6 +6,7 @@ initializing ESMF grids and regrid objects), etc
 """
 #import ESMF
 from core import dateMod
+from core import regridMod
 
 class input_forcings:
     """
@@ -31,8 +32,8 @@ class input_forcings:
         self.esmf_lons = None
         self.esmf_grid_in = None
         self.regridComplete = False
-        self.esmf_field_in1 = None
-        self.esmf_field_in2 = None
+        #self.esmf_field_in1 = None
+        #self.esmf_field_in2 = None
         self.prate_field_out = None
         self.u10m_field_out = None
         self.v10m_field_out = None
@@ -60,8 +61,9 @@ class input_forcings:
         self.ndv = None
         self.file_in1 = None
         self.file_in2 = None
-        self.tmpFile1 = None
-        self.tmpFile2 = None
+        self.fcst_hour1 = None
+        self.fcst_hour2 = None
+        self.tmpFile = None
 
     #def read_file(self):
     #    """
@@ -156,9 +158,16 @@ class input_forcings:
         """
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
-        #regrid_inputs = {
-        #    3: regridMod.regrid_gfs
-        #}
+        regrid_inputs = {
+            3: regridMod.regrid_gfs
+        }
+        regrid_inputs[self.keyValue](self,ConfigOptions)
+        #try:
+        #    regrid_inputs[self.keyValue](self,ConfigOptions)
+        #except:
+        #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
+        #        "input forcing: " + self.productName
+        #    raise
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """

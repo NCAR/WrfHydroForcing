@@ -21,6 +21,7 @@ class ConfigOptions:
         self.number_inputs = None
         self.output_freq = None
         self.output_dir = None
+        self.scratch_dir = None
         self.num_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
@@ -128,6 +129,19 @@ class ConfigOptions:
         if not os.path.isdir(self.output_dir):
             errMod.err_out_screen('Specified output directory: ' + \
                                   self.output_dir + ' not found.')
+
+        # Read in the scratch temporary directory.
+        try:
+            self.scratch_dir = config['Output']['ScratchDir']
+        except ValueError:
+            errMod.err_out_screen('Improper ScratchDir specified in the'
+                                  'configuration file.')
+        except KeyError:
+            errMod.err_out_screen('Unable to locate ScratchDir in the '
+                                  'configuration file.')
+        if not os.path.isdir(self.scratch_dir):
+            errMod.err_out_screen('Specified output directory: ' + \
+                                  self.scratch_dir + ' not found')
 
         # Read in retrospective options
         try:

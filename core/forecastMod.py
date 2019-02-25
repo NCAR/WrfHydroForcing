@@ -73,7 +73,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
         # 3.) Regrid the forcings, and temporally interpolate.
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
-        for outStep in range(1,ConfigOptions.num_output_steps+1):
+        #for outStep in range(1,ConfigOptions.num_output_steps+1):
+        for outStep in range(0,ConfigOptions.num_output_steps+1):
             dOutput = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
@@ -89,6 +90,16 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta):
                 #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,dOutput)
                 #except:
                 #    errMod.err_out(ConfigOptions)
+                # Regrid forcings.
+                inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
+                #try:
+                #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
+                #except:
+                #    errMod.err_out(ConfigOptions)
+
+            #sys.exit(1)
+
+        sys.exit(1)
 
 
         # Close the log file.

@@ -99,7 +99,7 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
     # First find the current GFS forecast cycle that we are using.
     currentGfsCycle = ConfigOptions.current_fcst_cycle - \
                       datetime.timedelta(seconds=
-                                         (input_forcings.userCycleOffset+1)*60.0)
+                                         (input_forcings.userCycleOffset)*60.0)
     print("CURRENT GFS CYCLE BEING USED = " + currentGfsCycle.strftime('%Y-%m-%d %H'))
 
     # Calculate the current forecast hour within this GFS cycle.
@@ -116,26 +116,45 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentGfsHour*60)%currentGfsFreq
+    #print(currentGfsHour)
+    #print(currentGfsFreq)
+    #print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = currentGfsFreq
+        #currentGfsHour = currentGfsHour
+        #previousGfsHour = currentGfsHour - int(currentGfsFreq/60.0)
     prevGfsDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
+    #print(prevGfsDate)
     if minSinceLastOutput == currentGfsFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentGfsFreq - minSinceLastOutput
     nextGfsDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
+    #print(nextGfsDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextGfsDate - currentGfsCycle
+    #print(currentGfsCycle)
+    nextGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    #print(nextGfsForecastHour)
+    input_forcings.fcst_hour2 = nextGfsForecastHour
+    dtTmp = prevGfsDate - currentGfsCycle
+    prevGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    #print(prevGfsForecastHour)
+    input_forcings.fcst_hour1 = prevGfsForecastHour
 
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + '/gfs.' + \
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-        str(currentGfsHour).zfill(2) + '.grib2'
-    print(input_forcings.file_in1)
+        str(prevGfsForecastHour).zfill(2) + '.grib2'
+    #print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/gfs.' + \
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-        str(currentGfsHour).zfill(2) + '.grib2'
+        str(nextGfsForecastHour).zfill(2) + '.grib2'
+    #print(tmpFile2)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
@@ -143,3 +162,31 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+        # If we have shifted GFS windows, check to see if the former
+        # 'next' GFS file is now the new 'previous' gfs file.
+        # If so, simply reset the end of the GFS window
+        # to be the new beginning of the next window.
+        if input_forcings.file_in2 == tmpFile1:
+            # The GFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.file_in2 = tmpFile1
+            input_forcings.t2m_field_in1 = input_forcings.t2m_field_in2
+            input_forcings.q2m_field_in1 = input_forcings.q2m_field_in2
+            input_forcings.u10m_field_in1 = input_forcings.u10m_field_in2
+            input_forcings.v10m_field_in1 = input_forcings.v10m_field_in1
+            input_forcings.psfc_field_in1 = input_forcings.prate_field_in2
+            input_forcings.prate_field_in1 = input_forcings.prate_field_in2
+            input_forcings.sw_field_in1 = input_forcings.sw_field_in2
+            input_forcings.lw_field_in1 = input_forcings.lw_field_in2
+            input_forcings.file_in2 = tmpFile2
+
+            # Reset our 'next' GFS fields to be None. These will need to be
+            # read in through the new set of input files.
+            input_forcings.t2m_field_in2 = None
+            input_forcings.q2m_field_in2 = None
+            input_forcings.lw_field_in2 = None
+            input_forcings.sw_field_in2 = None
+            input_forcings.u10m_field_in2 = None
+            input_forcings.v10m_field_in2 = None
+            input_forcings.psfc_field_in2 = None
+            input_forcings.prate_field_in2 = None
