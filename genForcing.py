@@ -2,8 +2,10 @@ from core import errMod
 import argparse
 import os
 from core import configMod
-#from core import parallelMod
-#from core import geoMod
+from core import ioMod
+from core import parallelMod
+from core import geoMod
+
 from core import forcingInputMod
 from core import forecastMod
 
@@ -45,33 +47,24 @@ def main():
         errMod.err_out_screen('External kill signal detected')
 
     # Initialize our MPI communication
-    #mpiMeta = parallelMod.MpiConfig()
-    #try:
-    #    mpiMeta.initialize_comm(jobMeta)
-    #except:
-    #    errMod.err_out_screen(jobMeta.errMsg)
-    mpiMeta = None
+    mpiMeta = parallelMod.MpiConfig()
+    try:
+        mpiMeta.initialize_comm(jobMeta)
+    except:
+        errMod.err_out_screen(jobMeta.errMsg)
 
     # Initialize our WRF-Hydro geospatial object, which contains
     # information about the modeling domain, local processor
     # grid boundaries, and ESMF grid objects/fields to be used
     # in regridding.
-    #wrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
-    #try:
-    #    wrfHydroGeoMeta.initialize_destination_geo(jobMeta)
-    #except:
-    #    errMod.err_out_screen(jobMeta.errMsg)
-    wrfHydroGeoMeta = None
+    wrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
+    try:
+        wrfHydroGeoMeta.initialize_destination_geo(jobMeta)
+    except:
+        errMod.err_out_screen(jobMeta.errMsg)
 
-    #if mpiMeta.rank == 0:
-    #    print("Global WH NX = " + str(wrfHydroGeoMeta.nx_global))
-    #    print("Global WH NY = " + str(wrfHydroGeoMeta.ny_global))
-    #    print(wrfHydroGeoMeta.esmf_lat)
-    #    print(wrfHydroGeoMeta.esmf_lon)
-    #print("Proc = " + str(mpiMeta.rank) + " X LB = " + str(wrfHydroGeoMeta.x_lower_bound))
-    #print("Proc = " + str(mpiMeta.rank) + " X UB = " + str(wrfHydroGeoMeta.x_upper_bound))
-    #print("Proc = " + str(mpiMeta.rank) + " Y LB = " + str(wrfHydroGeoMeta.y_lower_bound))
-    #print("Proc = " + str(mpiMeta.rank) + " Y UB = " + str(wrfHydroGeoMeta.y_upper_bound))
+    # Initialize our output object, which includes local slabs from the output grid.
+    OutputObj = ioMod.OutputObj()
 
     # Next, initialize our input forcing classes. These objects will contain
     # information about our source products (I.E. data type, grid sizes, etc).
@@ -92,7 +85,7 @@ def main():
     #    # Place code into here for calling the retro run mod.
     if jobMeta.refcst_flag or jobMeta.realtime_flag:
         # Place code in here for calling the forecasting module.
-        forecastMod.process_forecasts(jobMeta,wrfHydroGeoMeta,inputForcingMod,mpiMeta)
+        forecastMod.process_forecasts(jobMeta,wrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj)
 
 
 if __name__ == "__main__":
