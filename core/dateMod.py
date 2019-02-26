@@ -172,6 +172,11 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
         # If so, simply reset the end of the GFS window
         # to be the new beginning of the next window.
         if input_forcings.file_in2 == tmpFile1:
-            # The GFS window has shifted. Reset fields 2 to
-            # be fields 1.
-            input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+            if ConfigOptions.current_output_step == 1:
+                print('We are on the first output timestep.')
+                input_forcings.regridded_forcings1 = None
+                input_forcings.regridded_forcings2 = None
+            else:
+                # The GFS window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]

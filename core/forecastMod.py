@@ -75,6 +75,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         for outStep in range(1,ConfigOptions.num_output_steps+1):
+            ConfigOptions.current_output_step = outStep
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
