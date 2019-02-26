@@ -3,7 +3,6 @@ import datetime
 import os
 import sys
 from core import ioMod
-import numpy as np
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj):
     """
@@ -76,25 +75,25 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         for outStep in range(1,ConfigOptions.num_output_steps+1):
-            outputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
-                seconds==ConfigOptions.output_freq*60*outStep
+            OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
+                seconds=ConfigOptions.output_freq*60*outStep
             )
             print('=========================================')
-            print("Processing for output timestep: " + outputObj.outDate.strftime('%Y-%m-%d %H:%M'))
+            print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
-            outputObj.outPath = fcstCycleOutDir + "/" + outputObj.outDate.strftime('%Y%m%d%H%M') + \
+            OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
                 ".LDASIN_DOMAIN1"
 
-            if os.path.isfile(outputObj.outPath):
-                ConfigOptions.statusMsg = "Output file: " + outputObj.outPath + " exists. Moving " + \
+            if os.path.isfile(OutputObj.outPath):
+                ConfigOptions.statusMsg = "Output file: " + OutputObj.outPath + " exists. Moving " + \
                     " to the next output timestep."
                 continue
             else:
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
-                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, outputObj.outDate)
+                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate)
                     print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
                     print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
                     #try:
@@ -102,7 +101,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
                     #except:
                     #    errMod.err_out(ConfigOptions)
                     # Regrid forcings.
-                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta)
+                    #inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta)
                     #try:
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
                     #except:
@@ -111,10 +110,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
                     # NEED STUBS FOR TEMPORAL INTERPOLATION, DOWNSCALING, BIAS CORRECTION
 
                 # Call the output routines
-                OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,mpiMeta)
+                #OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,mpiMeta)
 
 
-            #sys.exit(1)
+            sys.exit(1)
 
         #sys.exit(1)
 
