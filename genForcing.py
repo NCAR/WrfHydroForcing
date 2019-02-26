@@ -57,21 +57,21 @@ def main():
     # information about the modeling domain, local processor
     # grid boundaries, and ESMF grid objects/fields to be used
     # in regridding.
-    wrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
+    WrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
     try:
-        wrfHydroGeoMeta.initialize_destination_geo(jobMeta)
+        WrfHydroGeoMeta.initialize_destination_geo(jobMeta)
     except:
         errMod.err_out_screen(jobMeta.errMsg)
 
     # Initialize our output object, which includes local slabs from the output grid.
-    OutputObj = ioMod.OutputObj()
+    OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
 
     # Next, initialize our input forcing classes. These objects will contain
     # information about our source products (I.E. data type, grid sizes, etc).
     # Information will be mapped via the options specified by the user.
     # In addition, input ESMF grid objects will be created to hold data for
     # downscaling and regridding purposes.
-    inputForcingMod = forcingInputMod.initDict(jobMeta,wrfHydroGeoMeta)
+    inputForcingMod = forcingInputMod.initDict(jobMeta,WrfHydroGeoMeta)
     for fTmp in jobMeta.input_forcings:
         print('------------------------------')
         print(inputForcingMod[fTmp].keyValue)
@@ -85,7 +85,7 @@ def main():
     #    # Place code into here for calling the retro run mod.
     if jobMeta.refcst_flag or jobMeta.realtime_flag:
         # Place code in here for calling the forecasting module.
-        forecastMod.process_forecasts(jobMeta,wrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj)
+        forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj)
 
 
 if __name__ == "__main__":
