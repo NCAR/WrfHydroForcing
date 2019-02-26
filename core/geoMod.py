@@ -1,7 +1,7 @@
 from core import errMod
-#from netCDF4 import Dataset
-#import ESMF
-#import numpy as np
+from netCDF4 import Dataset
+import ESMF
+import numpy as np
 
 class GeoMetaWrfHydro:
     """
@@ -34,6 +34,8 @@ class GeoMetaWrfHydro:
         self.x_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         self.y_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         self.y_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+        self.nx_local = self.x_upper_bound - self.x_lower_bound
+        self.ny_local = self.y_upper_bound - self.y_lower_bound
 
     def initialize_destination_geo(self,ConfigOptions):
         """

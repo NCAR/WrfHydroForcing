@@ -92,15 +92,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta):
         # This is the first timestep.
         calcRegridFlag = True
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.array([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                       np.float32)
-        input_forcings.regridded_forcings2 = np.array([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                        np.float32)
     else:
         if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.nyGlobal and \
                 idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nxGlobal:
             calcRegridFlag = True
-            input_forcings.regridded_forcings2 = np.array([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+            input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                           np.float32)
 
     if calcRegridFlag:
@@ -174,9 +174,9 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta):
                                         input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.array([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings1 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
                                                       np.float32)
-        input_forcings.regridded_forcings2 = np.array([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings2 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
                                                       np.float32)
 
         input_forcings.regridObj = ESMF.Regrid(input_forcings.lw_field_in2,
