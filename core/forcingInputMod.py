@@ -25,39 +25,22 @@ class input_forcings:
         self.fileType = None
         self.nxGlobal = None
         self.nyGlobal = None
-        #self.cycleDate1 = None
-        #self.cycleDate2 = None
+        self.nx_local = None
+        self.ny_local = None
+        self.x_lower_bound = None
+        self.x_upper_bound = None
+        self.y_lower_bound = None
+        self.y_upper_bound = None
         self.cycleFreq = None
         self.esmf_lats = None
         self.esmf_lons = None
         self.esmf_grid_in = None
         self.regridComplete = False
-        #self.esmf_field_in1 = None
-        #self.esmf_field_in2 = None
-        self.prate_field_out = None
-        self.u10m_field_out = None
-        self.v10m_field_out = None
-        self.psfc_field_out = None
-        self.sw_field_out = None
-        self.lw_field_out = None
-        self.t2m_field_out = None
-        self.q2m_field_out = None
-        self.prate_field_in1 = None
-        self.prate_field_in2 = None
-        self.u10m_field_in1 = None
-        self.u10m_field_in2 = None
-        self.v10m_field_in1 = None
-        self.v10m_field_in2 = None
-        self.psfc_field_in1 = None
-        self.psfc_field_in2 = None
-        self.sw_field_in1 = None
-        self.sw_field_in2 = None
-        self.lw_field_in1 = None
-        self.lw_field_in2 = None
-        self.t2m_field_in1 = None
-        self.t2m_field_in2 = None
-        self.q2m_field_in1 = None
-        self.q2m_field_in2 = None
+        self.regridObj = None
+        self.esmf_field_in = None
+        self.esmf_field_out = None
+        self.regridded_forcings1 = None
+        self.regridded_forcings2 = None
         self.ndv = None
         self.file_in1 = None
         self.file_in2 = None
@@ -146,7 +129,7 @@ class input_forcings:
         #except:
         #    raise
 
-    def regrid_inputs(self,ConfigOptions):
+    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta):
         """
         Polymorphic function that will regrid input forcings to the
         final output grids for this particular timestep. For
@@ -161,7 +144,7 @@ class input_forcings:
         regrid_inputs = {
             3: regridMod.regrid_gfs
         }
-        regrid_inputs[self.keyValue](self,ConfigOptions)
+        regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta)
         #try:
         #    regrid_inputs[self.keyValue](self,ConfigOptions)
         #except:

@@ -143,6 +143,11 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
     prevGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
     #print(prevGfsForecastHour)
     input_forcings.fcst_hour1 = prevGfsForecastHour
+    # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevGfsForecastHour == 0:
+        prevGfsForecastHour = 1
 
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + '/gfs.' + \
@@ -169,24 +174,4 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
         if input_forcings.file_in2 == tmpFile1:
             # The GFS window has shifted. Reset fields 2 to
             # be fields 1.
-            input_forcings.file_in2 = tmpFile1
-            input_forcings.t2m_field_in1 = input_forcings.t2m_field_in2
-            input_forcings.q2m_field_in1 = input_forcings.q2m_field_in2
-            input_forcings.u10m_field_in1 = input_forcings.u10m_field_in2
-            input_forcings.v10m_field_in1 = input_forcings.v10m_field_in1
-            input_forcings.psfc_field_in1 = input_forcings.prate_field_in2
-            input_forcings.prate_field_in1 = input_forcings.prate_field_in2
-            input_forcings.sw_field_in1 = input_forcings.sw_field_in2
-            input_forcings.lw_field_in1 = input_forcings.lw_field_in2
-            input_forcings.file_in2 = tmpFile2
-
-            # Reset our 'next' GFS fields to be None. These will need to be
-            # read in through the new set of input files.
-            input_forcings.t2m_field_in2 = None
-            input_forcings.q2m_field_in2 = None
-            input_forcings.lw_field_in2 = None
-            input_forcings.sw_field_in2 = None
-            input_forcings.u10m_field_in2 = None
-            input_forcings.v10m_field_in2 = None
-            input_forcings.psfc_field_in2 = None
-            input_forcings.prate_field_in2 = None
+            input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
