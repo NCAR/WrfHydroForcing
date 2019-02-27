@@ -93,7 +93,6 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.errMsg = "Unable to create GFS destination ESMF field object."
             errMod.err_out(ConfigOptions)
 
-    sys.exit(20)
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
     # a new weight file:
     # 1.) This is the first output time step, so we need to calculate a weight file.
@@ -102,6 +101,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     MpiConfig.comm.barrier()
 
+    print('DO WE NEED TO CALCULATE NEW WEIGHTS? - ' + str(calcRegridFlag))
+    sys.exit(23)
     if input_forcings.nxGlobal == None or input_forcings.nyGlobal == None:
         # This is the first timestep.
         calcRegridFlag = True
@@ -111,11 +112,13 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                        np.float32)
     else:
-        if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.nyGlobal and \
-                idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nxGlobal:
-            calcRegridFlag = True
-            input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
-                                                          np.float32)
+        if MpiConfig.rank == 0:
+            if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.nyGlobal and \
+                    idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nxGlobal:
+                calcRegridFlag = True
+            calcRegridFlag =  MpiConfig.broadcast_parameter(calcRegridFlag,ConfigOptions)
+            #input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+            #                                              np.float32)
 
     if calcRegridFlag:
         try:

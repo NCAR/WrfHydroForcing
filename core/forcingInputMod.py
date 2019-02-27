@@ -121,7 +121,7 @@ class input_forcings:
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
         #try:
-        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent)
+        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent,MpiConfig)
         #except TypeError:
         #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
         #                           "input forcing: " + self.productName
@@ -146,7 +146,7 @@ class input_forcings:
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
-        #    regrid_inputs[self.keyValue](self,ConfigOptions)
+        #    regrid_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
         #except:
         #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
         #        "input forcing: " + self.productName
