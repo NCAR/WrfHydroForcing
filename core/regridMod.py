@@ -3,6 +3,7 @@ Regridding module file for regridding input forcing files.
 """
 import ESMF
 import os
+import sys
 from core import errMod
 import subprocess
 from netCDF4 import Dataset
@@ -23,7 +24,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     if input_forcings.regridComplete:
         return
 
-    print("REGRID STATUS = " + str(input_forcings.regridComplete))
+    if MpiConfig.rank == 0:
+        print("REGRID STATUS = " + str(input_forcings.regridComplete))
     # Create a path for a temporary NetCDF file that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
@@ -31,7 +33,6 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     MpiConfig.comm.barrier()
 
-    #print(input_forcings.tmpFile)
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
     if MpiConfig.rank == 0:
@@ -92,6 +93,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.errMsg = "Unable to create GFS destination ESMF field object."
             errMod.err_out(ConfigOptions)
 
+    sys.exit(20)
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
     # a new weight file:
     # 1.) This is the first output time step, so we need to calculate a weight file.
