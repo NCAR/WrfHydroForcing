@@ -102,7 +102,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
                     #except:
                     #    errMod.err_out(ConfigOptions)
                     # Regrid forcings.
-                    #inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta)
+                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,mpiMeta)
                     #try:
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
                     #except:

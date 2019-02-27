@@ -37,7 +37,12 @@ class GeoMetaWrfHydro:
         self.nx_local = self.x_upper_bound - self.x_lower_bound
         self.ny_local = self.y_upper_bound - self.y_lower_bound
 
-    def initialize_destination_geo(self,ConfigOptions):
+        print("WRF-HYDRO LOCAL X BOUND 1 = " + str(self.x_lower_bound))
+        print("WRF-HYDRO LOCAL X BOUND 2 = " + str(self.x_upper_bound))
+        print("WRF-HYDRO LOCAL Y BOUND 1 = " + str(self.y_lower_bound))
+        print("WRF-HYDRO LOCAL Y BOUND 2 = " + str(self.y_upper_bound))
+
+    def initialize_destination_geo(self,ConfigOptions,MpiConfig):
         """
         Initialization function to initialize ESMF through ESMPy,
         calculate the global parameters of the WRF-Hydro grid
@@ -47,26 +52,34 @@ class GeoMetaWrfHydro:
         """
         # Open the geogrid file and extract necessary information
         # to create ESMF fields.
-        try:
-            idTmp = Dataset(ConfigOptions.geogrid,'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open the WRF-Hydro " \
-                                   "geogrid file: " + ConfigOptions.geogrid
-            raise
+        if MpiConfig.rank == 0:
+            try:
+                idTmp = Dataset(ConfigOptions.geogrid,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open the WRF-Hydro " \
+                                       "geogrid file: " + ConfigOptions.geogrid
+                raise
 
-        try:
-            self.nx_global = idTmp.variables['XLAT_M'].shape[2]
-        except:
-            ConfigOptions.errMsg = "Unable to extract X dimension size " \
-                                   "from XLAT_M in: " + ConfigOptions.geogrid
-            raise
+            try:
+                self.nx_global = idTmp.variables['XLAT_M'].shape[2]
+            except:
+                ConfigOptions.errMsg = "Unable to extract X dimension size " \
+                                       "from XLAT_M in: " + ConfigOptions.geogrid
+                raise
 
-        try:
-            self.ny_global = idTmp.variables['XLAT_M'].shape[1]
-        except:
-            ConfigOptions.errMsg = "Unable to extract Y dimension size " \
-                                   "from XLAT_M in: " + ConfigOptions.geogrid
-            raise
+            try:
+                self.ny_global = idTmp.variables['XLAT_M'].shape[1]
+            except:
+                ConfigOptions.errMsg = "Unable to extract Y dimension size " \
+                                       "from XLAT_M in: " + ConfigOptions.geogrid
+                raise
+
+        MpiConfig.comm.barrier()
+
+        print("PROC ID: " + MpiConfig.rank + " GLOBAL BEFORE BROADCAST = " + str(self.nx_global))
+        # Broadcast global dimensions to the other processors.
+        MpiConfig.comm.Bcast(self.nx_global,root=0)
+        print("PROC ID: " + MpiConfig.rank + " GLOBAL AFTER BROADCAST = " + str(self.nx_global))
 
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),

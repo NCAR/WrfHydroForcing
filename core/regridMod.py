@@ -1,14 +1,14 @@
 """
 Regridding module file for regridding input forcing files.
 """
-#import ESMF
+import ESMF
 import os
 from core import errMod
 import subprocess
 from netCDF4 import Dataset
 import numpy as np
 
-def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta):
+def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     """
     Function for handing regridding of input GFS data
     fro GRIB2 files.
@@ -23,56 +23,66 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta):
     if input_forcings.regridComplete:
         return
 
+    print("REGRID STATUS = " + str(input_forcings.regridComplete))
     # Create a path for a temporary NetCDF file that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
         "GFS_TMP.nc"
 
+    MpiConfig.comm.barrier()
+
     #print(input_forcings.tmpFile)
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
-    if os.path.isfile(input_forcings.tmpFile):
-        ConfigOptions.statusMsg = "Found old temporary file: " + \
-            input_forcings.tmpFile + " - Removing....."
-        errMod.log_warning(ConfigOptions)
-        try:
-            os.remove(input_forcings.tmpFile)
-        except:
-            errMod.err_out(ConfigOptions)
+    if MpiConfig.rank == 0:
+        if os.path.isfile(input_forcings.tmpFile):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                input_forcings.tmpFile + " - Removing....."
+            errMod.log_warning(ConfigOptions)
+            try:
+                os.remove(input_forcings.tmpFile)
+            except:
+                errMod.err_out(ConfigOptions)
 
     # We will process each variable at a time. Unfortunately, wgrib2 makes it a bit
     # difficult to handle forecast strings, otherwise this could be done in one commmand.
     # This makes a compelling case for the use of a GRIB Python API in the future....
     # Incoming shortwave radiation flux.....
+
+    MpiConfig.comm.barrier()
+
     cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(DLWRF):(surface):" + \
           "(" + str(input_forcings.fcst_hour2) + " hour fcst):\" -netcdf " + input_forcings.tmpFile
-    try:
-        cmdOutput = subprocess.Popen([cmd],stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
-        out,err = cmdOutput.communicate()
-        exitcode = cmdOutput.returncode
-    except:
-        ConfigOptions.errMsg = "Unable to open GFS file: " + input_forcings.file_in2
-        errMod.err_out()
-    # Ensure the temporary file has been created.
-    if not os.path.isfile(input_forcings.tmpFile):
-        ConfigOptions.errMsg = "Unable to find expected temporary file: " + input_forcings.tmpFile
-        errMod.err_out()
+    if MpiConfig.rank == 0:
+        try:
+            cmdOutput = subprocess.Popen([cmd],stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            out,err = cmdOutput.communicate()
+            exitcode = cmdOutput.returncode
+        except:
+            ConfigOptions.errMsg = "Unable to open GFS file: " + input_forcings.file_in2
+            errMod.err_out()
+        # Ensure the temporary file has been created.
+        if not os.path.isfile(input_forcings.tmpFile):
+            ConfigOptions.errMsg = "Unable to find expected temporary file: " + input_forcings.tmpFile
+            errMod.err_out()
 
-    # Open the temporary file, ensure expected variables are in the file.
-    try:
-        idTmp = Dataset(input_forcings.tmpFile,'r')
-    except:
-        ConfigOptions.errMsg = "Unable to open temporary NetCDF file: " + input_forcings.tmpFile
-        errMod.err_out()
-    if 'latitude' not in idTmp.variables.keys():
-        ConfigOptions.errMsg = "Unable to locate expected 'latitude' variable in: " + input_forcings.tmpFile
-        errMod.err_out()
-    if 'longitude' not in idTmp.variables.keys():
-        ConfigOptions.errMsg = "Unable to locate expected 'longitude' variable in: " + input_forcings.tmpFile
-        errMod.err_out()
-    if 'DLWRF_surface' not in idTmp.variables.keys():
-        ConfigOptions.errMsg = "Unable to locate expected 'DLWRF_surface' variable in: " + input_forcings.tmpFile
-        errMod.err_out()
+        # Open the temporary file, ensure expected variables are in the file.
+        try:
+            idTmp = Dataset(input_forcings.tmpFile,'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open temporary NetCDF file: " + input_forcings.tmpFile
+            errMod.err_out()
+        if 'latitude' not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable to locate expected 'latitude' variable in: " + input_forcings.tmpFile
+            errMod.err_out()
+        if 'longitude' not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable to locate expected 'longitude' variable in: " + input_forcings.tmpFile
+            errMod.err_out()
+        if 'DLWRF_surface' not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable to locate expected 'DLWRF_surface' variable in: " + input_forcings.tmpFile
+            errMod.err_out()
+
+    MpiConfig.comm.barrier()
 
     # If the destination ESMF field hasn't been created, create it here.
     if not input_forcings.esmf_field_out:
@@ -87,6 +97,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta):
     # 1.) This is the first output time step, so we need to calculate a weight file.
     # 2.) The input forcing grid has changed.
     calcRegridFlag = False
+
+    MpiConfig.comm.barrier()
 
     if input_forcings.nxGlobal == None or input_forcings.nyGlobal == None:
         # This is the first timestep.
