@@ -101,8 +101,6 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     MpiConfig.comm.barrier()
 
-    print('DO WE NEED TO CALCULATE NEW WEIGHTS? - ' + str(calcRegridFlag))
-    sys.exit(23)
     if input_forcings.nxGlobal == None or input_forcings.nyGlobal == None:
         # This is the first timestep.
         calcRegridFlag = True
@@ -121,16 +119,28 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             #                                              np.float32)
 
     if calcRegridFlag:
-        try:
-            input_forcings.nyGlobal = idTmp.variables['DLWRF_surface'].shape[1]
-        except:
-            ConfigOptions.errMsg = "Unable to extract Y from DLWRF_surface in: " + input_forcings.tmpFile
-            errMod.err_out(ConfigOptions)
-        try:
-            input_forcings.nxGlobal = idTmp.variables['DLWRF_surface'].shape[2]
-        except:
-            ConfigOptions.errMsg = "Unable to extract X from DLWRF_surface in: " + input_forcings.tmpFile
-            errMod.err_out(ConfigOptions)
+        if MpiConfig.rank == 0:
+            try:
+                input_forcings.nyGlobal = idTmp.variables['DLWRF_surface'].shape[1]
+            except:
+                ConfigOptions.errMsg = "Unable to extract Y from DLWRF_surface in: " + \
+                                       input_forcings.tmpFile
+                errMod.err_out(ConfigOptions)
+            try:
+                input_forcings.nxGlobal = idTmp.variables['DLWRF_surface'].shape[2]
+            except:
+                ConfigOptions.errMsg = "Unable to extract X from DLWRF_surface in: " + \
+                                       input_forcings.tmpFile
+                errMod.err_out(ConfigOptions)
+
+            MpiConfig.comm.barrier()
+
+        # Broadcast the forcing nx/ny values
+        input_forcings.nyGlobal = MpiConfig.broadcast_parameter(input_forcings.nyGlobal,
+                                                                ConfigOptions)
+        input_forcings.nxGlobal = MpiConfig.broadcast_parameter(input_forcings.nxGlobal,
+                                                                ConfigOptions)
+
         try:
             input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.nyGlobal,input_forcings.nxGlobal]),
                                                    staggerloc=ESMF.StaggerLoc.CENTER,
@@ -144,6 +154,10 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
             input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
             input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_lower_bound))
             input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
             input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_upper_bound
         except:
@@ -151,6 +165,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 "file: " + input_forcings.tmpFile
             errMod.err_out(ConfigOptions)
 
+        sys.exit(22)
         # Process lat/lon values from the GFS grid.
         if len(idTmp.variables['latitude']) == 3:
             # We have 2D grids already in place.
