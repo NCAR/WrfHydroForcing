@@ -129,7 +129,7 @@ class input_forcings:
         #except:
         #    raise
 
-    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta):
+    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
         """
         Polymorphic function that will regrid input forcings to the
         final output grids for this particular timestep. For
@@ -144,7 +144,7 @@ class input_forcings:
         regrid_inputs = {
             3: regridMod.regrid_gfs
         }
-        regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta)
+        regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
         #    regrid_inputs[self.keyValue](self,ConfigOptions)
         #except:
