@@ -101,7 +101,7 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['XLAT_M'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(self.nx_local,self.ny_local,varTmp,ConfigOptions)
 
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.

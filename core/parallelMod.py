@@ -54,7 +54,7 @@ class MpiConfig:
         tmpDict = self.comm.bcast(tmpDict,root=0)
         return tmpDict['varTmp']
 
-    def scatter_array(self,GeoMetaWrfHydro,array_broadcast,ConfigOptions):
+    def scatter_array(self,nx_local,ny_local,array_broadcast,ConfigOptions):
         """
         Generic function for breaking up an array to processors
         from rank 0.
@@ -62,7 +62,7 @@ class MpiConfig:
         :param ConfigOptions:
         :return:
         """
-        recvbuf = np.empty([GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
+        recvbuf = np.empty([ny_local,nx_local])
         self.comm.Scatter(array_broadcast,recvbuf,root=0)
         np.allclose(recvbuf,self.rank)
         return recvbuf

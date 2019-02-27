@@ -186,12 +186,14 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = latTmp
         else:
             varTmp = None
-        varSubLatTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
+        varSubLatTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
+                                               varTmp, ConfigOptions)
         if MpiConfig.rank == 0:
             varTmp = lonTmp
         else:
             varTmp = None
-        varSubLonTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
+        varSubLonTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
+                                               ConfigOptions)
 
         try:
             input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
@@ -225,7 +227,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = idTmp['DLWRF_surface'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(input_forcings.nx_local,
+                                            input_forcings.ny_local, ConfigOptions)
 
         # Place temporary data into the field array for generating the regridding object.
         input_forcings.esmf_field_in = varSubTmp
