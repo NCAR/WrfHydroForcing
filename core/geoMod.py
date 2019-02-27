@@ -101,7 +101,7 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['XLAT_M'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro,varTmp,ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
         print('PROC: ' + str(MpiConfig.rank) + ' SHAPE: ' + str(varSubTmp.shape))
 
         sys.exit(1)
