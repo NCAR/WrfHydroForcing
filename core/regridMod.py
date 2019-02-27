@@ -178,7 +178,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             elif len(idTmp.variables['latitude'].shape) == 1:
                 # We have 1D lat/lons we need to translate into
                 # 2D grids.
-                latTmp = np.repeat(idTmp.variables['latitude'][:],input_forcings.nxGlobal,axis=1)
+                latTmp = np.repeat(idTmp.variables['latitude'][:,np.newaxis],input_forcings.nxGlobal,axis=1)
                 lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
 
         # Scatter global GFS latitude grid to processors..
