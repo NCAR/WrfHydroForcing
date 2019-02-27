@@ -64,7 +64,6 @@ def main():
     except:
         errMod.err_out_screen(jobMeta.errMsg)
 
-    sys.exit(1)
     mpiMeta.comm.barrier()
 
     # Initialize our output object, which includes local slabs from the output grid.
@@ -77,11 +76,14 @@ def main():
     # downscaling and regridding purposes.
     inputForcingMod = forcingInputMod.initDict(jobMeta,WrfHydroGeoMeta)
     for fTmp in jobMeta.input_forcings:
-        print('------------------------------')
-        print(inputForcingMod[fTmp].keyValue)
-        print(inputForcingMod[fTmp].productName)
-        print(inputForcingMod[fTmp].fileType)
-        print('------------------------------')
+        if mpiMeta.rank == 0:
+            print('------------------------------')
+            print(inputForcingMod[fTmp].keyValue)
+            print(inputForcingMod[fTmp].productName)
+            print(inputForcingMod[fTmp].fileType)
+            print('------------------------------')
+
+    mpiMeta.comm.barrier()
 
     # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
     # workflow into either retrospective or forecasts (realtime/reforecasts)
