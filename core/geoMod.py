@@ -2,6 +2,7 @@ from core import errMod
 from netCDF4 import Dataset
 import ESMF
 import numpy as np
+import sys
 
 class GeoMetaWrfHydro:
     """
@@ -95,6 +96,15 @@ class GeoMetaWrfHydro:
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
 
+        # Scatter global XLAT_M grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = idTmp.variables['XLAT_M'][0,:,:]
+        else:
+            varTmp = None
+        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro,varTmp,ConfigOptions)
+        print('PROC: ' + str(MpiConfig.rank) + ' SHAPE: ' + str(varSubTmp.shape))
+
+        sys.exit(1)
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.
         try:

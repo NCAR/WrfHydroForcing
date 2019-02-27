@@ -1,5 +1,6 @@
 from mpi4py import MPI
 import os
+import numpy as np
 
 class MpiConfig:
     """
@@ -52,3 +53,16 @@ class MpiConfig:
             tmpDict = None
         tmpDict = self.comm.bcast(tmpDict,root=0)
         return tmpDict['varTmp']
+
+    def scatter_array(self,GeoMetaWrfHydro,array_broadcast,ConfigOptions):
+        """
+        Generic function for breaking up an array to processors
+        from rank 0.
+        :param array_broadcast:
+        :param ConfigOptions:
+        :return:
+        """
+        recvbuf = np.empty([GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
+        self.comm.Scatter(array_broadcast,recvbuf,root=0)
+        np.allclose(recvbuf,self.rank)
+        return recvbuf
