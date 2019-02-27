@@ -177,7 +177,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         # to be the new beginning of the next window.
         if input_forcings.file_in2 == tmpFile1:
             if ConfigOptions.current_output_step == 1:
-                print('We are on the first output timestep.')
+                if MpiConfg.rank == 0:
+                    print('We are on the first output timestep.')
                 input_forcings.regridded_forcings1 = None
                 input_forcings.regridded_forcings2 = None
             else:
