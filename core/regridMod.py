@@ -133,7 +133,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                                        input_forcings.tmpFile
                 errMod.err_out(ConfigOptions)
 
-            MpiConfig.comm.barrier()
+        MpiConfig.comm.barrier()
 
         # Broadcast the forcing nx/ny values
         input_forcings.nyGlobal = MpiConfig.broadcast_parameter(input_forcings.nyGlobal,
@@ -155,9 +155,9 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
             input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
             print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
             print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
             input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
             input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_upper_bound
         except:
