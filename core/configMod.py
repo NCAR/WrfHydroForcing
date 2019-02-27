@@ -160,7 +160,6 @@ class ConfigOptions:
         if self.retro_flag == 1:
             self.realtime_flag = False
             self.refcst_flag = False
-            print("We are running retrospective mode")
             try:
                 beg_date_tmp = config['Retrospective']['BDateProc']
             except KeyError:
@@ -226,7 +225,6 @@ class ConfigOptions:
             if self.look_back == -9999:
                 self.realtime_flag = False
                 self.refcst_flag = True
-                print("We are running re-forecast mode")
                 try:
                     beg_date_tmp = config['Forecast']['RefcstBDateProc']
                 except KeyError:
@@ -274,7 +272,6 @@ class ConfigOptions:
                 # lookback option since this is a realtime instance.
                 self.realtime_flag = True
                 self.refcst_flag = False
-                print("We are running realtime mode")
                 self.b_date_proc = -9999
                 self.e_date_proc = -9999
 
@@ -302,7 +299,6 @@ class ConfigOptions:
             # Read in the ForecastShift option. This is ONLY done for the realtime instance as
             # it's used to calculate the beginning of the processing window.
             if self.realtime_flag:
-                print("Reading in shifts")
                 try:
                     self.fcst_shift = int(config['Forecast']['ForecastShift'])
                 except ValueError:
@@ -408,12 +404,6 @@ class ConfigOptions:
         # Calculate the beginning/ending processing dates if we are running realtime
         if self.realtime_flag:
             dateMod.calculate_lookback_window(self)
-
-        print("Beginning of Processing Window: " + self.b_date_proc.strftime('%Y-%m-%d %H:%M'))
-        print("Ending of Processing Window: " + self.e_date_proc.strftime('%Y-%m-%d %H:%M'))
-        if not self.retro_flag:
-            print("Number of forecast cycles to process: " + str(self.nFcsts))
-        print("Number of output time steps: " + str(self.num_output_steps))
 
         # PLUG FOR READING IN DOWNSCALING OPTIONS
 
