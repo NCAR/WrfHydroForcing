@@ -78,7 +78,7 @@ class GeoMetaWrfHydro:
 
         print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL BEFORE BROADCAST = " + str(self.nx_global))
         # Broadcast global dimensions to the other processors.
-        MpiConfig.comm.Bcast(self.nx_global,root=0)
+        self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
         print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL AFTER BROADCAST = " + str(self.nx_global))
 
         try:

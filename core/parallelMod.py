@@ -38,3 +38,17 @@ class MpiConfig:
         except:
             ConfigOptions.errMsg = "Unable to retrieve the MPI processor rank."
             raise Exception()
+
+    def broadcast_parameter(self,value_broadcast,ConfigOptions):
+        """
+        Generic function for sending a parameter value out to the processors.
+        :param ConfigOptions:
+        :return:
+        """
+        # Create dictionary to hold value.
+        if self.rank == 0:
+            tmpDict = {'varTmp':value_broadcast}
+        else:
+            tmpDict = None
+        tmpDict = self.comm.bcast(tmpDict,root=0)
+        return tmpDict['varTmp']
