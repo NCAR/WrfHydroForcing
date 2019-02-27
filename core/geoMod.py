@@ -76,10 +76,10 @@ class GeoMetaWrfHydro:
 
         MpiConfig.comm.barrier()
 
-        print("PROC ID: " + MpiConfig.rank + " GLOBAL BEFORE BROADCAST = " + str(self.nx_global))
+        print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL BEFORE BROADCAST = " + str(self.nx_global))
         # Broadcast global dimensions to the other processors.
         MpiConfig.comm.Bcast(self.nx_global,root=0)
-        print("PROC ID: " + MpiConfig.rank + " GLOBAL AFTER BROADCAST = " + str(self.nx_global))
+        print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL AFTER BROADCAST = " + str(self.nx_global))
 
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
