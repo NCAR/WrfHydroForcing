@@ -178,7 +178,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             elif len(idTmp.variables['latitude'].shape) == 1:
                 # We have 1D lat/lons we need to translate into
                 # 2D grids.
-                latTmp = np.repeat(idTmp.variables['latitude'][:,np.newaxis],input_forcings.nxGlobal,axis=1)
+                latTmp = np.repeat(idTmp.variables['latitude'][:][:,np.newaxis],input_forcings.nxGlobal,axis=1)
                 lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
 
         # Scatter global GFS latitude grid to processors..
@@ -216,13 +216,21 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         #input_forcings.esmf_lons[:, :] = lonTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
         #                                 input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
-        print("GOT PAST THE HARD PART")
+
         #Create a ESMF field to hold the incoming data.
         input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in,name="GFS_NATIVE")
 
+        # Scatter global grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = idTmp['DLWRF_surface'][0,:,:]
+        else:
+            varTmp = None
+        varSubTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
+
         # Place temporary data into the field array for generating the regridding object.
-        input_forcings.esmf_field_in[:,:] = idTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
-                                        input_forcings.x_lower_bound:input_forcings.x_upper_bound]
+        input_forcings.esmf_field_in = varSubTmp
+        #input_forcings.esmf_field_in[:,:] = idTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
+        #                                input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
         # Create out regridded numpy arrays to hold the regridded data.
         input_forcings.regridded_forcings1 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
@@ -230,10 +238,13 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         input_forcings.regridded_forcings2 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
                                                       np.float32)
 
+        print("CREATING GFS REGRID OBJECT")
         input_forcings.regridObj = ESMF.Regrid(input_forcings.lw_field_in2,
                                                input_forcings.lw_field_in2,
                                                regrid_method=ESMF.RegridMethod.BILINEAR,
                                                unmapped_action=ESMF.UnmappedAction.IGNORE)
+        print("SUCCESS")
+        sys.exit(25)
 
     # Go through and regrid all the input variables.
     input_forcings.esmf_field_in[:,:] = idTmp.variables['DLWRF_surface'][input_forcings.y_lower_bound:input_forcings.y_upper_bound,
