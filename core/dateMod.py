@@ -39,17 +39,18 @@ def calculate_lookback_window(ConfigOptions):
     ConfigOptions.nFcsts = int(nFcstSteps) + 1
     ConfigOptions.e_date_proc = ConfigOptions.b_date_proc + datetime.timedelta(seconds=nFcstSteps*ConfigOptions.fcst_freq*60)
 
-def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
+def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
     Function to calcualte the previous and after GFS cycles based on the current timestep.
     :param input_forcings:
     :param ConfigOptions:
     :return:
     """
-    if input_forcings.keyValue == 9:
-        print("PROCESSING 0.25 Degree GFS")
-    if input_forcings.keyValue == 3:
-        print("PROCESSING Production GFS")
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 9:
+            print("PROCESSING 0.25 Degree GFS")
+        if input_forcings.keyValue == 3:
+            print("PROCESSING Production GFS")
 
     # First calculate how the GFS files are structured based on our current processing date.
     # This will change in the future, and should be modified as the GFS system evolves.
@@ -100,19 +101,22 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
     currentGfsCycle = ConfigOptions.current_fcst_cycle - \
                       datetime.timedelta(seconds=
                                          (input_forcings.userCycleOffset)*60.0)
-    print("CURRENT GFS CYCLE BEING USED = " + currentGfsCycle.strftime('%Y-%m-%d %H'))
+    if MpiConfg.rank == 0:
+        print("CURRENT GFS CYCLE BEING USED = " + currentGfsCycle.strftime('%Y-%m-%d %H'))
 
     # Calculate the current forecast hour within this GFS cycle.
     dtTmp = dCurrent - currentGfsCycle
     currentGfsHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    print("Current GFS Forecast Hour = " + str(currentGfsHour))
+    if MpiConfg.rank == 0:
+        print("Current GFS Forecast Hour = " + str(currentGfsHour))
 
     # Calculate the GFS output frequency based on our current GFS forecast hour.
     for horizonTmp in gfsOutHorizons:
         if currentGfsHour <= horizonTmp:
             currentGfsFreq = gfsOutFreq[horizonTmp]
             break
-    print("Current GFS output frequency = " + str(currentGfsFreq))
+    if MpiConfg.rank == 0:
+        print("Current GFS output frequency = " + str(currentGfsFreq))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentGfsHour*60)%currentGfsFreq

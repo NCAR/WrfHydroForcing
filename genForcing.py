@@ -64,7 +64,6 @@ def main():
     except:
         errMod.err_out_screen(jobMeta.errMsg)
 
-    sys.exit(9)
     mpiMeta.comm.barrier()
 
     # Initialize our output object, which includes local slabs from the output grid.

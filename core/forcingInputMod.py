@@ -103,7 +103,7 @@ class input_forcings:
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
-    def calc_neighbor_files(self,ConfigOptions,dCurrent):
+    def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
         Function that will calculate the last/next expected
         input forcing file based on the current time step that
@@ -119,7 +119,7 @@ class input_forcings:
             9: dateMod.find_gfs_neighbors
         }
 
-        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent)
+        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
         #try:
         #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent)
         #except TypeError:
