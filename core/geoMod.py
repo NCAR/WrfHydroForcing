@@ -102,22 +102,34 @@ class GeoMetaWrfHydro:
         else:
             varTmp = None
         varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
-        print('PROC: ' + str(MpiConfig.rank) + ' SHAPE: ' + str(varSubTmp.shape))
 
-        sys.exit(1)
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.
         try:
-            self.esmf_lat[:,:] = idTmp.variables['XLAT_M'][0,
-                                 self.y_lower_bound:self.y_upper_bound,
-                                 self.x_lower_bound:self.x_upper_bound]
+            self.esmf_lat[:,:] = varSubTmp
+            #self.esmf_lat[:,:] = idTmp.variables['XLAT_M'][0,
+            #                     self.y_lower_bound:self.y_upper_bound,
+            #                     self.x_lower_bound:self.x_upper_bound]
+            varSubTmp = None
+            varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
             raise
+
+        # Scatter global XLAT_M grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = idTmp.variables['XLONG_M'][0, :, :]
+        else:
+            varTmp = None
+        varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
+
         try:
-            self.esmf_lon[:,:] = idTmp.variables['XLONG_M'][0,
-                                 self.y_lower_bound:self.y_upper_bound,
-                                 self.x_lower_bound:self.x_upper_bound]
+            self.esmf_lon[:,:] = varSubTmp
+            #self.esmf_lon[:,:] = idTmp.variables['XLONG_M'][0,
+            #                     self.y_lower_bound:self.y_upper_bound,
+            #                     self.x_lower_bound:self.x_upper_bound]
+            varSubTmp = None
+            varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
             raise
