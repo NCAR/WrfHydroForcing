@@ -239,8 +239,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                                                       np.float32)
 
         print("CREATING GFS REGRID OBJECT")
-        input_forcings.regridObj = ESMF.Regrid(input_forcings.lw_field_in2,
-                                               input_forcings.lw_field_in2,
+        input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
+                                               input_forcings.esmf_field_out,
                                                regrid_method=ESMF.RegridMethod.BILINEAR,
                                                unmapped_action=ESMF.UnmappedAction.IGNORE)
         print("SUCCESS")
