@@ -4,7 +4,7 @@ import os
 import sys
 from core import ioMod
 
-def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj):
+def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
     """
     Main calling module for running realtime forecasts and re-forecasts.
     :param jobMeta:
@@ -30,15 +30,17 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
     # checked upon the beginning of this program to see if we
     # need to process any files.
 
-    print('Forecast Cycle Length is: ' + str(ConfigOptions.cycle_length_minutes))
+    if MpiConfig.rank == 0:
+        print('Forecast Cycle Length is: ' + str(ConfigOptions.cycle_length_minutes))
     for fcstCycleNum in range(ConfigOptions.nFcsts):
         ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + \
                                            datetime.timedelta(
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
-        print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-        print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-        print('Processing Forecast Cycle: ' + ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M'))
+        if MpiConfig.rank == 0:
+            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+            print('Processing Forecast Cycle: ' + ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M'))
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
             ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
         completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
@@ -47,14 +49,15 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
             # move on.
             continue
 
-        # If the cycle directory doesn't exist, create it.
-        if not os.path.isdir(fcstCycleOutDir):
-            try:
-                os.mkdir(fcstCycleOutDir)
-            except:
-                ConfigOptions.errMsg = "Unable to create output " \
-                                       "directory: " + fcstCycleOutDir
-                errMod.err_out_screen(ConfigOptions.errMsg)
+        if MpiConfig.rank == 0:
+            # If the cycle directory doesn't exist, create it.
+            if not os.path.isdir(fcstCycleOutDir):
+                try:
+                    os.mkdir(fcstCycleOutDir)
+                except:
+                    ConfigOptions.errMsg = "Unable to create output " \
+                                           "directory: " + fcstCycleOutDir
+                    errMod.err_out_screen(ConfigOptions.errMsg)
 
         # Compose a path to a log file, which will contain information
         # about this forecast cycle.
@@ -62,11 +65,13 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
             ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
             "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
-        # Initialize the log file.
-        try:
-            errMod.init_log(ConfigOptions)
-        except:
-            errMod.err_out_screen(ConfigOptions.errMsg)
+        if MpiConfig.rank == 0:
+            # Initialize the log file.
+            try:
+                errMod.init_log(ConfigOptions)
+            except:
+                errMod.err_out_screen(ConfigOptions.errMsg)
+
 
         # Loop through each output timestep. Perform the following functions:
         # 1.) Calculate all necessary input files per user options.
@@ -79,13 +84,16 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
-            print('=========================================')
-            print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
+            if MpiConfig.rank == 0:
+                print('=========================================')
+                print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
             OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
                 ".LDASIN_DOMAIN1"
+
+            MpiConfig.comm.barrier()
 
             if os.path.isfile(OutputObj.outPath):
                 ConfigOptions.statusMsg = "Output file: " + OutputObj.outPath + " exists. Moving " + \
@@ -95,14 +103,16 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,mpiMeta,Outp
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate)
-                    print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
-                    print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
+                    if MpiConfig.rank == 0:
+                        print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
+                        print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
+                    sys.exit(1)
                     #try:
                     #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate)
                     #except:
                     #    errMod.err_out(ConfigOptions)
                     # Regrid forcings.
-                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,mpiMeta)
+                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     #try:
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
                     #except:

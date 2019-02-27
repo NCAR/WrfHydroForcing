@@ -172,21 +172,5 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
-        #InputDict[force_key].t2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                name='T2D')
-        #InputDict[force_key].q2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                name='Q2D')
-        #InputDict[force_key].u10m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='U10')
-        #InputDict[force_key].v10m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='V10')
-        #InputDict[force_key].psfc_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='PSFC')
-        #InputDict[force_key].prate_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                  name = 'RAINRATE')
-        #InputDict[force_key].sw_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                               name='SWDOWN')
-        #InputDict[force_key].lw_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                               name='LWDOWN')
 
     return InputDict
