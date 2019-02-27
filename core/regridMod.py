@@ -154,10 +154,10 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
             input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
             input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
+            #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+            #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
+            #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+            #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
             input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
             input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_upper_bound
         except:
@@ -165,21 +165,33 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 "file: " + input_forcings.tmpFile
             errMod.err_out(ConfigOptions)
 
-        sys.exit(22)
-        # Process lat/lon values from the GFS grid.
-        if len(idTmp.variables['latitude']) == 3:
-            # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
-        elif len(idTmp.variables['longitude']) == 2:
-            # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
-        elif len(idTmp.variables['latitude']) == 1:
-            # We have 1D lat/lons we need to translate into
-            # 2D grids.
-            latTmp = np.repeat(idTmp.variables['latitude'][:],input_forcings.nxGlobal,axis=1)
-            lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
+        if MpiConfig.rank == 0:
+            # Process lat/lon values from the GFS grid.
+            if len(idTmp.variables['latitude']) == 3:
+                # We have 2D grids already in place.
+                latTmp = id.variables['latitude'][0, :, :]
+                lonTmp = id.variables['longitude'][0, :, :]
+            elif len(idTmp.variables['longitude']) == 2:
+                # We have 2D grids already in place.
+                latTmp = id.variables['latitude'][0, :, :]
+                lonTmp = id.variables['longitude'][0, :, :]
+            elif len(idTmp.variables['latitude']) == 1:
+                # We have 1D lat/lons we need to translate into
+                # 2D grids.
+                latTmp = np.repeat(idTmp.variables['latitude'][:],input_forcings.nxGlobal,axis=1)
+                lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
+
+        # Scatter global GFS latitude grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = latTmp
+        else:
+            varTmp = None
+        varSubLatTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
+        if MpiConfig.rank == 0:
+            varTmp = lonTmp
+        else:
+            varTmp = None
+        varSubLonTmp = MpiConfig.scatter_array(wrfHydroGeoMeta, varTmp, ConfigOptions)
 
         try:
             input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
@@ -193,11 +205,18 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
             errMod.err_out(ConfigOptions)
 
-        input_forcings.esmf_lats[:,:] = latTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
-                                        input_forcings.x_lower_bound:input_forcings.x_upper_bound]
-        input_forcings.esmf_lons[:, :] = lonTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
-                                         input_forcings.x_lower_bound:input_forcings.x_upper_bound]
+        input_forcings.esmf_lats = varSubLatTmp
+        input_forcings.esmf_lons = varSubLonTmp
+        varSubLatTmp = None
+        varSubLonTmp = None
+        latTmp = None
+        lonTmp = None
+        #input_forcings.esmf_lats[:,:] = latTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
+        #                                input_forcings.x_lower_bound:input_forcings.x_upper_bound]
+        #input_forcings.esmf_lons[:, :] = lonTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
+        #                                 input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
+        print("GOT PAST THE HARD PART")
         #Create a ESMF field to hold the incoming data.
         input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in,name="GFS_NATIVE")
 
