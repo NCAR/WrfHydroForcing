@@ -121,7 +121,7 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['XLONG_M'][0, :, :]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(self.nx_local, self.ny_local, varTmp, ConfigOptions)
 
         try:
             self.esmf_lon[:,:] = varSubTmp
