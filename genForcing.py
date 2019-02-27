@@ -1,6 +1,7 @@
 from core import errMod
 import argparse
 import os
+import sys
 from core import configMod
 from core import ioMod
 from core import parallelMod
@@ -59,9 +60,12 @@ def main():
     # in regridding.
     WrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
     try:
-        WrfHydroGeoMeta.initialize_destination_geo(jobMeta)
+        WrfHydroGeoMeta.initialize_destination_geo(jobMeta,mpiMeta)
     except:
         errMod.err_out_screen(jobMeta.errMsg)
+
+    sys.exit(1)
+    mpiMeta.comm.barrier()
 
     # Initialize our output object, which includes local slabs from the output grid.
     OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
