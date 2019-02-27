@@ -76,10 +76,9 @@ class GeoMetaWrfHydro:
 
         MpiConfig.comm.barrier()
 
-        print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL BEFORE BROADCAST = " + str(self.nx_global))
         # Broadcast global dimensions to the other processors.
         self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
-        print("PROC ID: " + str(MpiConfig.rank) + " GLOBAL AFTER BROADCAST = " + str(self.nx_global))
+        self.ny_global = MpiConfig.broadcast_parameter(self.ny_global,ConfigOptions)
 
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
@@ -113,9 +112,10 @@ class GeoMetaWrfHydro:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
             raise
 
-        # Close the geogrid file
-        try:
-            idTmp.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
-            raise
+        if MpiConfig.rank == 0:
+            # Close the geogrid file
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
+                raise
