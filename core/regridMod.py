@@ -167,15 +167,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         if MpiConfig.rank == 0:
             # Process lat/lon values from the GFS grid.
-            if len(idTmp.variables['latitude']) == 3:
+            if len(idTmp.variables['latitude'].shape) == 3:
                 # We have 2D grids already in place.
                 latTmp = id.variables['latitude'][0, :, :]
                 lonTmp = id.variables['longitude'][0, :, :]
-            elif len(idTmp.variables['longitude']) == 2:
+            elif len(idTmp.variables['longitude'].shape) == 2:
                 # We have 2D grids already in place.
                 latTmp = id.variables['latitude'][0, :, :]
                 lonTmp = id.variables['longitude'][0, :, :]
-            elif len(idTmp.variables['latitude']) == 1:
+            elif len(idTmp.variables['latitude'].shape) == 1:
                 # We have 1D lat/lons we need to translate into
                 # 2D grids.
                 latTmp = np.repeat(idTmp.variables['latitude'][:],input_forcings.nxGlobal,axis=1)
