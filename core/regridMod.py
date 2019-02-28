@@ -283,19 +283,12 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     MpiConfig.comm.barrier
 
-    input_forcings.regridded_forcings2[2,:,:] = varSubTmp
-
-    if MpiConfig.rank == 0:
-        print(varSubTmp)
+    input_forcings.esmf_field_in.data[:,:] = varSubTmp
+    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                             input_forcings.esmf_field_out)
 
     MpiConfig.comm.barrier
 
-    sys.exit(1)
-    #input_forcings.esmf_field_in[:,:] = idTmp.variables['DLWRF_surface'][input_forcings.y_lower_bound:input_forcings.y_upper_bound,
-    #                                    input_forcings.x_lower_bound:input_forcings.x_upper_bound]
-    #input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-    #                                                         input_forcings.esmf_field_out)
-    #input_forcings.regridded_forcings2[0,:,:] = input_forcings.esmf_field_out[:,:]
+    input_forcings.regridded_forcings2[2,:,:] = input_forcings.esmf_field_out.data
 
-
-    print(cmd)
+    MpiConfig.comm.barrier
