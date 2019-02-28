@@ -195,7 +195,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = latTmp
         else:
             varTmp = None
-        varSubLatTmp = MpiConfig.scatter_array_float32(input_forcings,varTmp,ConfigOptions)
+        varSubLatTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -203,7 +203,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = lonTmp
         else:
             varTmp = None
-        varSubLonTmp = MpiConfig.scatter_array_float32(input_forcings,varTmp,ConfigOptions)
+        varSubLonTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -245,7 +245,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = idTmp['DLWRF_surface'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array_float32(input_forcings,varTmp,ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
