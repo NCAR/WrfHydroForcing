@@ -125,6 +125,7 @@ class OutputObj:
                 ConfigOptions.errMsg = "Unable to create ProjectionCoordinateSystem in: " + self.outPath
                 errMod.err_out(ConfigOptions)
 
+            # Loop through and create each variable, along with expected attributes.
             for varTmp in output_variable_attribute_dict:
                 try:
                     idOut.createVariable(varTmp,'f4',('time','y','x'))
@@ -150,12 +151,17 @@ class OutputObj:
                         " in: " + self.outPath
                     errMod.err_out(ConfigOptions)
 
-                # Collect data from the various processors, and place into the output file.
-                try:
-                    final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp],:,:],root=0)
-                except:
-                    ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
-                    errMod.err_out(ConfigOptions)
+        # Now loop through each variable, collect the data (call on each processor), assemble into the final
+        # output grid, and place into the output file (if on processor 0).
+        for varTmp in output_variable_attribute_dict:
+            # Collect data from the various processors, and place into the output file.
+            try:
+                final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp],:,:],root=0)
+            except:
+                ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
+                errMod.err_out(ConfigOptions)
+            MpiConfig.comm.barrier()
+            if MpiConfig.rank == 0:
                 try:
                     dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
                 except:
@@ -166,11 +172,13 @@ class OutputObj:
                 except:
                     ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
                     errMod.err_out(ConfigOptions)
-
                 # Reset temporary data objects to keep memory usage down.
-                final = None
                 dataOutTmp = None
 
+            # Reset temporary data objects to keep memory usage down.
+            final = None
+
+        if MpiConfig.rank == 0:
             # Close the NetCDF file
             try:
                 idOut.close()
