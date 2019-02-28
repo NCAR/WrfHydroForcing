@@ -87,7 +87,7 @@ class OutputObj:
 
             # Set global attributes
             try:
-                idOut.model_output_valid_time = self.outDate.stfteim("%Y-%m-%d_%H:%M:00")
+                idOut.model_output_valid_time = self.outDate.strftime("%Y-%m-%d_%H:%M:00")
             except:
                 ConfigOptions.errMsg = "Unable to set the model_output_valid_time attribute in :" + self.outPath
                 errMod.err_out(ConfigOptions)

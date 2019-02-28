@@ -284,6 +284,9 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     MpiConfig.comm.barrier
 
     input_forcings.esmf_field_in.data[:,:] = varSubTmp
+
+    MpiConfig.comm.barrier
+
     input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                              input_forcings.esmf_field_out)
 

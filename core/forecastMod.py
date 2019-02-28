@@ -124,7 +124,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     MpiConfig.comm.barrier()
 
                 # Call the output routines
-                #OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,mpiMeta)
+                OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
 
 
             sys.exit(1)
