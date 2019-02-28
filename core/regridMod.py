@@ -105,14 +105,14 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # This is the first timestep.
         calcRegridFlag = True
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
-        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
+        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                        np.float32)
     else:
         if MpiConfig.rank == 0:
             if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.ny_global and \
-                    idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nx_global:
+                    idTmp.variables['DLWRF_surface'].shape[2] != input_forcings.nx_global:
                 calcRegridFlag = True
             calcRegridFlag =  MpiConfig.broadcast_parameter(calcRegridFlag,ConfigOptions)
             #input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
@@ -159,10 +159,10 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
             input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
             input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-            #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-            #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-            #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-            #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+            print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
             input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
             input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
         except:
@@ -195,7 +195,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = latTmp
         else:
             varTmp = None
-        varSubLatTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
+        varSubLatTmp = MpiConfig.scatter_array_float32(MpiConfig,input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -203,7 +203,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = lonTmp
         else:
             varTmp = None
-        varSubLonTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
+        varSubLonTmp = MpiConfig.scatter_array_float32(MpiConfig,input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -223,8 +223,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         MpiConfig.comm.barrier()
 
-        input_forcings.esmf_lats = varSubLatTmp
-        input_forcings.esmf_lons = varSubLonTmp
+        input_forcings.esmf_lats[:,:] = varSubLatTmp
+        input_forcings.esmf_lons[:,:] = varSubLonTmp
         varSubLatTmp = None
         varSubLonTmp = None
         latTmp = None
@@ -245,7 +245,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = idTmp['DLWRF_surface'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array_float32(MpiConfig,input_forcings,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -255,10 +255,10 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         #                                input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
-                                                      np.float32)
-        input_forcings.regridded_forcings2 = np.empty([8,wrfHydroGeoMeta.nx_local,wrfHydroGeoMeta.ny_local],
-                                                      np.float32)
+        #input_forcings.regridded_forcings1 = np.empty([8,wrfHydroGeoMeta.ny_local,wrfHydroGeoMeta.nx_local],
+        #                                              np.float32)
+        #input_forcings.regridded_forcings2 = np.empty([8,wrfHydroGeoMeta.ny_local,wrfHydroGeoMeta.nx_local],
+        #                                              np.float32)
 
         print("CREATING GFS REGRID OBJECT")
         input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
