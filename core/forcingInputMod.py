@@ -23,8 +23,8 @@ class input_forcings:
         self.userCycleOffset = None
         self.productName = None
         self.fileType = None
-        self.nxGlobal = None
-        self.nyGlobal = None
+        self.nx_global = None
+        self.ny_global = None
         self.nx_local = None
         self.ny_local = None
         self.x_lower_bound = None

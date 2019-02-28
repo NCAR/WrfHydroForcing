@@ -101,7 +101,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     MpiConfig.comm.barrier()
 
-    if input_forcings.nxGlobal == None or input_forcings.nyGlobal == None:
+    if input_forcings.nx_global == None or input_forcings.ny_global == None:
         # This is the first timestep.
         calcRegridFlag = True
         # Create out regridded numpy arrays to hold the regridded data.
@@ -111,8 +111,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                                                        np.float32)
     else:
         if MpiConfig.rank == 0:
-            if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.nyGlobal and \
-                    idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nxGlobal:
+            if idTmp.variables['DLWRF_surface'].shape[1] != input_forcings.ny_global and \
+                    idTmp.variables['DLWRF_surface'].shape[0] != input_forcings.nx_global:
                 calcRegridFlag = True
             calcRegridFlag =  MpiConfig.broadcast_parameter(calcRegridFlag,ConfigOptions)
             #input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
@@ -121,13 +121,13 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     if calcRegridFlag:
         if MpiConfig.rank == 0:
             try:
-                input_forcings.nyGlobal = idTmp.variables['DLWRF_surface'].shape[1]
+                input_forcings.ny_global = idTmp.variables['DLWRF_surface'].shape[1]
             except:
                 ConfigOptions.errMsg = "Unable to extract Y from DLWRF_surface in: " + \
                                        input_forcings.tmpFile
                 errMod.err_out(ConfigOptions)
             try:
-                input_forcings.nxGlobal = idTmp.variables['DLWRF_surface'].shape[2]
+                input_forcings.nx_global = idTmp.variables['DLWRF_surface'].shape[2]
             except:
                 ConfigOptions.errMsg = "Unable to extract X from DLWRF_surface in: " + \
                                        input_forcings.tmpFile
@@ -136,15 +136,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         MpiConfig.comm.barrier()
 
         # Broadcast the forcing nx/ny values
-        input_forcings.nyGlobal = MpiConfig.broadcast_parameter(input_forcings.nyGlobal,
+        input_forcings.ny_global = MpiConfig.broadcast_parameter(input_forcings.ny_global,
                                                                 ConfigOptions)
-        input_forcings.nxGlobal = MpiConfig.broadcast_parameter(input_forcings.nxGlobal,
+        input_forcings.nx_global = MpiConfig.broadcast_parameter(input_forcings.nx_global,
                                                                 ConfigOptions)
 
         MpiConfig.comm.barrier()
 
         try:
-            input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.nyGlobal,input_forcings.nxGlobal]),
+            input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global,input_forcings.nx_global]),
                                                    staggerloc=ESMF.StaggerLoc.CENTER,
                                                    coord_sys=ESMF.CoordSys.SPH_DEG)
         except:
@@ -185,8 +185,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             elif len(idTmp.variables['latitude'].shape) == 1:
                 # We have 1D lat/lons we need to translate into
                 # 2D grids.
-                latTmp = np.repeat(idTmp.variables['latitude'][:][:,np.newaxis],input_forcings.nxGlobal,axis=1)
-                lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
+                latTmp = np.repeat(idTmp.variables['latitude'][:][:,np.newaxis],input_forcings.nx_global,axis=1)
+                lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.ny_global,1))
 
         MpiConfig.comm.barrier()
 
@@ -195,8 +195,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = latTmp
         else:
             varTmp = None
-        varSubLatTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
-                                               varTmp, ConfigOptions)
+        varSubLatTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -204,8 +203,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = lonTmp
         else:
             varTmp = None
-        varSubLonTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
-                                               varTmp,ConfigOptions)
+        varSubLonTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
@@ -247,8 +245,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = idTmp['DLWRF_surface'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(input_forcings.nx_local,
-                                            input_forcings.ny_local, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array_float32(MpiConfig,wrfHydroGeoMeta,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 

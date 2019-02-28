@@ -137,7 +137,7 @@ class GeoMetaWrfHydro:
 
         MpiConfig.comm.barrier()
 
-        varSubTmp = MpiConfig.scatter_array(self.nx_local, self.ny_local, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array_float32(self,varTmp,ConfigOptions)
 
         MpiConfig.comm.barrier()
 
