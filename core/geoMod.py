@@ -81,6 +81,8 @@ class GeoMetaWrfHydro:
         self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
         self.ny_global = MpiConfig.broadcast_parameter(self.ny_global,ConfigOptions)
 
+        MpiConfig.comm.barrier()
+
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
                                        staggerloc=ESMF.StaggerLoc.CENTER,
@@ -90,8 +92,12 @@ class GeoMetaWrfHydro:
                                    "geogrid: " + ConfigOptions.geogrid
             raise
 
+        MpiConfig.comm.barrier()
+
         self.esmf_lat = self.esmf_grid.get_coords(0)
         self.esmf_lon = self.esmf_grid.get_coords(1)
+
+        MpiConfig.comm.barrier()
 
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
@@ -101,7 +107,12 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['XLAT_M'][0,:,:]
         else:
             varTmp = None
-        varSubTmp = MpiConfig.scatter_array(self.nx_local,self.ny_local,varTmp,ConfigOptions)
+
+        MpiConfig.comm.barrier()
+
+        varSubTmp = MpiConfig.scatter_array_float32(self,varTmp,ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.
@@ -116,12 +127,19 @@ class GeoMetaWrfHydro:
             ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
             raise
 
-        # Scatter global XLAT_M grid to processors..
+        MpiConfig.comm.barrier()
+
+        # Scatter global XLONG_M grid to processors..
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['XLONG_M'][0, :, :]
         else:
             varTmp = None
+
+        MpiConfig.comm.barrier()
+
         varSubTmp = MpiConfig.scatter_array(self.nx_local, self.ny_local, varTmp, ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         try:
             self.esmf_lon[:,:] = varSubTmp
@@ -133,6 +151,8 @@ class GeoMetaWrfHydro:
         except:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
             raise
+
+        MpiConfig.comm.barrier()
 
         if MpiConfig.rank == 0:
             # Close the geogrid file

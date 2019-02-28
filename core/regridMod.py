@@ -141,6 +141,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         input_forcings.nxGlobal = MpiConfig.broadcast_parameter(input_forcings.nxGlobal,
                                                                 ConfigOptions)
 
+        MpiConfig.comm.barrier()
+
         try:
             input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.nyGlobal,input_forcings.nxGlobal]),
                                                    staggerloc=ESMF.StaggerLoc.CENTER,
@@ -149,6 +151,9 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.errMsg = "Unable to create source GFS ESMF grid from temporary file: " + \
                                    input_forcings.tmpFile
             errMod.err_out(ConfigOptions)
+
+        MpiConfig.comm.barrier()
+
         try:
             input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
             input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
@@ -159,11 +164,13 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
             #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
             input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
-            input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_upper_bound
+            input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
         except:
             ConfigOptions.errMsg = "Unable to extract local X/Y boundaries from global grid from temporary " + \
                 "file: " + input_forcings.tmpFile
             errMod.err_out(ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         if MpiConfig.rank == 0:
             # Process lat/lon values from the GFS grid.
@@ -181,6 +188,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 latTmp = np.repeat(idTmp.variables['latitude'][:][:,np.newaxis],input_forcings.nxGlobal,axis=1)
                 lonTmp = np.tile(idTmp.variables['longitude'][:],(input_forcings.nyGlobal,1))
 
+        MpiConfig.comm.barrier()
+
         # Scatter global GFS latitude grid to processors..
         if MpiConfig.rank == 0:
             varTmp = latTmp
@@ -188,12 +197,17 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = None
         varSubLatTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
                                                varTmp, ConfigOptions)
+
+        MpiConfig.comm.barrier()
+
         if MpiConfig.rank == 0:
             varTmp = lonTmp
         else:
             varTmp = None
         varSubLonTmp = MpiConfig.scatter_array(input_forcings.nx_local,input_forcings.ny_local,
-                                               ConfigOptions)
+                                               varTmp,ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         try:
             input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
@@ -201,11 +215,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input GFS ESMF grid."
             errMod.err_out(ConfigOptions)
 
+        MpiConfig.comm.barrier()
+
         try:
             input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(1)
         except:
             ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
             errMod.err_out(ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_lats = varSubLatTmp
         input_forcings.esmf_lons = varSubLonTmp
@@ -222,16 +240,20 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         #Create a ESMF field to hold the incoming data.
         input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in,name="GFS_NATIVE")
 
+        MpiConfig.comm.barrier()
+
         # Scatter global grid to processors..
         if MpiConfig.rank == 0:
             varTmp = idTmp['DLWRF_surface'][0,:,:]
         else:
             varTmp = None
         varSubTmp = MpiConfig.scatter_array(input_forcings.nx_local,
-                                            input_forcings.ny_local, ConfigOptions)
+                                            input_forcings.ny_local, varTmp, ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         # Place temporary data into the field array for generating the regridding object.
-        input_forcings.esmf_field_in = varSubTmp
+        input_forcings.esmf_field_in.data[:,:] = varSubTmp
         #input_forcings.esmf_field_in[:,:] = idTmp[input_forcings.y_lower_bound:input_forcings.y_upper_bound,
         #                                input_forcings.x_lower_bound:input_forcings.x_upper_bound]
 
