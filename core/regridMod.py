@@ -260,20 +260,42 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         #input_forcings.regridded_forcings2 = np.empty([8,wrfHydroGeoMeta.ny_local,wrfHydroGeoMeta.nx_local],
         #                                              np.float32)
 
+        MpiConfig.comm.barrier()
+
         print("CREATING GFS REGRID OBJECT")
         input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                                input_forcings.esmf_field_out,
                                                regrid_method=ESMF.RegridMethod.BILINEAR,
                                                unmapped_action=ESMF.UnmappedAction.IGNORE)
         print("SUCCESS")
-        sys.exit(25)
+
+    MpiConfig.comm.barrier()
 
     # Go through and regrid all the input variables.
-    input_forcings.esmf_field_in[:,:] = idTmp.variables['DLWRF_surface'][input_forcings.y_lower_bound:input_forcings.y_upper_bound,
-                                        input_forcings.x_lower_bound:input_forcings.x_upper_bound]
-    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                             input_forcings.esmf_field_out)
-    input_forcings.regridded_forcings2[0,:,:] = input_forcings.esmf_field_out[:,:]
+    if MpiConfig.rank == 0:
+        varTmp = idTmp.variables['DLWRF_surface'][0,:,:]
+    else:
+        varTmp = None
+
+    MpiConfig.comm.barrier()
+
+    varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
+
+    MpiConfig.comm.barrier
+
+    input_forcings.regridded_forcings2[2,:,:] = varSubTmp
+
+    if MpiConfig.rank == 0:
+        print(varSubTmp)
+
+    MpiConfig.comm.barrier
+
+    sys.exit(1)
+    #input_forcings.esmf_field_in[:,:] = idTmp.variables['DLWRF_surface'][input_forcings.y_lower_bound:input_forcings.y_upper_bound,
+    #                                    input_forcings.x_lower_bound:input_forcings.x_upper_bound]
+    #input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+    #                                                         input_forcings.esmf_field_out)
+    #input_forcings.regridded_forcings2[0,:,:] = input_forcings.esmf_field_out[:,:]
 
 
     print(cmd)
