@@ -133,19 +133,19 @@ class OutputObj:
                     ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                     errMod.err_out(ConfigOptions)
                 try:
-                    idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][0]
+                    idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][1]
                 except:
                     ConfigOptions.errMsg = "Unable to create units attribute for: " + varTmp + " in: " + \
                         self.outPath
                     errMod.err_out(ConfigOptions)
                 try:
-                    idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp][1]
+                    idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp][2]
                 except:
                     ConfigOptions.errMsg = "Unable to create standard_name attribute for: " + varTmp + \
                         " in: " + self.outPath
                     errMod.err_out(ConfigOptions)
                 try:
-                    idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp][2]
+                    idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp][3]
                 except:
                     ConfigOptions.errMsg = "Unable to create long_name attribute for: " + varTmp + \
                         " in: " + self.outPath
