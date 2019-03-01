@@ -38,10 +38,10 @@ class GeoMetaWrfHydro:
         self.nx_local = self.x_upper_bound - self.x_lower_bound
         self.ny_local = self.y_upper_bound - self.y_lower_bound
 
-        print("WRF-HYDRO LOCAL X BOUND 1 = " + str(self.x_lower_bound))
-        print("WRF-HYDRO LOCAL X BOUND 2 = " + str(self.x_upper_bound))
-        print("WRF-HYDRO LOCAL Y BOUND 1 = " + str(self.y_lower_bound))
-        print("WRF-HYDRO LOCAL Y BOUND 2 = " + str(self.y_upper_bound))
+        #print("WRF-HYDRO LOCAL X BOUND 1 = " + str(self.x_lower_bound))
+        #print("WRF-HYDRO LOCAL X BOUND 2 = " + str(self.x_upper_bound))
+        #print("WRF-HYDRO LOCAL Y BOUND 1 = " + str(self.y_lower_bound))
+        #print("WRF-HYDRO LOCAL Y BOUND 2 = " + str(self.y_upper_bound))
 
     def initialize_destination_geo(self,ConfigOptions,MpiConfig):
         """
@@ -118,9 +118,6 @@ class GeoMetaWrfHydro:
         # the ESMF lat/lon grids.
         try:
             self.esmf_lat[:,:] = varSubTmp
-            #self.esmf_lat[:,:] = idTmp.variables['XLAT_M'][0,
-            #                     self.y_lower_bound:self.y_upper_bound,
-            #                     self.x_lower_bound:self.x_upper_bound]
             varSubTmp = None
             varTmp = None
         except:
@@ -143,9 +140,6 @@ class GeoMetaWrfHydro:
 
         try:
             self.esmf_lon[:,:] = varSubTmp
-            #self.esmf_lon[:,:] = idTmp.variables['XLONG_M'][0,
-            #                     self.y_lower_bound:self.y_upper_bound,
-            #                     self.x_lower_bound:self.x_upper_bound]
             varSubTmp = None
             varTmp = None
         except:
