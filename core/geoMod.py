@@ -1,7 +1,8 @@
 from core import errMod
-#from netCDF4 import Dataset
-#import ESMF
-#import numpy as np
+from netCDF4 import Dataset
+import ESMF
+import numpy as np
+import sys
 
 class GeoMetaWrfHydro:
     """
@@ -34,8 +35,15 @@ class GeoMetaWrfHydro:
         self.x_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         self.y_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         self.y_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+        self.nx_local = self.x_upper_bound - self.x_lower_bound
+        self.ny_local = self.y_upper_bound - self.y_lower_bound
 
-    def initialize_destination_geo(self,ConfigOptions):
+        #print("WRF-HYDRO LOCAL X BOUND 1 = " + str(self.x_lower_bound))
+        #print("WRF-HYDRO LOCAL X BOUND 2 = " + str(self.x_upper_bound))
+        #print("WRF-HYDRO LOCAL Y BOUND 1 = " + str(self.y_lower_bound))
+        #print("WRF-HYDRO LOCAL Y BOUND 2 = " + str(self.y_upper_bound))
+
+    def initialize_destination_geo(self,ConfigOptions,MpiConfig):
         """
         Initialization function to initialize ESMF through ESMPy,
         calculate the global parameters of the WRF-Hydro grid
@@ -45,26 +53,35 @@ class GeoMetaWrfHydro:
         """
         # Open the geogrid file and extract necessary information
         # to create ESMF fields.
-        try:
-            idTmp = Dataset(ConfigOptions.geogrid,'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open the WRF-Hydro " \
-                                   "geogrid file: " + ConfigOptions.geogrid
-            raise
+        if MpiConfig.rank == 0:
+            try:
+                idTmp = Dataset(ConfigOptions.geogrid,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open the WRF-Hydro " \
+                                       "geogrid file: " + ConfigOptions.geogrid
+                raise
 
-        try:
-            self.nx_global = idTmp.variables['XLAT_M'].shape[2]
-        except:
-            ConfigOptions.errMsg = "Unable to extract X dimension size " \
-                                   "from XLAT_M in: " + ConfigOptions.geogrid
-            raise
+            try:
+                self.nx_global = idTmp.variables['XLAT_M'].shape[2]
+            except:
+                ConfigOptions.errMsg = "Unable to extract X dimension size " \
+                                       "from XLAT_M in: " + ConfigOptions.geogrid
+                raise
 
-        try:
-            self.ny_global = idTmp.variables['XLAT_M'].shape[1]
-        except:
-            ConfigOptions.errMsg = "Unable to extract Y dimension size " \
-                                   "from XLAT_M in: " + ConfigOptions.geogrid
-            raise
+            try:
+                self.ny_global = idTmp.variables['XLAT_M'].shape[1]
+            except:
+                ConfigOptions.errMsg = "Unable to extract Y dimension size " \
+                                       "from XLAT_M in: " + ConfigOptions.geogrid
+                raise
+
+        MpiConfig.comm.barrier()
+
+        # Broadcast global dimensions to the other processors.
+        self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
+        self.ny_global = MpiConfig.broadcast_parameter(self.ny_global,ConfigOptions)
+
+        MpiConfig.comm.barrier()
 
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
@@ -75,32 +92,66 @@ class GeoMetaWrfHydro:
                                    "geogrid: " + ConfigOptions.geogrid
             raise
 
+        MpiConfig.comm.barrier()
+
         self.esmf_lat = self.esmf_grid.get_coords(0)
         self.esmf_lon = self.esmf_grid.get_coords(1)
+
+        MpiConfig.comm.barrier()
 
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
 
+        # Scatter global XLAT_M grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = idTmp.variables['XLAT_M'][0,:,:]
+        else:
+            varTmp = None
+
+        MpiConfig.comm.barrier()
+
+        varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
+
+        MpiConfig.comm.barrier()
+
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.
         try:
-            self.esmf_lat[:,:] = idTmp.variables['XLAT_M'][0,
-                                 self.y_lower_bound:self.y_upper_bound,
-                                 self.x_lower_bound:self.x_upper_bound]
+            self.esmf_lat[:,:] = varSubTmp
+            varSubTmp = None
+            varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
             raise
+
+        MpiConfig.comm.barrier()
+
+        # Scatter global XLONG_M grid to processors..
+        if MpiConfig.rank == 0:
+            varTmp = idTmp.variables['XLONG_M'][0, :, :]
+        else:
+            varTmp = None
+
+        MpiConfig.comm.barrier()
+
+        varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
+
+        MpiConfig.comm.barrier()
+
         try:
-            self.esmf_lon[:,:] = idTmp.variables['XLONG_M'][0,
-                                 self.y_lower_bound:self.y_upper_bound,
-                                 self.x_lower_bound:self.x_upper_bound]
+            self.esmf_lon[:,:] = varSubTmp
+            varSubTmp = None
+            varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
             raise
 
-        # Close the geogrid file
-        try:
-            idTmp.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
-            raise
+        MpiConfig.comm.barrier()
+
+        if MpiConfig.rank == 0:
+            # Close the geogrid file
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
+                raise
