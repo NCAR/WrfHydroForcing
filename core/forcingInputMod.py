@@ -6,6 +6,7 @@ initializing ESMF grids and regrid objects), etc
 """
 #import ESMF
 from core import dateMod
+from core import regridMod
 
 class input_forcings:
     """
@@ -22,46 +23,34 @@ class input_forcings:
         self.userCycleOffset = None
         self.productName = None
         self.fileType = None
-        self.nxGlobal = None
-        self.nyGlobal = None
-        #self.cycleDate1 = None
-        #self.cycleDate2 = None
+        self.nx_global = None
+        self.ny_global = None
+        self.nx_local = None
+        self.ny_local = None
+        self.x_lower_bound = None
+        self.x_upper_bound = None
+        self.y_lower_bound = None
+        self.y_upper_bound = None
         self.cycleFreq = None
         self.esmf_lats = None
         self.esmf_lons = None
         self.esmf_grid_in = None
         self.regridComplete = False
-        self.esmf_field_in1 = None
-        self.esmf_field_in2 = None
-        self.prate_field_out = None
-        self.u10m_field_out = None
-        self.v10m_field_out = None
-        self.psfc_field_out = None
-        self.sw_field_out = None
-        self.lw_field_out = None
-        self.t2m_field_out = None
-        self.q2m_field_out = None
-        self.prate_field_in1 = None
-        self.prate_field_in2 = None
-        self.u10m_field_in1 = None
-        self.u10m_field_in2 = None
-        self.v10m_field_in1 = None
-        self.v10m_field_in2 = None
-        self.psfc_field_in1 = None
-        self.psfc_field_in2 = None
-        self.sw_field_in1 = None
-        self.sw_field_in2 = None
-        self.lw_field_in1 = None
-        self.lw_field_in2 = None
-        self.t2m_field_in1 = None
-        self.t2m_field_in2 = None
-        self.q2m_field_in1 = None
-        self.q2m_field_in2 = None
+        self.regridObj = None
+        self.esmf_field_in = None
+        self.esmf_field_out = None
+        self.regridded_forcings1 = None
+        self.regridded_forcings2 = None
         self.ndv = None
         self.file_in1 = None
         self.file_in2 = None
-        self.tmpFile1 = None
-        self.tmpFile2 = None
+        self.fcst_hour1 = None
+        self.fcst_hour2 = None
+        self.netcdf_var_names = None
+        self.input_map_output = None
+        self.grib_levels = None
+        self.grib_vars = None
+        self.tmpFile = None
 
     #def read_file(self):
     #    """
@@ -113,12 +102,82 @@ class input_forcings:
             6: 60,
             7: 360,
             8: 1440,
-            10: 360,
-            9: 60
+            9: 360,
+            10: 60
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
-    def calc_neighbor_files(self,ConfigOptions,dCurrent):
+        grib_vars_in = {
+            1: None,
+            2: None,
+            3: ['TMP Temperature [K]','SPFH Specific Humidity [kg/kg]',
+                'UGRD U-Component of Wind [m/s]',
+                'VGRD V-Component of Wind [m/s]',
+                'PRATE Precipitation Rate [kg/m^2/s]',
+                'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
+                'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
+                'PRES Pressure [Pa]'],
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.grib_vars = grib_vars_in[self.keyValue]
+
+        grib_levels_in = {
+            1: None,
+            2: None,
+            3: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.grib_levels = grib_levels_in[self.keyValue]
+
+        netcdf_variables = {
+            1: None,
+            2: None,
+            3: ['TMP Temperature [K]','SPFH Specific Humidity [kg/kg]',
+                'UGRD U-Component of Wind [m/s]',
+                'VGRD V-Component of Wind [m/s]',
+                'PRATE Precipitation Rate [kg/m^2/s]',
+                'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
+                'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
+                'PRES Pressure [Pa]'],,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.netcdf_var_names = netcdf_variables[self.keyValue]
+
+        input_matp_to_outputs = {
+            1: None,
+            2: None,
+            3: [4,5,0,1,3,7,2,6],
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.input_map_output = netcdf_variables[self.keyValue]
+
+    def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
         Function that will calculate the last/next expected
         input forcing file based on the current time step that
@@ -134,9 +193,9 @@ class input_forcings:
             9: dateMod.find_gfs_neighbors
         }
 
-        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent)
+        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
         #try:
-        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent)
+        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent,MpiConfig)
         #except TypeError:
         #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
         #                           "input forcing: " + self.productName
@@ -144,7 +203,7 @@ class input_forcings:
         #except:
         #    raise
 
-    def regrid_inputs(self,ConfigOptions):
+    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
         """
         Polymorphic function that will regrid input forcings to the
         final output grids for this particular timestep. For
@@ -156,9 +215,16 @@ class input_forcings:
         """
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
-        #regrid_inputs = {
-        #    3: regridMod.regrid_gfs
-        #}
+        regrid_inputs = {
+            3: regridMod.regrid_gfs
+        }
+        regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
+        #try:
+        #    regrid_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
+        #except:
+        #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
+        #        "input forcing: " + self.productName
+        #    raise
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
@@ -180,21 +246,5 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
-        #InputDict[force_key].t2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                name='T2D')
-        #InputDict[force_key].q2m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                name='Q2D')
-        #InputDict[force_key].u10m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='U10')
-        #InputDict[force_key].v10m_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='V10')
-        #InputDict[force_key].psfc_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                 name='PSFC')
-        #InputDict[force_key].prate_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                                  name = 'RAINRATE')
-        #InputDict[force_key].sw_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                               name='SWDOWN')
-        #InputDict[force_key].lw_field_out = ESMF.Field(GeoMetaWrfHydro.esmf_grid,
-        #                                               name='LWDOWN')
 
     return InputDict

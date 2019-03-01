@@ -39,17 +39,18 @@ def calculate_lookback_window(ConfigOptions):
     ConfigOptions.nFcsts = int(nFcstSteps) + 1
     ConfigOptions.e_date_proc = ConfigOptions.b_date_proc + datetime.timedelta(seconds=nFcstSteps*ConfigOptions.fcst_freq*60)
 
-def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
+def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
     Function to calcualte the previous and after GFS cycles based on the current timestep.
     :param input_forcings:
     :param ConfigOptions:
     :return:
     """
-    if input_forcings.keyValue == 9:
-        print("PROCESSING 0.25 Degree GFS")
-    if input_forcings.keyValue == 3:
-        print("PROCESSING Production GFS")
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 9:
+            print("PROCESSING 0.25 Degree GFS")
+        if input_forcings.keyValue == 3:
+            print("PROCESSING Production GFS")
 
     # First calculate how the GFS files are structured based on our current processing date.
     # This will change in the future, and should be modified as the GFS system evolves.
@@ -99,43 +100,70 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
     # First find the current GFS forecast cycle that we are using.
     currentGfsCycle = ConfigOptions.current_fcst_cycle - \
                       datetime.timedelta(seconds=
-                                         (input_forcings.userCycleOffset+1)*60.0)
-    print("CURRENT GFS CYCLE BEING USED = " + currentGfsCycle.strftime('%Y-%m-%d %H'))
+                                         (input_forcings.userCycleOffset)*60.0)
+    if MpiConfg.rank == 0:
+        print("CURRENT GFS CYCLE BEING USED = " + currentGfsCycle.strftime('%Y-%m-%d %H'))
 
     # Calculate the current forecast hour within this GFS cycle.
     dtTmp = dCurrent - currentGfsCycle
     currentGfsHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    print("Current GFS Forecast Hour = " + str(currentGfsHour))
+    if MpiConfg.rank == 0:
+        print("Current GFS Forecast Hour = " + str(currentGfsHour))
 
     # Calculate the GFS output frequency based on our current GFS forecast hour.
     for horizonTmp in gfsOutHorizons:
         if currentGfsHour <= horizonTmp:
             currentGfsFreq = gfsOutFreq[horizonTmp]
             break
-    print("Current GFS output frequency = " + str(currentGfsFreq))
+    if MpiConfg.rank == 0:
+        print("Current GFS output frequency = " + str(currentGfsFreq))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentGfsHour*60)%currentGfsFreq
+    #print(currentGfsHour)
+    #print(currentGfsFreq)
+    #print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = currentGfsFreq
+        #currentGfsHour = currentGfsHour
+        #previousGfsHour = currentGfsHour - int(currentGfsFreq/60.0)
     prevGfsDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
+    #print(prevGfsDate)
     if minSinceLastOutput == currentGfsFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentGfsFreq - minSinceLastOutput
     nextGfsDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
+    #print(nextGfsDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextGfsDate - currentGfsCycle
+    #print(currentGfsCycle)
+    nextGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    #print(nextGfsForecastHour)
+    input_forcings.fcst_hour2 = nextGfsForecastHour
+    dtTmp = prevGfsDate - currentGfsCycle
+    prevGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    #print(prevGfsForecastHour)
+    input_forcings.fcst_hour1 = prevGfsForecastHour
+    # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevGfsForecastHour == 0:
+        prevGfsForecastHour = 1
 
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + '/gfs.' + \
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-        str(currentGfsHour).zfill(2) + '.grib2'
-    print(input_forcings.file_in1)
+        str(prevGfsForecastHour).zfill(2) + '.grib2'
+    #print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/gfs.' + \
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-        str(currentGfsHour).zfill(2) + '.grib2'
+        str(nextGfsForecastHour).zfill(2) + '.grib2'
+    #print(tmpFile2)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
@@ -143,3 +171,17 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+        # If we have shifted GFS windows, check to see if the former
+        # 'next' GFS file is now the new 'previous' gfs file.
+        # If so, simply reset the end of the GFS window
+        # to be the new beginning of the next window.
+        if input_forcings.file_in2 == tmpFile1:
+            if ConfigOptions.current_output_step == 1:
+                if MpiConfg.rank == 0:
+                    print('We are on the first output timestep.')
+                input_forcings.regridded_forcings1 = None
+                input_forcings.regridded_forcings2 = None
+            else:
+                # The GFS window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
