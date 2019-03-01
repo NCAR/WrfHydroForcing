@@ -46,6 +46,10 @@ class input_forcings:
         self.file_in2 = None
         self.fcst_hour1 = None
         self.fcst_hour2 = None
+        self.netcdf_var_names = None
+        self.input_map_output = None
+        self.grib_levels = None
+        self.grib_vars = None
         self.tmpFile = None
 
     #def read_file(self):
@@ -98,10 +102,66 @@ class input_forcings:
             6: 60,
             7: 360,
             8: 1440,
-            10: 360,
-            9: 60
+            9: 360,
+            10: 60
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
+
+        grib_vars_in = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.grib_vars = grib_vars_in[self.keyValue]
+
+        grib_levels_in = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.grib_levels = grib_levels_in[self.keyValue]
+
+        netcdf_variables = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.netcdf_var_names = netcdf_variables[self.keyValue]
+
+        input_matp_to_outputs = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None
+        }
+        self.input_map_output = netcdf_variables[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """

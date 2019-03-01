@@ -119,10 +119,6 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
 
                     # NEED STUBS FOR TEMPORAL INTERPOLATION, DOWNSCALING, BIAS CORRECTION
 
-                    # Temp for testing
-                    OutputObj.output_local[2,:,:] = inputForcingMod[forceKey].regridded_forcings2[2,:,:]
-                    MpiConfig.comm.barrier()
-
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
 

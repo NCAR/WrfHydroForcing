@@ -54,25 +54,6 @@ class MpiConfig:
         tmpDict = self.comm.bcast(tmpDict,root=0)
         return tmpDict['varTmp']
 
-    #def scatter_array_float32(self,geoMeta,array_broadcast,ConfigOptions):
-    #    """
-    #    Generic function for breaking up an array to processors
-    #    from rank 0.
-    #    :param array_broadcast:
-    #    :param ConfigOptions:
-    #    :return:
-    #    """
-    #    if self.rank == 0:
-    #        arrayGlobalTmp = array_broadcast
-    #    else:
-    #        arrayGlobalTmp = np.empty([geoMeta.ny_global,
-    #                                   geoMeta.nx_global],
-    #                                  np.float32)
-    #    self.comm.Bcast(arrayGlobalTmp, root=0)
-    #    arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
-    #               geoMeta.x_lower_bound:geoMeta.x_upper_bound]
-    #    return arraySub
-
     def scatter_array(self,geoMeta,array_broadcast,ConfigOptions):
         """
         Generic function for calling scatter functons based on

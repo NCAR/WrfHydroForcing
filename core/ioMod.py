@@ -7,6 +7,8 @@ Also, creating output files.
 from netCDF4 import Dataset
 from core import errMod
 import numpy as np
+import os
+import subprocess
 
 class OutputObj:
     """
@@ -188,3 +190,65 @@ class OutputObj:
 
         # Ensure all processors sync back up here before proceeding forward with the main calling program.
         MpiConfig.comm.barrier()
+
+def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
+               inputVar):
+    """
+    Generic function to convert a GRIB2 file into a NetCDF file. Function
+    will also open the NetCDF file, and ensure all necessary inputs are
+    in file.
+    :param GribFileIn:
+    :param NetCdfFileOut:
+    :param ConfigOptions:
+    :return:
+    """
+    # Check to see if output file already exists. If so, delete it and
+    # override.
+    if os.path.isfile(NetCdfFileOut):
+        ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
+        errMod.log_warning(ConfigOptions)
+    # Run wgrib2 command to convert GRIB2 file to NetCDF.
+    if MpiConfig.rank == 0:
+        try:
+            cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE, shell=True)
+        except:
+            ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
+                NetCdfFileOut
+            errMod.err_out(ConfigOptions)
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileOut):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
+                " not found."
+            errMod.err_out(ConfigOptions)
+
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileOut,'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                NetCdfFileOut
+            errMod.err_out(ConfigOptions)
+
+        # Check for expected lat/lon variables.
+        if 'latitude' not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                GribFileIn
+            errMod.err_out(ConfigOptions)
+        if 'longitude' not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                GribFileIn
+            errMod.err_out(ConfigOptions)
+
+        # Loop through all the expected variables.
+        if inputVar not in idTmp.variables.keys():
+            ConfigOptions.errMsg = "Unable to locate expected variable: " + \
+                inputVar + " in: " + NetCdfFileOut
+            errMod.err_out(ConfigOptions)
+
+    else:
+        idTmp = None
+
+    # Return the NetCDF file handle back to the user.
+    return idTmp
+
