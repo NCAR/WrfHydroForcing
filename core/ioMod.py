@@ -202,13 +202,13 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     :param ConfigOptions:
     :return:
     """
-    # Check to see if output file already exists. If so, delete it and
-    # override.
-    if os.path.isfile(NetCdfFileOut):
-        ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-        errMod.log_warning(ConfigOptions)
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
     if MpiConfig.rank == 0:
+        # Check to see if output file already exists. If so, delete it and
+        # override.
+        if os.path.isfile(NetCdfFileOut):
+            ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
+            errMod.log_warning(ConfigOptions)
         try:
             cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE, shell=True)
