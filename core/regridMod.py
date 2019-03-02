@@ -63,7 +63,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         #      "(" + str(input_forcings.fcst_hour2) + " hour fcst):\" -netcdf " + input_forcings.tmpFile
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
             input_forcings.grib_vars[forceCount] + "):(" + \
-            input_forcings.grib_levels[forceCount] + ":(" + str(input_forcings.fcst_hour2) + \
+            input_forcings.grib_levels[forceCount] + "):(" + str(input_forcings.fcst_hour2) + \
             " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
         idTmp = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFile,cmd,
