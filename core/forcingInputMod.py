@@ -152,7 +152,7 @@ class input_forcings:
                 'PRATE Precipitation Rate [kg/m^2/s]',
                 'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
                 'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
-                'PRES Pressure [Pa]'],,
+                'PRES Pressure [Pa]'],
             4: None,
             5: None,
             6: None,
