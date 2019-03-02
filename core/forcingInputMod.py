@@ -141,7 +141,7 @@ class input_forcings:
         netcdf_variables = {
             1: None,
             2: None,
-            3: ['TMP Temperature [K]','SPFH Specific Humidity [kg/kg]',
+            3: ['TMP_2maboveground','SPFH Specific Humidity [kg/kg]',
                 'UGRD U-Component of Wind [m/s]',
                 'VGRD V-Component of Wind [m/s]',
                 'PRATE Precipitation Rate [kg/m^2/s]',
