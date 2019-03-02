@@ -366,7 +366,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
                                    input_forcings.tmpFile
             errMod.err_out(ConfigOptions)
         try:
-            input_forcings.ny_global = \
+            input_forcings.nx_global = \
                 idTmp.variables[input_forcings.netcdf_var_names[forceCount]].shape[2]
         except:
             ConfigOptions.errMsg = "Unable to extract Y from: " + \
