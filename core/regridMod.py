@@ -321,24 +321,30 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
 
     MpiConfig.comm.barrier()
 
-    if input_forcings.nx_global == None or input_forcings.ny_global == None:
-        # This is the first timestep.
-        calcRegridFlag = True
-        # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
-                                                      np.float32)
-        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
-                                                      np.float32)
-    else:
-        if MpiConfig.rank == 0:
-            if idTmp.variables[input_forcings.netcdf_var_names[forceCount]].shape[1] \
-                    != input_forcings.ny_global and \
-                    idTmp.variables[input_forcings.netcdf_var_names[forceCount]].shape[2] \
-                    != input_forcings.nx_global:
-                calcRegridFlag = True
-            calcRegridFlag = MpiConfig.broadcast_parameter(calcRegridFlag, ConfigOptions)
+    if MpiConfig.rank == 0:
+        if input_forcings.nx_global == None or input_forcings.ny_global == None:
+            # This is the first timestep.
+            calcRegridFlag = True
+            # Create out regridded numpy arrays to hold the regridded data.
+            input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                          np.float32)
+            input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                          np.float32)
+        else:
+            if MpiConfig.rank == 0:
+                if idTmp.variables[input_forcings.netcdf_var_names[forceCount]].shape[1] \
+                        != input_forcings.ny_global and \
+                        idTmp.variables[input_forcings.netcdf_var_names[forceCount]].shape[2] \
+                        != input_forcings.nx_global:
+                    calcRegridFlag = True
 
     MpiConfig.comm.barrier()
+
+    # Broadcast the flag to the other processors.
+    calcRegridFlag = MpiConfig.broadcast_parameter(calcRegridFlag, ConfigOptions)
+
+    MpiConfig.comm.barrier()
+    return calcRegridFlag
 
 def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     """
