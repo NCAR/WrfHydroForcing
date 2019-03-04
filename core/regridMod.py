@@ -59,10 +59,29 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     forceCount = 0
     for forceTmp in input_forcings.netcdf_var_names:
         # Create a temporary NetCDF file from the GRIB2 file.
-        cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-            input_forcings.grib_vars[forceCount] + "):(" + \
-            input_forcings.grib_levels[forceCount] + "):(" + str(input_forcings.fcst_hour2) + \
-            " hour fcst):\" -netcdf " + input_forcings.tmpFile
+        if forceTmp == "PRATE":
+            # By far the most complicated of output variables. We need to calculate
+            # our 'average' PRATE based on our current hour.
+            if input_forcings.fcst_hour2 <= 240:
+                tmpHrCurrent = input_forcings.fcst_hour2
+                diffTmp = tmpHrCurrent%6
+                if diffTmp == 6:
+                    tmpHrPrevious = tmpHrCurrent - 6
+                else:
+                    tmpHrPrevious = tmpHrCurrent - diffTmp
+            else:
+                tmpHrPrevious = input_forcings.fcst_hour1
+
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
+                  input_forcings.grib_vars[forceCount] + "):(" + \
+                  input_forcings.grib_levels[forceCount] + "):(" + str(tmpHrPrevious) + \
+                  "-" + str(input_forcings.fcst_hour2) + \
+                  " hour ave fcst):\" -netcdf " + input_forcings.tmpFile
+        else:
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
+                  input_forcings.grib_vars[forceCount] + "):(" + \
+                  input_forcings.grib_levels[forceCount] + "):(" + str(input_forcings.fcst_hour2) + \
+                  " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
         idTmp = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFile,cmd,
                                  ConfigOptions,MpiConfig,input_forcings.netcdf_var_names[forceCount])
@@ -112,6 +131,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             except:
                 ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
                 errMod.err_out()
+
+        forceCount = forceCount + 1
 
 def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,wrfHydroGeoMeta):
     """
@@ -299,7 +320,8 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     input_forcings.esmf_field_in.data[:, :] = varSubTmp
     MpiConfig.comm.barrier()
 
-    print("CREATING GFS REGRID OBJECT")
+    if MpiConfig.rank == 0:
+        print("CREATING GFS REGRID OBJECT")
     input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                            input_forcings.esmf_field_out,
                                            regrid_method=ESMF.RegridMethod.BILINEAR,

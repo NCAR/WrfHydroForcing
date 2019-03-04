@@ -141,9 +141,8 @@ class input_forcings:
         netcdf_variables = {
             1: None,
             2: None,
-            3: ['TMP_2maboveground','SPFH Specific Humidity [kg/kg]',
-                'UGRD U-Component of Wind [m/s]',
-                'VGRD V-Component of Wind [m/s]',
+            3: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
                 'PRATE Precipitation Rate [kg/m^2/s]',
                 'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
                 'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
