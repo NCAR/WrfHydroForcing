@@ -181,7 +181,7 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
-    if input_forcings.file_in1 != tmpFile1 and input_forcings.file_in2 != tmpFile2:
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
