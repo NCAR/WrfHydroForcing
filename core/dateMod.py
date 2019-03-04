@@ -189,7 +189,7 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         # 'next' GFS file is now the new 'previous' gfs file.
         # If so, simply reset the end of the GFS window
         # to be the new beginning of the next window.
-        if input_forcings.file_in2 == tmpFile1:
+        if input_forcings.file_in2 == tmpFile1 and ConfigOptions.current_output_step == 1:
             if ConfigOptions.current_output_step == 1:
                 if MpiConfg.rank == 0:
                     print('We are on the first output timestep.')
