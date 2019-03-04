@@ -46,14 +46,7 @@ class ConfigOptions:
         self.statusMsg = None
         self.logFile = None
         self.logHandle = None
-        self.t2TemporalInterp = None
-        self.q2TemporalInterp = None
-        self.uTemporalInterp = None
-        self.vTemporalInterp = None
-        self.precipTemporalInterp = None
-        self.swTemporalInterp = None
-        self.psfcTemporalInterpo = None
-        self.lwTemporalInterp = None
+        self.forceTemoralInterp = None
         self.d_program_init = datetime.datetime.utcnow()
 
     def read_config(self):
@@ -405,99 +398,28 @@ class ConfigOptions:
         if self.realtime_flag:
             dateMod.calculate_lookback_window(self)
 
+        # Read in temporal interpolation options.
+        try:
+            self.forceTemoralInterp = json.loads(config['Interpolation']['forcingTemporalInterpolation'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate forcingTemporalInterpolation under the Interpolation'
+                                  ' section in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper forcingTemporalInterpolation options specified in the '
+                                  'configuration file.')
+        if len(self.forceTemoralInterp) != self.number_inputs:
+            errMod.err_out_screen('Please specify forcingTemporalInterpolation values for each '
+                                  'corresponding input forcings in the configuration file.')
+        # Ensure the forcingTemporalInterpolation values make sense.
+        for temporalInterpOpt in self.forceTemoralInterp:
+            if temporalInterpOpt < 0 or temporalInterpOpt > 2:
+                errMod.err_out_screen('Invalid forcingTemporalInterpolation chosen in the configuration '
+                                      'file. Please choose a value of 0-2 for each corresponding input '
+                                      'forcing.')
+
         # PLUG FOR READING IN DOWNSCALING OPTIONS
 
         # PLUG FOR READING IN BIAS CORRECTION OPTIONS
-
-        # Read in temporal interpolation options.
-        # Process regridding options.
-        try:
-            self.t2TemporalInterp = json.loads(config['Interpolation']['2mTempTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate 2mTempTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper 2mTempTimeInterp options specified in the configuration file.')
-        if len(self.t2TemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify 2mTempTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.q2TemporalInterp = json.loads(config['Interpolation']['2mQTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate 2mQTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper 2mQTimeInterp options specified in the configuration file.')
-        if len(self.q2TemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify 2mQInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.uTemporalInterp = json.loads(config['Interpolation']['10mUTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate 10mUTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper 10mUTimeInterp options specified in the configuration file.')
-        if len(self.uTemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify 10mUTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.vTemporalInterp = json.loads(config['Interpolation']['10mVTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate 10mVTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper 10mVTimeInterp options specified in the configuration file.')
-        if len(self.vTemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify 10mVTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.swTemporalInterp = json.loads(config['Interpolation']['swTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate swTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper swTimeInterp options specified in the configuration file.')
-        if len(self.swTemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify swTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.lwTemporalInterp = json.loads(config['Interpolation']['lwTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate lwTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper lwTimeInterp options specified in the configuration file.')
-        if len(self.lwTemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify lwTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.precipTemporalInterp = json.loads(config['Interpolation']['precipTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate precipTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper precipTimeInterp options specified in the configuration file.')
-        if len(self.precipTemporalInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify precipTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
-
-        try:
-            self.psfcTemporalInterpo = json.loads(config['Interpolation']['psfcTimeInterp'])
-        except KeyError:
-            errMod.err_out_screen('Unable to locate psfcTimeInterp under the Interpolation section '
-                                  'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper psfcTimeInterp options specified in the configuration file.')
-        if len(self.psfcTemporalInterpo) != self.number_inputs:
-            errMod.err_out_screen('Please specify psfcTimeInterp values for each corresponding input '
-                                  'forcings in the configuration file.')
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 

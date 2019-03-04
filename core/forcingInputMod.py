@@ -7,6 +7,7 @@ initializing ESMF grids and regrid objects), etc
 #import ESMF
 from core import dateMod
 from core import regridMod
+import numpy as np
 
 class input_forcings:
     """
@@ -32,6 +33,9 @@ class input_forcings:
         self.y_lower_bound = None
         self.y_upper_bound = None
         self.cycleFreq = None
+        self.outFreq = None
+        self.regridOpt = None
+        self.timeInterpOpt = None
         self.esmf_lats = None
         self.esmf_lons = None
         self.esmf_grid_in = None
@@ -41,23 +45,19 @@ class input_forcings:
         self.esmf_field_out = None
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None
+        self.final_forcings = None
         self.ndv = None
         self.file_in1 = None
         self.file_in2 = None
         self.fcst_hour1 = None
         self.fcst_hour2 = None
+        self.fcst_date1 = None
+        self.fcst_date2 = None
         self.netcdf_var_names = None
         self.input_map_output = None
         self.grib_levels = None
         self.grib_vars = None
         self.tmpFile = None
-
-    #def read_file(self):
-    #    """
-    #    Function for opening an input file and reading in
-    #    data to a grid.
-    #    :return:
-    #    """
 
     def define_product(self):
         """
@@ -110,19 +110,15 @@ class input_forcings:
         grib_vars_in = {
             1: None,
             2: None,
-            3: ['TMP Temperature [K]','SPFH Specific Humidity [kg/kg]',
-                'UGRD U-Component of Wind [m/s]',
-                'VGRD V-Component of Wind [m/s]',
-                'PRATE Precipitation Rate [kg/m^2/s]',
-                'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
-                'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
-                'PRES Pressure [Pa]'],
+            3: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             4: None,
             5: None,
             6: None,
             7: None,
             8: None,
-            9: None,
+            9: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             10: None
         }
         self.grib_vars = grib_vars_in[self.keyValue]
@@ -138,7 +134,9 @@ class input_forcings:
             6: None,
             7: None,
             8: None,
-            9: None,
+            9:['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             10: None
         }
         self.grib_levels = grib_levels_in[self.keyValue]
@@ -146,19 +144,19 @@ class input_forcings:
         netcdf_variables = {
             1: None,
             2: None,
-            3: ['TMP Temperature [K]','SPFH Specific Humidity [kg/kg]',
-                'UGRD U-Component of Wind [m/s]',
-                'VGRD V-Component of Wind [m/s]',
-                'PRATE Precipitation Rate [kg/m^2/s]',
-                'DSWRF Downward Short-Wave Radiation Flux [W/m^2]',
-                'DLWRF Downward Long-Wave Rad. Flux [W/m^2]',
-                'PRES Pressure [Pa]'],,
+            3: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             4: None,
             5: None,
             6: None,
             7: None,
             8: None,
-            9: None,
+            9: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             10: None
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
@@ -172,10 +170,10 @@ class input_forcings:
             6: None,
             7: None,
             8: None,
-            9: None,
+            9: [4,5,0,1,3,7,2,6],
             10: None
         }
-        self.input_map_output = netcdf_variables[self.keyValue]
+        self.input_map_output = input_matp_to_outputs[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
@@ -216,7 +214,8 @@ class input_forcings:
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
         regrid_inputs = {
-            3: regridMod.regrid_gfs
+            3: regridMod.regrid_gfs,
+            9: regridMod.regrid_gfs
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
@@ -224,6 +223,31 @@ class input_forcings:
         #except:
         #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
         #        "input forcing: " + self.productName
+        #    raise
+
+    def temporal_interpolate_inputs(self,ConfigOptions,MpiConfig):
+        """
+        Polymorphic function that will run temporal interpolation of
+        the input forcing grids that have been regridded. This is
+        especially important for forcings that have large output
+        frequencies. This is also important for frequent WRF-Hydro
+        input timesteps.
+        :param ConfigOptions:
+        :param MpiConfig:
+        :return:
+        """
+        temporal_interpolate_inputs = {
+            0: timeInterpMod.no_interpolation,
+            1: timeInterpMod.nearest_neighbor,
+            2: timeInterpMod.weighted_average
+        }
+        temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
+        #temporal_interpolate_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
+        #try:
+        #    temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
+        #except:
+        #    ConfigOptions.errMsg = "Unable to execute temporal_interpolate_inputs " + \
+        #        " for input forcing: " + self.productName
         #    raise
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
@@ -242,9 +266,19 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         force_key = ConfigOptions.input_forcings[force_tmp]
         InputDict[force_key] = input_forcings()
         InputDict[force_key].keyValue = force_key
+        InputDict[force_key].regridOpt = ConfigOptions.regrid_opt[force_tmp]
+        InputDict[force_key].timeInterpOpt = ConfigOptions.forceTemoralInterp[force_tmp]
         InputDict[force_key].inDir = ConfigOptions.input_force_dirs[force_tmp]
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
+
+        # Initialize the local final grid of values. This is represntative
+        # of the local grid for this forcing, for a specific output timesetp.
+        # This grid will be updated from one output timestep to another, and
+        # also through downscaling and bias correction.
+        InputDict[force_key].final_forcings = np.empty([8,GeoMetaWrfHydro.ny_local,
+                                                        GeoMetaWrfHydro.nx_local],
+                                                       np.float64)
 
     return InputDict
