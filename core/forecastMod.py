@@ -102,23 +102,31 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             else:
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
+                    # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:
                         print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
                         print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
                     #try:
-                    #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    # Regrid forcings.
-                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
-                    sys.exit(1)
-                    #try:
-                    #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
+                    #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
 
-                    # NEED STUBS FOR TEMPORAL INTERPOLATION, DOWNSCALING, BIAS CORRECTION
+                    # Regrid forcings.
+                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                    #try:
+                    #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
+
+                    # Run temporal interpolation on the grids.
+                    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
+                    #try:
+                    #    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
+
+                    # NEED STUBS FOR DOWNSCALING, BIAS CORRECTION, AND FINAL LAYERING
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)

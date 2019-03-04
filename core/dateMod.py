@@ -114,6 +114,7 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     for horizonTmp in gfsOutHorizons:
         if currentGfsHour <= horizonTmp:
             currentGfsFreq = gfsOutFreq[horizonTmp]
+            input_forcings.outFreq = gfsOutFreq[horizonTmp]
             break
     if MpiConfg.rank == 0:
         print("Current GFS output frequency = " + str(currentGfsFreq))
@@ -129,12 +130,14 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         #previousGfsHour = currentGfsHour - int(currentGfsFreq/60.0)
     prevGfsDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
+    input_forcings.fcst_date1 = prevGfsDate
     #print(prevGfsDate)
     if minSinceLastOutput == currentGfsFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentGfsFreq - minSinceLastOutput
     nextGfsDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
+    input_forcings.fcst_date2 = nextGfsDate
     #print(nextGfsDate)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
