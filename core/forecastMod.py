@@ -118,6 +118,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
                     # Regrid forcings.
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
@@ -125,6 +126,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
                     # Run temporal interpolation on the grids.
                     inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
@@ -132,25 +134,28 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
                     # NEED STUBS FOR DOWNSCALING, BIAS CORRECTION, AND FINAL LAYERING
 
                     # Layer input forcings into final output grids. WILL NEED MODIFICATION!!!! This is
                     # for testing purposes, but will be modified into a function later.
                     OutputObj.output_local[:,:,:] = inputForcingMod[forceKey].final_forcings[:,:,:]
+                    MpiConfig.comm.barrier()
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                MpiConfig.comm.barrier()
 
 
-            sys.exit(1)
+            #sys.exit(1)
 
         #sys.exit(1)
 
-
-        # Close the log file.
-        try:
-            errMod.close_log(ConfigOptions)
-        except:
-            errMod.err_out_screen(ConfigOptions.errMsg)
+        if MpiConfig.rank == 0:
+            # Close the log file.
+            try:
+                errMod.close_log(ConfigOptions)
+            except:
+                errMod.err_out_screen(ConfigOptions.errMsg)
 

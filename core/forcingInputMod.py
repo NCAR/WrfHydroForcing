@@ -8,6 +8,7 @@ initializing ESMF grids and regrid objects), etc
 from core import dateMod
 from core import regridMod
 import numpy as np
+from core import timeInterpMod
 
 class input_forcings:
     """
