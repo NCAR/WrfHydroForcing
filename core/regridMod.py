@@ -57,7 +57,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # to NetCDF, read in the data, regrid it, then map it to the apropriate
     # array slice in the output arrays.
     forceCount = 0
-    for forceTmp in input_forcings.netcdf_var_names:
+    for forceTmp in input_forcings.grib_vars:
         # Create a temporary NetCDF file from the GRIB2 file.
         if forceTmp == "PRATE":
             # By far the most complicated of output variables. We need to calculate

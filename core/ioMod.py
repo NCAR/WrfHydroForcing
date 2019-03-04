@@ -158,7 +158,7 @@ class OutputObj:
         for varTmp in output_variable_attribute_dict:
             # Collect data from the various processors, and place into the output file.
             try:
-                final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp],:,:],root=0)
+                final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
             except:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 errMod.err_out(ConfigOptions)
