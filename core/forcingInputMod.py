@@ -170,7 +170,7 @@ class input_forcings:
             9: None,
             10: None
         }
-        self.input_map_output = netcdf_variables[self.keyValue]
+        self.input_map_output = input_matp_to_outputs[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """

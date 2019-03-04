@@ -112,6 +112,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    errMod.err_out(ConfigOptions)
                     # Regrid forcings.
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                    sys.exit(1)
                     #try:
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions)
                     #except:
