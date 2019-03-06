@@ -46,7 +46,21 @@ class ConfigOptions:
         self.statusMsg = None
         self.logFile = None
         self.logHandle = None
+        self.dScaleParamDir = None
         self.forceTemoralInterp = None
+        self.downscaleParamDir = None
+        self.t2dDownscaleOpt = None
+        self.swDownscaleOpt = None
+        self.psfcDownscaleOpt = None
+        self.precipDownscaleOpt = None
+        self.q2dDownscaleOpt = None
+        self.t2BiasCorrectOpt = None
+        self.psfcBiasCorrectOpt = None
+        self.q2BiasCorrectOpt = None
+        self.windBiasCorrect = None
+        self.swBiasCorrectOpt = None
+        self.lwBiasCorrectOpt = None
+        self.precipBiasCorrectOpt = None
         self.d_program_init = datetime.datetime.utcnow()
 
     def read_config(self):
@@ -400,26 +414,237 @@ class ConfigOptions:
 
         # Read in temporal interpolation options.
         try:
-            self.forceTemoralInterp = json.loads(config['Interpolation']['forcingTemporalInterpolation'])
+            self.forceTemoralInterp = json.loads(config['Interpolation']['ForcingTemporalInterpolation'])
         except KeyError:
-            errMod.err_out_screen('Unable to locate forcingTemporalInterpolation under the Interpolation'
+            errMod.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation'
                                   ' section in the configuration file.')
         except json.decoder.JSONDecodeError:
-            errMod.err_out_screen('Improper forcingTemporalInterpolation options specified in the '
+            errMod.err_out_screen('Improper ForcingTemporalInterpolation options specified in the '
                                   'configuration file.')
         if len(self.forceTemoralInterp) != self.number_inputs:
-            errMod.err_out_screen('Please specify forcingTemporalInterpolation values for each '
+            errMod.err_out_screen('Please specify ForcingTemporalInterpolation values for each '
                                   'corresponding input forcings in the configuration file.')
         # Ensure the forcingTemporalInterpolation values make sense.
         for temporalInterpOpt in self.forceTemoralInterp:
             if temporalInterpOpt < 0 or temporalInterpOpt > 2:
-                errMod.err_out_screen('Invalid forcingTemporalInterpolation chosen in the configuration '
+                errMod.err_out_screen('Invalid ForcingTemporalInterpolation chosen in the configuration '
                                       'file. Please choose a value of 0-2 for each corresponding input '
                                       'forcing.')
 
-        # PLUG FOR READING IN DOWNSCALING OPTIONS
+        # Read in the temperature downscaling options.
+        try:
+            self.t2dDownscaleOpt = json.loads(config['Downscaling']['TemperatureDownscaling'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper TemperatureDownscaling options specified in the configuration file.')
+        if len(self.t2dDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Please specify TemperatureDownscaling values for each corresponding'
+                                  ' input forcings in the configuration file.')
+        # Ensure the downscaling options chosen make sense.
+        for optTmp in self.t2dDownscaleOpt:
+            if optTmp < 0 or optTmp > 2:
+                errMod.err_out_screen('Invalid TemperatureDownscaling options specified in the configuration file.')
 
-        # PLUG FOR READING IN BIAS CORRECTION OPTIONS
+        # Read in the pressure downscaling options.
+        try:
+            self.psfcDownscaleOpt = json.loads(config['Downscaling']['PressureDownscaling'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper PressureDownscaling options specified in the configuration file.')
+        if len(self.psfcDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Please specify PressureDownscaling values for each corresponding'
+                                  ' input forcings in the configuration file.')
+        # Ensure the downscaling options chosen make sense.
+        for optTmp in self.psfcDownscaleOpt:
+            if optTmp < 0 or optTmp > 1:
+                errMod.err_out_screen('Invalid PressureDownscaling options specified in the configuration file.')
+
+        # Read in the shortwave downscaling options
+        try:
+            self.swDownscaleOpt = json.loads(config['Downscaling']['ShortwaveDownscaling'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper ShortwaveDownscaling options specified in the configuration file.')
+        if len(self.swDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Please specify ShortwaveDownscaling values for each corresponding'
+                                  ' input forcings in the configuration file.')
+        # Ensure the downscaling options chosen make sense.
+        for optTmp in self.swDownscaleOpt:
+            if optTmp < 0 or optTmp > 1:
+                errMod.err_out_screen('Invalid ShortwaveDownscaling options specified in the configuration file.')
+
+        # Read in the precipitation downscaling options
+        try:
+            self.precipDownscaleOpt = json.loads(config['Downscaling']['PrecipDownscaling'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PrecipDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper PrecipDownscaling options specified in the configuration file.')
+        if len(self.precipDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Please specify PrecipDownscaling values for each corresponding'
+                                  ' input forcings in the configuration file.')
+        # Ensure the downscaling options chosen make sense.
+        for optTmp in self.precipDownscaleOpt:
+            if optTmp < 0 or optTmp > 1:
+                errMod.err_out_screen('Invalid PrecipDownscaling options specified in the configuration file.')
+
+        # Read in humidity downscaling options.
+        try:
+            self.q2dDownscaleOpt = json.loads(config['Downscaling']['HumidityDownscaling'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper HumidityDownscaling options specified in the configuration file.')
+        if len(self.q2dDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Please specify HumidityDownscaling values for each corresponding'
+                                  ' input forcings in the configuration file.')
+        # Ensure the downscaling options chosen make sense.
+        for optTmp in self.q2dDownscaleOpt:
+            if optTmp < 0 or optTmp > 1:
+                errMod.err_out_screen('Invalid HumidityDownscaling options specified in the configuration file.')
+
+        # Read in the downscaling parameter directory.
+        # HOW TO CHECK AGAINST OPTIONS??????
+        try:
+            self.dScaleParamDir = config['Downscaling']['DownscalingParamDir']
+        except KeyError:
+            errMod.err_out_screen('Unable to locate DownscalingParamDir in the configuration file.')
+        except ValueError:
+            errMod.err_out_screen('Improper DownscalingParamDir specified in the configuration file.')
+
+        # Read in temperature bias correction options
+        try:
+            self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper TemperatureBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.t2BiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify TemperatureBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.t2BiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in surface pressure bias correction options.
+        try:
+            self.psfcBiasCorrectOpt = json.loads(config['BiasCorrection']['PressureBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PressureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper PressureBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.psfcDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify PressureBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.psfcBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid PressureBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in humidity bias correction options.
+        try:
+            self.q2BiasCorrectOpt = json.loads(config['BiasCorrection']['HumidityBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate HumidityBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper HumdityBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.q2BiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify HumidityBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.q2BiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in wind bias correction options.
+        try:
+            self.windBiasCorrect = json.loads(config['BiasCorrection']['WindBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate WindBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper WindBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.windBiasCorrect) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify WindBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.windBiasCorrect:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid WindBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in shortwave radiation bias correction options.
+        try:
+            self.swBiasCorrectOpt = json.loads(config['BiasCorrection']['SwBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate SwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper SwBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.swBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify SwBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.swBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid SwBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in longwave radiation bias correction options.
+        try:
+            self.lwBiasCorrectOpt = json.loads(config['BiasCorrection']['LwBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate LwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper LwBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.lwBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify LwBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.lwBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid LwBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in precipitation bias correction options.
+        try:
+            self.precipBiasCorrectOpt = json.loads(config['BiasCorrection']['PrecipBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PrecipBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper PrecipBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.precipBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify PrecipBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.precipBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid PrecipBiasCorrection options specified in the '
+                                      'configuration file.')
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 

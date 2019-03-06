@@ -88,6 +88,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         print(ConfigOptions.errMsg)
         raise Exception
 
+    if MpiConfg.rank == 0:
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
     # First determine if we need a previous file or not. For hourly files,
     # only need the previous file if it's not the first hour after a new GFS cycle
     # (I.E. 7z, 13z, 19z, 1z). Any other hourly timestep requires the previous hourly data
@@ -121,9 +123,10 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentGfsHour*60)%currentGfsFreq
-    #print(currentGfsHour)
-    #print(currentGfsFreq)
-    #print(minSinceLastOutput)
+    if MpiConfg.rank == 0:
+        print(currentGfsHour)
+        print(currentGfsFreq)
+        print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = currentGfsFreq
         #currentGfsHour = currentGfsHour
@@ -131,24 +134,29 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     prevGfsDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
     input_forcings.fcst_date1 = prevGfsDate
-    #print(prevGfsDate)
+    if MpiConfg.rank == 0:
+        print(prevGfsDate)
     if minSinceLastOutput == currentGfsFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentGfsFreq - minSinceLastOutput
     nextGfsDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
     input_forcings.fcst_date2 = nextGfsDate
-    #print(nextGfsDate)
+    if MpiConfg.rank == 0:
+        print(nextGfsDate)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextGfsDate - currentGfsCycle
-    #print(currentGfsCycle)
+    if MpiConfg.rank == 0:
+        print(currentGfsCycle)
     nextGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    #print(nextGfsForecastHour)
+    if MpiConfg.rank == 0:
+        print(nextGfsForecastHour)
     input_forcings.fcst_hour2 = nextGfsForecastHour
     dtTmp = prevGfsDate - currentGfsCycle
     prevGfsForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    #print(prevGfsForecastHour)
+    if MpiConfg.rank == 0:
+        print(prevGfsForecastHour)
     input_forcings.fcst_hour1 = prevGfsForecastHour
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
@@ -161,16 +169,19 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
         str(prevGfsForecastHour).zfill(2) + '.grib2'
-    #print(tmpFile1)
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/gfs.' + \
         currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
         currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
         str(nextGfsForecastHour).zfill(2) + '.grib2'
-    #print(tmpFile2)
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
-    if input_forcings.file_in1 != tmpFile1 and input_forcings.file_in2 != tmpFile2:
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
@@ -182,8 +193,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             if ConfigOptions.current_output_step == 1:
                 if MpiConfg.rank == 0:
                     print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = None
-                input_forcings.regridded_forcings2 = None
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
             else:
                 # The GFS window has shifted. Reset fields 2 to
                 # be fields 1.

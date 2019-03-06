@@ -2,7 +2,7 @@ from core import errMod
 import datetime
 import os
 import sys
-from core import ioMod
+from core import downscaleMod
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
     """
@@ -80,6 +80,9 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         for outStep in range(1,ConfigOptions.num_output_steps+1):
+            # Reset out final grids to missing values.
+            OutputObj.output_local[:,:,:] = -9999.0
+
             ConfigOptions.current_output_step = outStep
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
@@ -102,6 +105,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             else:
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
+                    # Reset the final grids for this forcing product in anticipation of processing
+                    # for this time step.
+                    inputForcingMod[forceKey].final_forcings[:,:,:] = -9999.0
+
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:
@@ -111,6 +118,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
                     # Regrid forcings.
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
@@ -118,6 +126,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
                     # Run temporal interpolation on the grids.
                     inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
@@ -125,21 +134,37 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
 
-                    # NEED STUBS FOR DOWNSCALING, BIAS CORRECTION, AND FINAL LAYERING
+                    # Run downscaling on grids for this output timestep.
+                    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #try:
+                    #    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
+
+
+                    # NEED STUBS FOR BIAS CORRECTION, AND FINAL LAYERING
+
+
+                    # Layer input forcings into final output grids. WILL NEED MODIFICATION!!!! This is
+                    # for testing purposes, but will be modified into a function later.
+                    OutputObj.output_local[:,:,:] = inputForcingMod[forceKey].final_forcings[:,:,:]
+                    MpiConfig.comm.barrier()
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                MpiConfig.comm.barrier()
 
 
-            sys.exit(1)
+            #sys.exit(1)
 
         #sys.exit(1)
 
-
-        # Close the log file.
-        try:
-            errMod.close_log(ConfigOptions)
-        except:
-            errMod.err_out_screen(ConfigOptions.errMsg)
+        if MpiConfig.rank == 0:
+            # Close the log file.
+            try:
+                errMod.close_log(ConfigOptions)
+            except:
+                errMod.err_out_screen(ConfigOptions.errMsg)
 
