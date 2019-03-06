@@ -97,6 +97,39 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                               forceCount, input_forcings, idTmp)
         MpiConfig.comm.barrier()
 
+        # Check to see if we need to read in the height field from GFS. If
+        # the grid has not been read in (None type), then read it in, and regrid
+        # it to the WRF-Hydro domain. If the grid has changed, we also need to
+        # re-read in the height field as that has changed as well.
+        if calcRegridFlag:
+            print("READING IN GFS HEIGHT FIELD")
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+                " -netcdf " + input_forcings.tmpFileHeight
+            idTmpHeight = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFileHeight,
+                                           cmd,ConfigOptions,MpiConfig,'BLAH')
+            MpiConfig.comm.barrier()
+
+            # Regrid the height variable.
+            if MpiConfig.rank == 0:
+                varTmp = idTmp.variables['BLAH']
+            else:
+                varTmp = None
+            MpiConfig.comm.barrier()
+
+            varSubTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
+            MpiConfig.comm.barrier()
+
+            input_forcings.esmf_field_in.data[:,:] = varSubTmp
+            MpiConfig.comm.barrier()
+
+            print("REGRIDDING GFS HEIGHT FIELD")
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+            MpiConfig.comm.barrier()
+
+            input_forcings.height[:,:] = input_forcings.esmf_field_out.data
+            MpiConfig.comm.barrier()
+
         # Regrid the input variables.
         if MpiConfig.rank == 0:
             print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])

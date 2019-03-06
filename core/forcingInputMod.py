@@ -4,12 +4,12 @@ parameters in all input forcing products. These parameters
 include things such as file types, grid definitions (including
 initializing ESMF grids and regrid objects), etc
 """
-#import ESMF
 from core import dateMod
 from core import regridMod
 import numpy as np
 from core import timeInterpMod
 import os
+from core import errMod
 
 class input_forcings:
     """
@@ -67,11 +67,14 @@ class input_forcings:
         self.fcst_hour2 = None
         self.fcst_date1 = None
         self.fcst_date2 = None
+        #self.heightLocal = None
+        self.height = None
         self.netcdf_var_names = None
         self.input_map_output = None
         self.grib_levels = None
         self.grib_vars = None
         self.tmpFile = None
+        self.tmpFileHeight = None
 
     def define_product(self):
         """
@@ -288,6 +291,15 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].precipDownscaleOpt = ConfigOptions.precipDownscaleOpt[force_tmp]
         InputDict[force_key].swDowscaleOpt = ConfigOptions.swDownscaleOpt[force_tmp]
         InputDict[force_key].psfcDownscaleOpt = ConfigOptions.psfcDownscaleOpt[force_tmp]
+        # Check to make sure the necessary input files for downscaling are present.
+        if InputDict[force_key].t2dDownscaleOpt == 2:
+            # We are using a pre-calculated lapse rate on the WRF-Hydro grid.
+            pathCheck = ConfigOptions.downscaleParamDir = "/T2M_Lapse_Rate_" + \
+                InputDict[force_key].productName + ".nc"
+            if not os.path.isfile(pathCheck):
+                ConfigOptions.errMsg = "Expected temperature lapse rate grid: " + \
+                    pathCheck + " not found."
+                errMod.err_out_screen(ConfigOptions.errMsg)
 
         InputDict[force_key].t2dBiasCorrectOpt = ConfigOptions.t2BiasCorrectOpt[force_tmp]
         InputDict[force_key].q2dBiasCorrectOpt = ConfigOptions.q2BiasCorrectOpt[force_tmp]

@@ -56,3 +56,16 @@ def no_downscale(input_forcings,ConfigOptions):
     :return:
     """
     input_forcings.final_forcings = input_forcings.final_forcings
+
+def mcar_topo_adj(input_forcings,ConfigOptions):
+    """
+    Topographic adjustment of incoming shortwave radiation fluxes,
+    given input parameters.
+    :param input_forcings:
+    :param ConfigOptions:
+    :return:
+    """
+    # First, if the global height grid has been reset to None,
+    # collect the slabs back to the master processor for pre-processing
+    # of necessary parameters.
+
