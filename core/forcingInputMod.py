@@ -43,6 +43,13 @@ class input_forcings:
         self.precipDownscaleOpt = None
         self.q2dDownscaleOpt = None
         self.psfcDownscaleOpt = None
+        self.t2dBiasCorrectOpt = None
+        self.swBiasCorrectOpt = None
+        self.precipBiasCorrectOpt = None
+        self.q2dBiasCorrectOpt = None
+        self.windBiasCorrectOpt = None
+        self.psfcBiasCorrectOpt = None
+        self.lwBiasCorrectOpt = None
         self.esmf_lats = None
         self.esmf_lons = None
         self.esmf_grid_in = None
@@ -275,11 +282,21 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].keyValue = force_key
         InputDict[force_key].regridOpt = ConfigOptions.regrid_opt[force_tmp]
         InputDict[force_key].timeInterpOpt = ConfigOptions.forceTemoralInterp[force_tmp]
+
         InputDict[force_key].q2dDownscaleOpt = ConfigOptions.q2dDownscaleOpt[force_tmp]
         InputDict[force_key].t2dDownscaleOpt = ConfigOptions.t2dDownscaleOpt[force_tmp]
         InputDict[force_key].precipDownscaleOpt = ConfigOptions.precipDownscaleOpt[force_tmp]
         InputDict[force_key].swDowscaleOpt = ConfigOptions.swDownscaleOpt[force_tmp]
         InputDict[force_key].psfcDownscaleOpt = ConfigOptions.psfcDownscaleOpt[force_tmp]
+
+        InputDict[force_key].t2dBiasCorrectOpt = ConfigOptions.t2BiasCorrectOpt[force_tmp]
+        InputDict[force_key].q2dBiasCorrectOpt = ConfigOptions.q2BiasCorrectOpt[force_tmp]
+        InputDict[force_key].precipBiasCorrectOpt = ConfigOptions.precipBiasCorrectOpt[force_tmp]
+        InputDict[force_key].swBiasCorrectOpt = ConfigOptions.swBiasCorrectOpt[force_tmp]
+        InputDict[force_key].lwBiasCorrectOpt = ConfigOptions.lwBiasCorrectOpt[force_tmp]
+        InputDict[force_key].windBiasCorrectOpt = ConfigOptions.windBiasCorrect[force_tmp]
+        InputDict[force_key].psfcBiasCorrectOpt = ConfigOptions.psfcBiasCorrectOpt[force_tmp]
+
         InputDict[force_key].inDir = ConfigOptions.input_force_dirs[force_tmp]
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]

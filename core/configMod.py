@@ -54,6 +54,13 @@ class ConfigOptions:
         self.psfcDownscaleOpt = None
         self.precipDownscaleOpt = None
         self.q2dDownscaleOpt = None
+        self.t2BiasCorrectOpt = None
+        self.psfcBiasCorrectOpt = None
+        self.q2BiasCorrectOpt = None
+        self.windBiasCorrect = None
+        self.swBiasCorrectOpt = None
+        self.lwBiasCorrectOpt = None
+        self.precipBiasCorrectOpt = None
         self.d_program_init = datetime.datetime.utcnow()
 
     def read_config(self):
@@ -513,7 +520,131 @@ class ConfigOptions:
         except ValueError:
             errMod.err_out_screen('Improper DownscalingParamDir specified in the configuration file.')
 
-        # PLUG FOR READING IN BIAS CORRECTION OPTIONS
+        # Read in temperature bias correction options
+        try:
+            self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper TemperatureBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.t2BiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify TemperatureBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.t2BiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in surface pressure bias correction options.
+        try:
+            self.psfcBiasCorrectOpt = json.loads(config['BiasCorrection']['PressureBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PressureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper PressureBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.psfcDownscaleOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify PressureBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.psfcBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid PressureBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in humidity bias correction options.
+        try:
+            self.q2BiasCorrectOpt = json.loads(config['BiasCorrection']['HumidityBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate HumidityBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper HumdityBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.q2BiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify HumidityBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.q2BiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in wind bias correction options.
+        try:
+            self.windBiasCorrect = json.loads(config['BiasCorrection']['WindBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate WindBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper WindBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.windBiasCorrect) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify WindBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.windBiasCorrect:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid WindBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in shortwave radiation bias correction options.
+        try:
+            self.swBiasCorrectOpt = json.loads(config['BiasCorrection']['SwBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate SwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper SwBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.swBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify SwBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.swBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid SwBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in longwave radiation bias correction options.
+        try:
+            self.lwBiasCorrectOpt = json.loads(config['BiasCorrection']['LwBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate LwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper LwBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.lwBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify LwBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.lwBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid LwBiasCorrection options specified in the '
+                                      'configuration file.')
+
+        # Read in precipitation bias correction options.
+        try:
+            self.precipBiasCorrectOpt = json.loads(config['BiasCorrection']['PrecipBiasCorrection'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate PrecipBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except json.JSONDecodeError:
+            errMod.err_out_screen('Improper PrecipBiasCorrection options specified in '
+                                  'the configuration file.')
+        if len(self.precipBiasCorrectOpt) != self.number_inputs:
+            errMod.err_out_screen('Pleaes specify PrecipBiasCorrection values for each corresponding '
+                                  'input forcings in the configuration file.')
+        # Ensure the bias correction options chosen make sense.
+        for optTmp in self.precipBiasCorrectOpt:
+            if optTmp < 0 or optTmp > 0:
+                errMod.err_out_screen('Invalid PrecipBiasCorrection options specified in the '
+                                      'configuration file.')
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 
