@@ -2,7 +2,7 @@ from core import errMod
 import datetime
 import os
 import sys
-from core import ioMod
+from core import downscaleMod
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
     """
@@ -136,7 +136,16 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    errMod.err_out(ConfigOptions)
                     MpiConfig.comm.barrier()
 
-                    # NEED STUBS FOR DOWNSCALING, BIAS CORRECTION, AND FINAL LAYERING
+                    # Run downscaling on grids for this output timestep.
+                    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #try:
+                    #    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
+
+
+                    # NEED STUBS FOR BIAS CORRECTION, AND FINAL LAYERING
+
 
                     # Layer input forcings into final output grids. WILL NEED MODIFICATION!!!! This is
                     # for testing purposes, but will be modified into a function later.
