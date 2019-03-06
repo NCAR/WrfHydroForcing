@@ -65,7 +65,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             if input_forcings.fcst_hour2 <= 240:
                 tmpHrCurrent = input_forcings.fcst_hour2
                 diffTmp = tmpHrCurrent%6
-                if diffTmp == 6:
+                if diffTmp == 0:
                     tmpHrPrevious = tmpHrCurrent - 6
                 else:
                     tmpHrPrevious = tmpHrCurrent - diffTmp
