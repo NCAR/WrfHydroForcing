@@ -1,5 +1,6 @@
 from mpi4py import MPI
 import os
+from core import errMod
 import numpy as np
 
 class MpiConfig:
