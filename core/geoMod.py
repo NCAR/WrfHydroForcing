@@ -223,6 +223,8 @@ class GeoMetaWrfHydro:
             slp_azi_tmp = None
         MpiConfig.comm.barrier()
 
+        print("CALCULATED SLOPE")
+        sys.exit(1)
         slopeSubTmp = MpiConfig.scatter_array(self,slopeTmp,ConfigOptions)
         self.slope = slopeSubTmp[:,:]
         slopeSubTmp = None
