@@ -258,7 +258,7 @@ class GeoMetaWrfHydro:
             raise
 
         try:
-            cosaGrid = idTmp.variables['COSALPH'][0,:,:]
+            cosaGrid = idTmp.variables['COSALPHA'][0,:,:]
         except:
             ConfigOptions.errMsg = "Unable to extract COSALPHA from: " + ConfigOptions.geogrid
             raise
