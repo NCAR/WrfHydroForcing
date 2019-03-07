@@ -23,6 +23,7 @@ class GeoMetaWrfHydro:
         self.y_upper_bound = None
         self.latitude_grid = None
         self.longitude_grid = None
+        self.height = None
         self.sina_grid = None
         self.cosa_grid = None
         self.slope = None
@@ -196,6 +197,20 @@ class GeoMetaWrfHydro:
         varSubTmp = None
         varTmp = None
 
+        # Read in a scatter the WRF-Hydro elevation, which is used for downscaling
+        # purposes.
+        if MpiConfig.rank == 0:
+            varTmp = idTmp.variables['HGT_M'][0, :, :]
+        else:
+            varTmp = None
+        MpiConfig.comm.barrier()
+
+        varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
+        MpiConfig.comm.barrier()
+        self.height[:,:] = varSubTmp
+        varSubTmp = None
+        varTmp = None
+
         # Calculate the slope from the domain using elevation on the WRF-Hydro domain. This will
         # be used for downscaling purposes.
         if MpiConfig.rank == 0:
@@ -257,13 +272,13 @@ class GeoMetaWrfHydro:
         # Ensure cosa/sina are correct dimensions
         if sinaGrid.shape[0] != self.ny_global or sinaGrid.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "SINALPHA dimensions mismatch in: " + ConfigOptions.geogrid
-            raise
+            raise Exception()
         if cosaGrid.shape[0] != self.ny_global or cosaGrid.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "COSALPHA dimensions mismatch in: " + ConfigOptions.geogrid
-            raise
+            raise Exception ()
         if heightDest.shape[0] != self.ny_global or heightDest.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "HGT_M dimension mismatch in: " + ConfigOptions.geogrid
-            raise
+            raise Exception()
 
         # Establish constants
         rdx = 1.0/self.dx_meters
@@ -274,7 +289,7 @@ class GeoMetaWrfHydro:
         slopeOut = np.empty([self.ny_global,self.nx_global],np.float32)
         toposlpx = np.empty([self.ny_global,self.nx_global],np.float32)
         toposlpy = np.empty([self.ny_global,self.nx_global],np.float32)
-        slp_azi = np.empty([ny, nx], np.float32)
+        slp_azi = np.empty([self.ny_global, self.nx_global], np.float32)
 
         for j in range(0,self.ny_global):
             for i in range(0,self.nx_global):

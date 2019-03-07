@@ -27,10 +27,12 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
     if MpiConfig.rank == 0:
         print("REGRID STATUS = " + str(input_forcings.regridComplete))
-    # Create a path for a temporary NetCDF file that will
+    # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
         "GFS_TMP.nc"
+    input_forcings.tmpFileHeight = ConfigOptions.scratch_dir + "/" + \
+                                   "GFS_TMP_HEIGHT.nc"
 
     MpiConfig.comm.barrier()
 
@@ -104,14 +106,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if calcRegridFlag:
             print("READING IN GFS HEIGHT FIELD")
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+                "\":(HGT):(surface):\" " + \
                 " -netcdf " + input_forcings.tmpFileHeight
             idTmpHeight = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFileHeight,
-                                           cmd,ConfigOptions,MpiConfig,'BLAH')
+                                           cmd,ConfigOptions,MpiConfig,'HGT_surface')
             MpiConfig.comm.barrier()
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                varTmp = idTmp.variables['BLAH']
+                varTmp = idTmpHeight.variables['HGT_surface']
             else:
                 varTmp = None
             MpiConfig.comm.barrier()
@@ -129,6 +132,19 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             input_forcings.height[:,:] = input_forcings.esmf_field_out.data
             MpiConfig.comm.barrier()
+
+            # Close the temporary NetCDF file and remove it.
+            try:
+                idTmpHeight.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                raise Exception()
+
+            try:
+                os.remove(input_forcings.tmpFileHeight)
+            except:
+                ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                raise Exception()
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
