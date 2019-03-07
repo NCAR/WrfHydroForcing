@@ -181,7 +181,7 @@ class GeoMetaWrfHydro:
 
         varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
         MpiConfig.comm.barrier()
-        self.cosa_grid[:,:] = varSubTmp[:,:]
+        self.cosa_grid = varSubTmp[:,:]
         varSubTmp = None
         varTmp = None
 
@@ -193,7 +193,7 @@ class GeoMetaWrfHydro:
 
         varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
         MpiConfig.comm.barrier()
-        self.sina_grid[:, :] = varSubTmp[:, :]
+        self.sina_grid = varSubTmp[:, :]
         varSubTmp = None
         varTmp = None
 
@@ -207,7 +207,7 @@ class GeoMetaWrfHydro:
 
         varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
         MpiConfig.comm.barrier()
-        self.height[:,:] = varSubTmp
+        self.height = varSubTmp
         varSubTmp = None
         varTmp = None
 
@@ -224,12 +224,12 @@ class GeoMetaWrfHydro:
         MpiConfig.comm.barrier()
 
         slopeSubTmp = MpiConfig.scatter_array(self,slopeTmp,ConfigOptions)
-        self.slope[:,:] = slopeSubTmp[:,:]
+        self.slope = slopeSubTmp[:,:]
         slopeSubTmp = None
         MpiConfig.comm.barrier()
 
         slp_azi_sub = MpiConfig.scatter_array(self,slp_azi_tmp,ConfigOptions)
-        self.slp_azi[:,:] = slp_azi_sub[:,:]
+        self.slp_azi = slp_azi_sub[:,:]
         slp_azi_tmp = None
         MpiConfig.comm.barrier()
 
