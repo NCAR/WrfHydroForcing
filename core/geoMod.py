@@ -310,7 +310,7 @@ class GeoMetaWrfHydro:
         indIp1[1][np.where(indIp1[1] >= self.nx_global)] = self.nx_global - 1
         indJp1[0][np.where(indJp1[0] >= self.ny_global)] = self.ny_global - 1
         indIm1[1][np.where(indIm1[1] < 0)] = 0
-        indJm1[1][np.where(indJm1[1] < 0)] = 0
+        indJm1[0][np.where(indJm1[0] < 0)] = 0
 
         ipDiff[indOrig] = xGrid[indIp1] - xGrid[indIm1]
         jpDiff[indOrig] = yGrid[indJp1] - yGrid[indJm1]
@@ -319,7 +319,7 @@ class GeoMetaWrfHydro:
         toposlpy[indOrig] = ((heightDest[indJp1] - heightDest[indJm1]) * msfty * rdy)/jpDiff[indOrig]
         hx[indOrig] = toposlpx[indOrig]
         hy[indOrig] = toposlpy[indOrig]
-        slopeOut[indOrig] = np.arctan((hx ** 2 + hy **2) ** 0.5)
+        slopeOut[indOrig] = np.arctan((hx[indOrig] ** 2 + hy[indOrig] **2) ** 0.5)
         slopeOut[np.where(slopeOut < 1E-4)] = 0.0
         slp_azi[np.where(slopeOut < 1E-4)] = 0.0
         indValidTmp = np.where(slopeOut >= 1E-4)
@@ -327,35 +327,6 @@ class GeoMetaWrfHydro:
         indValidTmp = np.where(cosaGrid >= 0.0)
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - np.arcsin(sinaGrid[indValidTmp])
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - (math.pi - np.arcsin(sinaGrid[indValidTmp]))
-
-
-        #for j in range(0,self.ny_global):
-        #    for i in range(0,self.nx_global):
-        #        im1 = i - 1
-        #        ip1 = i + 1
-        #        jm1 = j - 1
-        #        jp1 = j + 1
-        #        if im1 < 0:
-        #            im1 = 0
-        #        if jm1 < 0:
-        #            jm1 = 0
-        #        if ip1 >= self.nx_global:
-        #            ip1 = self.nx_global - 1
-        #        if jp1 >= self.ny_global:
-        #            jp1 = self.ny_global - 1
-        #        toposlpx[j, i] = ((heightDest[j, ip1] - heightDest[j, im1]) * msftx * rdx) / (ip1 - im1)
-        #        toposlpy[j, i] = ((heightDest[jp1, i] - heightDest[jm1, i]) * msfty * rdy) / (jp1 - jm1)
-        #        hx = toposlpx[j, i]
-        #        hy = toposlpy[j, i]
-        #        slopeOut[j, i] = math.atan((hx ** 2 + hy ** 2) ** 0.5)
-        #        if slopeOut[j, i] < 1E-4:
-        #            slopeOut[j,i] = 0.0
-        #            slp_azi[j,i] = 0.0
-        #        else:
-        #            slp_azi[j,i] = math.atan2(hx,hy) + math.pi
-        #        if cosaGrid[j,i] >= 0.0:
-        #            slp_azi[j, i] = slp_azi[j, i] - math.asin(sinaGrid[j, i])
-        #            slp_azi[j, i] = slp_azi[j, i] - (math.pi - math.asin(sinaGrid[j, i]))
 
         # Test outputting of grids for debugging purposes.
         idTest = Dataset('test_slope.nc','w')
