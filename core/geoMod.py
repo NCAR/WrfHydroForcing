@@ -292,34 +292,81 @@ class GeoMetaWrfHydro:
         toposlpx = np.empty([self.ny_global,self.nx_global],np.float32)
         toposlpy = np.empty([self.ny_global,self.nx_global],np.float32)
         slp_azi = np.empty([self.ny_global, self.nx_global], np.float32)
+        ipDiff = np.empty([self.ny_global, self.nx_global], np.int32)
+        jpDiff = np.empty([self.ny_global, self.nx_global], np.int32)
+        hx = np.empty([self.ny_global,self.nx_global],np.float32)
+        hy = np.empty([self.ny_global,self.nx_global],np.float32)
 
-        for j in range(0,self.ny_global):
-            for i in range(0,self.nx_global):
-                im1 = i - 1
-                ip1 = i + 1
-                jm1 = j - 1
-                jp1 = j + 1
-                if im1 < 0:
-                    im1 = 0
-                if jm1 < 0:
-                    jm1 = 0
-                if ip1 >= self.nx_global:
-                    ip1 = self.nx_global - 1
-                if jp1 >= self.ny_global:
-                    jp1 = self.ny_global - 1
-                toposlpx[j, i] = ((heightDest[j, ip1] - heightDest[j, im1]) * msftx * rdx) / (ip1 - im1)
-                toposlpy[j, i] = ((heightDest[jp1, i] - heightDest[jm1, i]) * msfty * rdy) / (jp1 - jm1)
-                hx = toposlpx[j, i]
-                hy = toposlpy[j, i]
-                slopeOut[j, i] = math.atan((hx ** 2 + hy ** 2) ** 0.5)
-                if slopeOut[j, i] < 1E-4:
-                    slopeOut[j,i] = 0.0
-                    slp_azi[j,i] = 0.0
-                else:
-                    slp_azi[j,i] = math.atan2(hx,hy) + math.pi
-                if cosaGrid[j,i] >= 0.0:
-                    slp_azi[j, i] = slp_azi[j, i] - math.asin(sinaGrid[j, i])
-                    slp_azi[j, i] = slp_azi[j, i] - (math.pi - math.asin(sinaGrid[j, i]))
+        # Create index arrays that will be used to calculate slope.
+        xTmp = np.arange(self.nx_global)
+        yTmp = np.arange(self.ny_global)
+        xGrid = np.tile(xTmp[:], (self.ny_global, 1))
+        yGrid = np.repeat(yTmp[:, np.newaxis], self.nx_global, axis=1)
+        indOrig = np.where(heightDest == heightDest)
+        indIp1 = ((indOrig[0]), (indOrig[1] + 1))
+        indIm1 = ((indOrig[0]), (indOrig[1] - 1))
+        indJp1 = ((indOrig[0] + 1), (indOrig[1]))
+        indJm1 = ((indOrig[0] - 1), (indOrig[1]))
+        indIp1[1][np.where(indIp1[1] >= self.nx_global)] = self.nx_global - 1
+        indJp1[0][np.where(indJp1[0] >= self.ny_global)] = self.ny_global - 1
+        indIm1[1][np.where(indIm1[1] < 0)] = 0
+        indJm1[1][np.where(indJm1[1] < 0)] = 0
+
+        ipDiff[indOrig] = xGrid[indIp1] - xGrid[indIm1]
+        jpDiff[indOrig] = yGrid[indJp1] - yGrid[indJm1]
+
+        toposlpx[indOrig] = ((heightDest[indIp1] - heightDest[indIm1]) * msftx * rdx)/ipDiff[indOrig]
+        toposlpy[indOrig] = ((heightDest[indJp1] - heightDest[indJm1]) * msfty * rdy)/jpDiff[indOrig]
+        hx[indOrig] = toposlpx[indOrig]
+        hy[indOrig] = toposlpy[indOrig]
+        slopeOut[indOrig] = np.arctan((hx ** 2 + hy **2) ** 0.5)
+        slopeOut[np.where(slopeOut < 1E-4)] = 0.0
+        slp_azi[np.where(slopeOut < 1E-4)] = 0.0
+        indValidTmp = np.where(slopeOut >= 1E-4)
+        slp_azi[indValidTmp] = np.arctan2(hx[indValidTmp],hy[indValidTmp]) + math.pi
+        indValidTmp = np.where(cosaGrid >= 0.0)
+        slp_azi[indValidTmp] = slp_azi[indValidTmp] - np.arcsin(sinaGrid[indValidTmp])
+        slp_azi[indValidTmp] = slp_azi[indValidTmp] - (math.pi - np.arcsin(sinaGrid[indValidTmp]))
+
+
+        #for j in range(0,self.ny_global):
+        #    for i in range(0,self.nx_global):
+        #        im1 = i - 1
+        #        ip1 = i + 1
+        #        jm1 = j - 1
+        #        jp1 = j + 1
+        #        if im1 < 0:
+        #            im1 = 0
+        #        if jm1 < 0:
+        #            jm1 = 0
+        #        if ip1 >= self.nx_global:
+        #            ip1 = self.nx_global - 1
+        #        if jp1 >= self.ny_global:
+        #            jp1 = self.ny_global - 1
+        #        toposlpx[j, i] = ((heightDest[j, ip1] - heightDest[j, im1]) * msftx * rdx) / (ip1 - im1)
+        #        toposlpy[j, i] = ((heightDest[jp1, i] - heightDest[jm1, i]) * msfty * rdy) / (jp1 - jm1)
+        #        hx = toposlpx[j, i]
+        #        hy = toposlpy[j, i]
+        #        slopeOut[j, i] = math.atan((hx ** 2 + hy ** 2) ** 0.5)
+        #        if slopeOut[j, i] < 1E-4:
+        #            slopeOut[j,i] = 0.0
+        #            slp_azi[j,i] = 0.0
+        #        else:
+        #            slp_azi[j,i] = math.atan2(hx,hy) + math.pi
+        #        if cosaGrid[j,i] >= 0.0:
+        #            slp_azi[j, i] = slp_azi[j, i] - math.asin(sinaGrid[j, i])
+        #            slp_azi[j, i] = slp_azi[j, i] - (math.pi - math.asin(sinaGrid[j, i]))
+
+        # Test outputting of grids for debugging purposes.
+        idTest = Dataset('test_slope.nc','w')
+        idTest.createDimension('south_north',self.ny_global)
+        idTest.createDimension('east_west',self.nx_global)
+        idTest.createVariable('slope',np.float32,('south_north','east_west'))
+        idTest.createVariable('slp_azi',np.float32,('south_north','east_west'))
+        idTest.variables['slope'][:,:] = slopeOut
+        idTest.variables['slp_azi'][:,:] = slp_azi
+        idTest.close()
+
 
         # Reset temporary arrays to None to free up memory
         toposlpx = None
@@ -327,6 +374,19 @@ class GeoMetaWrfHydro:
         heightDest = None
         sinaGrid = None
         cosaGrid = None
+        indValidTmp = None
+        xTmp = None
+        yTmp = None
+        xGrid = None
+        ipDiff = None
+        jpDiff = None
+        indOrig = None
+        indJm1 = None
+        indJp1 = None
+        indIm1 = None
+        indIp1 = None
+        hx = None
+        hy = None
 
         return slopeOut,slp_azi
 
