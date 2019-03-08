@@ -97,13 +97,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 print('CALCULATING WEIGHTS')
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
-        MpiConfig.comm.barrier()
 
-        # Check to see if we need to read in the height field from GFS. If
-        # the grid has not been read in (None type), then read it in, and regrid
-        # it to the WRF-Hydro domain. If the grid has changed, we also need to
-        # re-read in the height field as that has changed as well.
-        if calcRegridFlag:
+            # Read in the GFS height field, which is used for downscaling purposes.
             print("READING IN GFS HEIGHT FIELD")
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
                 "\":(HGT):(surface):\" " + \
@@ -145,6 +140,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             except:
                 ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
                 raise Exception()
+
+        MpiConfig.comm.barrier()
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
