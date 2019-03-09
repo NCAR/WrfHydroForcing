@@ -450,12 +450,12 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         # Process lat/lon values from the GFS grid.
         if len(idTmp.variables['latitude'].shape) == 3:
             # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
+            latTmp = idTmp.variables['latitude'][0, :, :]
+            lonTmp = idTmp.variables['longitude'][0, :, :]
         elif len(idTmp.variables['longitude'].shape) == 2:
             # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][:, :]
-            lonTmp = id.variables['longitude'][:, :]
+            latTmp = idTmp.variables['latitude'][:, :]
+            lonTmp = idTmp.variables['longitude'][:, :]
         elif len(idTmp.variables['latitude'].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
