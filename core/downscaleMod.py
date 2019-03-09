@@ -129,7 +129,9 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     relHum = rel_hum(input_forcings,ConfigOptions)
 
     # Downscale 2-meter specific humidity
-    input_forcings.final_forcings[5,:,:] = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
+    q2Tmp = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
+    input_forcings.final_forcings[5,:,:] = q2Tmp
+    q2Tmp = None
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
