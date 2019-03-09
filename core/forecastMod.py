@@ -114,8 +114,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:
-                        print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
-                        print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
+                        print('Previous INPUT File = ' + inputForcingMod[forceKey].file_in1)
+                        print('Next INPUT File = ' + inputForcingMod[forceKey].file_in2)
                     #try:
                     #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
                     #except:
