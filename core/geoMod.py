@@ -142,6 +142,7 @@ class GeoMetaWrfHydro:
         # the ESMF lat/lon grids.
         try:
             self.esmf_lat[:,:] = varSubTmp
+            self.latitude_grid = varSubTmp
             varSubTmp = None
             varTmp = None
         except:
@@ -164,6 +165,7 @@ class GeoMetaWrfHydro:
 
         try:
             self.esmf_lon[:,:] = varSubTmp
+            self.longitude_grid = varSubTmp
             varSubTmp = None
             varTmp = None
         except:
