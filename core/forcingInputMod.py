@@ -132,7 +132,8 @@ class input_forcings:
             3: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
             4: None,
-            5: None,
+            5: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             6: None,
             7: None,
             8: None,
@@ -149,7 +150,9 @@ class input_forcings:
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
             4: None,
-            5: None,
+            5: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             6: None,
             7: None,
             8: None,
@@ -168,7 +171,10 @@ class input_forcings:
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
             4: None,
-            5: None,
+            5: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             6: None,
             7: None,
             8: None,
@@ -185,7 +191,7 @@ class input_forcings:
             2: None,
             3: [4,5,0,1,3,7,2,6],
             4: None,
-            5: None,
+            5: [4,5,0,1,3,7,2,6],
             6: None,
             7: None,
             8: None,
@@ -207,6 +213,7 @@ class input_forcings:
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
             3: dateMod.find_gfs_neighbors,
+            5: dateMod.find_conus_hrrr_neighbors,
             9: dateMod.find_gfs_neighbors
         }
 
