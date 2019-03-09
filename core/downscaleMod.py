@@ -356,7 +356,7 @@ def mixhum_ptrh(input_forcings,relHum,iswit,ConfigOptions):
     term2 = input_forcings.final_forcings[4,:,:] - B
     EST = np.exp(term1 / term2) * ES0
 
-    QST = (EP * EST) / (p - ONEMEP * EST)
+    QST = (EP * EST) / ((input_forcings.final_forcings[6,:,:]/100.0) - ONEMEP * EST)
     QW = QST * (relHum * 0.01)
     if iswit == 2:
         QW = QW / (1.0 + QW)
