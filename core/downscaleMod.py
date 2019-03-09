@@ -317,7 +317,7 @@ def rel_hum(input_forcings,ConfigOptions):
     :param ConfigOptions:
     :return:
     """
-    tmpHumidity = input_forcings.final_forcings[5,:,:]/(input_forcings.final_forcings[5,:,:]-1)
+    tmpHumidity = input_forcings.final_forcings[5,:,:]/(1-input_forcings.final_forcings[5,:,:])
 
     T0 = 273.15
     EP = 0.622
