@@ -75,6 +75,8 @@ class input_forcings:
         self.grib_vars = None
         self.tmpFile = None
         self.tmpFileHeight = None
+        self.psfcTmp = None
+        self.t2dTmp = None
 
     def define_product(self):
         """

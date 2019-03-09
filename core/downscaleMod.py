@@ -27,8 +27,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Dictionary mapping to pressure downscaling.
     downscale_pressure = {
         0: no_downscale,
-        1: no_downscale
-        #1: pressure_down_classic
+        1: pressure_down_classic
     }
     print('DOWNSCALING PRESSURE')
     downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
@@ -44,8 +43,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Dictionary mapping to specific humidity downscaling
     downscale_q2 = {
         0: no_downscale,
-        1: no_downscale
-        #1: q2_down_classic
+        1: q2_down_classic
     }
     print('DOWNSCALING Q2')
     downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
@@ -79,6 +77,13 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param GeoMetaWrfHydro:
     :return:
     """
+    # Set the un-downscaled 2-meter temperature to the input forcing object,
+    # only if the user specified to downscale the 2-meter specific humidity.
+    if input_forcings.q2dDownscaleOpt != 0:
+        input_forcings.t2dTmp = input_forcings.final_forcings[4,:,:]
+    else:
+        input_forcings.t2dTmp = None
+
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
@@ -86,6 +91,45 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # temperature values.
     input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
                                            (6.49/1000.0)*elevDiff
+
+def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+    """
+    Generic function to downscale surface pressure to the WRF-Hydro domain.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param GeoMetaWrfHydro:
+    :return:
+    """
+    # Set the un-downscaled surface pressure to the input forcing object,
+    # only if the user specified to downscale the 2-meter specific humidity.
+    if input_forcings.q2dDownscaleOpt != 0:
+        input_forcings.psfcTmp = input_forcings.final_forcings[6,:,:]
+    else:
+        input_forcings.psfcTmp = None
+
+    # Calculate the elevation difference.
+    elevDiff = input_forcings.height - GeoMetaWrfHydro.height
+
+    input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
+                                           (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
+                                           input_forcings.final_forcings[4,:,:]
+
+def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+    """
+    NCAR function for downscaling 2-meter specific humidity using already downscaled
+    2-meter temperature, unadjusted surface pressure, and downscaled surface
+    pressure.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param GeoMetaWrfHydro:
+    :return:
+    """
+    # First calculate relative humidity given original surface pressure and 2-meter
+    # temperature
+    relHum = rel_hum(input_forcings,ConfigOptions)
+
+    # Downscale 2-meter specific humidity
+    input_forcings.final_forcings[5,:,:] = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
@@ -263,3 +307,67 @@ def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,COSZEN,declin,solcon,hrang2
     # Reset variables to free up memory
     SWDOWN = None
     SWDOWN_OUT = None
+
+def rel_hum(input_forcings,ConfigOptions):
+    """
+    Function to calculate relative humidity given
+    original, undownscaled surface pressure and 2-meter
+    temperature.
+    :param input_forcings:
+    :param ConfigOptions:
+    :return:
+    """
+    tmpHumidity = input_forcings.final_forcings[5,:,:]/(input_forcings.final_forcings[5,:,:]-1)
+
+    T0 = 273.15
+    EP = 0.622
+    ONEMEP = 0.378
+    ES0 = 6.11
+    A = 17.269
+    B = 35.86
+
+    EST = ES0 * np.exp((A * (input_forcings.t2dTmp - T0)) / (input_forcings.t2dTmp - B))
+    QST = (EP * EST) / ((input_forcings.psfcTmp * 0.01) - ONEMEP * EST)
+    RH = 100 * (tmpHumidity / QST)
+
+    # Reset variables to free up memory
+    tmpHumidity = None
+
+    return RH
+
+def mixhum_ptrh(input_forcings,relHum,iswit,ConfigOptions):
+    """
+    Functionto convert relative humidity back to a downscaled
+    2-meter specific humidity
+    :param input_forcings:
+    :param ConfigOptions:
+    :return:
+    """
+    psfcTmp = input_forcings.final_forcings[6,:,:]/100.0
+
+    T0 = 273.15
+    EP = 0.622
+    ONEMEP = 0.378
+    ES0 = 6.11
+    A = 17.269
+    B = 35.86
+
+    term1 = A * (input_forcings.final_forcings[4,:,:] - T0)
+    term2 = input_forcings.final_forcings[4,:,:] - B
+    EST = np.exp(term1 / term2) * ES0
+
+    QST = (EP * EST) / (p - ONEMEP * EST)
+    QW = QST * (relHum * 0.01)
+    if iswit == 2:
+        QW = QW / (1.0 + QW)
+    if iswit < 0:
+        QW = QW * 1000.0
+
+    # Reset variables to free up memory
+    term1 = None
+    term2 = None
+    EST = None
+    QST = None
+    psfcTmp = None
+
+    return QW
