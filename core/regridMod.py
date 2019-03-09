@@ -99,7 +99,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                               forceCount, input_forcings, idTmp)
 
             # Read in the GFS height field, which is used for downscaling purposes.
-            print("READING IN GFS HEIGHT FIELD")
+            if MpiConfig.rank == 0:
+                print("READING IN GFS HEIGHT FIELD")
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
                 "\":(HGT):(surface):\" " + \
                 " -netcdf " + input_forcings.tmpFileHeight

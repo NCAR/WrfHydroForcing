@@ -21,6 +21,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: simple_lapse
         #2: param_lapse
     }
+    print('DOWNSCALING TEMPERATURE')
     downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
 
     # Dictionary mapping to pressure downscaling.
@@ -29,6 +30,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: no_downscale
         #1: pressure_down_classic
     }
+    print('DOWNSCALING PRESSURE')
     downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
 
     # Dictionary mapping to shortwave radiation downscaling
@@ -36,6 +38,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         0: no_downscale,
         1: ncar_topo_adj
     }
+    print('DOWNSCALING SW')
     downscale_sw[input_forcings.swDowscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
 
     # Dictionary mapping to specific humidity downscaling
@@ -44,6 +47,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: no_downscale
         #1: q2_down_classic
     }
+    print('DOWNSCALING Q2')
     downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
 
     # Dictionary mapping to precipitation downscaling.
@@ -52,6 +56,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: no_downscale
         #1: precip_mtn_mapper
     }
+    print('DOWNSCALING PRECIP')
     downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
 
 def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro):
@@ -96,8 +101,10 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     DPD = 360.0/365.0
     DECLIN, SOLCON = radconst(ConfigOptions)
 
+    print('CALCULATING COSZEN')
     coszen_loc, hrang_loc = calc_coszen(ConfigOptions,DECLIN,GeoMetaWrfHydro)
 
+    print('ADJUSTING SW')
     TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
                       hrang_loc)
 

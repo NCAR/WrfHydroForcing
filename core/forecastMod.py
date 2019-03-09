@@ -138,18 +138,16 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     MpiConfig.comm.barrier()
 
                     # Run bias correction.
-                    biasCorrectMod.run_bias_correction(inputForcingMod,ConfigOptions)
+                    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
                     #try:
-                    #    biasCorrectMod.run_bias_correction(inputForcingMod,ConfigOptions)
+                    #    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
                     #except:
                     #    errMod.err_out(ConfigOptions)
 
-                    print('READY TO DOWNSCALE')
-                    sys.exit(1)
                     # Run downscaling on grids for this output timestep.
-                    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions)
                     #try:
-                    #    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions)
                     #except:
                     #    errMod.err_out(ConfigOptions)
 
