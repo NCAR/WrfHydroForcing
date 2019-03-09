@@ -85,7 +85,7 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Apply single lapse rate value to the input 2-meter
     # temperature values.
     input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
-                                           6.75*elevDiff
+                                           6.49*elevDiff
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
