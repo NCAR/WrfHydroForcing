@@ -326,6 +326,7 @@ class GeoMetaWrfHydro:
         slp_azi[indValidTmp] = np.arctan2(hx[indValidTmp],hy[indValidTmp]) + math.pi
         indValidTmp = np.where(cosaGrid >= 0.0)
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - np.arcsin(sinaGrid[indValidTmp])
+        indValidTmp = np.where(cosaGrid < 0.0)
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - (math.pi - np.arcsin(sinaGrid[indValidTmp]))
 
         # Reset temporary arrays to None to free up memory
