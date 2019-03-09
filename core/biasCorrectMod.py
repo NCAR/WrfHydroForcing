@@ -61,6 +61,15 @@ def run_bias_correction(input_forcings,ConfigOptions):
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings,
                                                              ConfigOptions)
 
+    # Assign the temperature/pressure grids to temporary placeholders here.
+    # these will be used if 2-meter specific humidity is downscaled.
+    if input_forcings.q2dDownscaleOpt != 0:
+        input_forcings.t2dTmp = input_forcings.final_forcings[4,:,:]
+        input_forcings.psfcTmp = input_forcings.final_forcings[6,:,:]
+    else:
+        input_forcings.t2dTmp = None
+        input_forcings.psfcTmp = None
+
 def no_bias_correct(input_forcings,ConfigOptions):
     """
     Generic routine to simply pass forcing states through without any
