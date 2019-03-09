@@ -120,7 +120,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.esmf_field_in.data[:,:] = varSubTmp
             MpiConfig.comm.barrier()
 
-            print("REGRIDDING GFS HEIGHT FIELD")
+            if MpiConfig.rank == 0:
+                print("REGRIDDING GFS HEIGHT FIELD")
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
             MpiConfig.comm.barrier()
