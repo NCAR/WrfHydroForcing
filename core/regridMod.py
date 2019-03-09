@@ -454,8 +454,8 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
             lonTmp = id.variables['longitude'][0, :, :]
         elif len(idTmp.variables['longitude'].shape) == 2:
             # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
+            latTmp = id.variables['latitude'][:, :]
+            lonTmp = id.variables['longitude'][:, :]
         elif len(idTmp.variables['latitude'].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
