@@ -80,7 +80,9 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Set the un-downscaled 2-meter temperature to the input forcing object,
     # only if the user specified to downscale the 2-meter specific humidity.
     if input_forcings.q2dDownscaleOpt != 0:
-        input_forcings.t2dTmp = input_forcings.final_forcings[4,:,:]
+        tmpVar = input_forcings.final_forcings[4,:,:]
+        input_forcings.t2dTmp = tmpVar
+        tmpVar = None
     else:
         input_forcings.t2dTmp = None
 
@@ -103,7 +105,9 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Set the un-downscaled surface pressure to the input forcing object,
     # only if the user specified to downscale the 2-meter specific humidity.
     if input_forcings.q2dDownscaleOpt != 0:
+        tmpVar = input_forcings.final_forcings[6,:,:]
         input_forcings.psfcTmp = input_forcings.final_forcings[6,:,:]
+        tmpVar = None
     else:
         input_forcings.psfcTmp = None
 
@@ -345,8 +349,6 @@ def mixhum_ptrh(input_forcings,relHum,iswit,ConfigOptions):
     :param ConfigOptions:
     :return:
     """
-    psfcTmp = input_forcings.final_forcings[6,:,:]/100.0
-
     T0 = 273.15
     EP = 0.622
     ONEMEP = 0.378
