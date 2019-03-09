@@ -241,6 +241,7 @@ class input_forcings:
         # code to the functions to that will regrid the data.
         regrid_inputs = {
             3: regridMod.regrid_gfs,
+            5: regridMod.regrid_conus_hrrr,
             9: regridMod.regrid_gfs
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
