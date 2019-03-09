@@ -88,6 +88,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
+            ConfigOptions.current_output_date = OutputObj.outDate
             if MpiConfig.rank == 0:
                 print('=========================================')
                 print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
