@@ -145,9 +145,9 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    errMod.err_out(ConfigOptions)
 
                     # Run downscaling on grids for this output timestep.
-                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions)
+                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
                     #try:
-                    #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions)
+                    #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
                     #except:
                     #    errMod.err_out(ConfigOptions)
 
