@@ -112,7 +112,7 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
 
     input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
                                            (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
-                                           input_forcings.final_forcings[4,:,:]
+                                           (input_forcings.final_forcings[4,:,:]*287.05)
 
 def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
