@@ -326,17 +326,6 @@ class GeoMetaWrfHydro:
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - np.arcsin(sinaGrid[indValidTmp])
         slp_azi[indValidTmp] = slp_azi[indValidTmp] - (math.pi - np.arcsin(sinaGrid[indValidTmp]))
 
-        # Test outputting of grids for debugging purposes.
-        idTest = Dataset('test_slope.nc','w')
-        idTest.createDimension('south_north',self.ny_global)
-        idTest.createDimension('east_west',self.nx_global)
-        idTest.createVariable('slope',np.float32,('south_north','east_west'))
-        idTest.createVariable('slp_azi',np.float32,('south_north','east_west'))
-        idTest.variables['slope'][:,:] = slopeOut
-        idTest.variables['slp_azi'][:,:] = slp_azi
-        idTest.close()
-
-
         # Reset temporary arrays to None to free up memory
         toposlpx = None
         toposlpy = None

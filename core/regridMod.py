@@ -109,7 +109,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                varTmp = idTmpHeight.variables['HGT_surface']
+                varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
             else:
                 varTmp = None
             MpiConfig.comm.barrier()
@@ -129,17 +129,18 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             MpiConfig.comm.barrier()
 
             # Close the temporary NetCDF file and remove it.
-            try:
-                idTmpHeight.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                raise Exception()
+            if MpiConfig.rank == 0:
+                try:
+                    idTmpHeight.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
 
-            try:
-                os.remove(input_forcings.tmpFileHeight)
-            except:
-                ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                raise Exception()
+                try:
+                    os.remove(input_forcings.tmpFileHeight)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
 
         MpiConfig.comm.barrier()
 
