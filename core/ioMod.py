@@ -23,9 +23,9 @@ class OutputObj:
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
-        self.output_local = np.empty([8,GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
+        #self.output_local = np.empty([8,GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
+        self.output_local = np.empty([8, GeoMetaWrfHydro.nx_local, GeoMetaWrfHydro.ny_local])
         self.output_local[:,:,:] = self.out_ndv
-        self.output_height = np.empty([GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
 
     def output_final_ldasin(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
         """
@@ -127,13 +127,6 @@ class OutputObj:
             except:
                 ConfigOptions.errMsg = "Unable to create ProjectionCoordinateSystem in: " + self.outPath
                 errMod.err_out(ConfigOptions)
-            # TEMP
-            idOut.createVariable('forcing_height','f4'('y','x'))
-            final = MpiConfig.comm.gather(self.output_height[:,:],root=0)
-            if MpiConfig.rank == 0:
-                dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)], axis=0)
-                idOut.variables['forcing_height'][:,:] = dataOutTmp
-
 
             # Loop through and create each variable, along with expected attributes.
             for varTmp in output_variable_attribute_dict:
@@ -174,6 +167,7 @@ class OutputObj:
             if MpiConfig.rank == 0:
                 try:
                     dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
+                    dataOutTmp = np.rot90(dataOutTmp,3)
                 except:
                     ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
                     errMod.err_out(ConfigOptions)

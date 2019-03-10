@@ -85,6 +85,7 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             # Regrid the height variable.
             if MpiConfig.rank == 0:
                 varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                varTmp = np.rot90(varTmp)
             else:
                 varTmp = None
             MpiConfig.comm.barrier()
@@ -124,6 +125,7 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if MpiConfig.rank == 0:
             print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
             varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
         MpiConfig.comm.barrier()
@@ -258,6 +260,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             # Regrid the height variable.
             if MpiConfig.rank == 0:
                 varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                varTmp = np.rot90(varTmp)
             else:
                 varTmp = None
             MpiConfig.comm.barrier()
@@ -297,6 +300,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if MpiConfig.rank == 0:
             print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
             varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
         MpiConfig.comm.barrier()
@@ -342,9 +346,11 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
     # If the destination ESMF field hasn't been created, create it here.
     if not input_forcings.esmf_field_out:
         try:
-            input_forcings.esmf_field_out = ESMF.Field(wrfHydroGeoMeta.esmf_grid, name='GFS_REGRIDDED')
+            input_forcings.esmf_field_out = ESMF.Field(wrfHydroGeoMeta.esmf_grid, name=input_forcings.productName + \
+                                                                                       'FORCING_REGRIDDED')
         except:
-            ConfigOptions.errMsg = "Unable to create GFS destination ESMF field object."
+            ConfigOptions.errMsg = "Unable to create " + input_forcings.productName + \
+                                   " destination ESMF field object."
             errMod.err_out(ConfigOptions)
 
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
@@ -358,9 +364,13 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
     if input_forcings.nx_global == None or input_forcings.ny_global == None:
         # This is the first timestep.
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        #input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        #                                              np.float32)
+        #input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        #                                              np.float32)
+        input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                       np.float32)
-        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        input_forcings.regridded_forcings2 = np.empty([8, wrfHydroGeoMeta.nx_local, wrfHydroGeoMeta.ny_local],
                                                       np.float32)
 
     if MpiConfig.rank == 0:
@@ -420,7 +430,10 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global, input_forcings.nx_global]),
+        #input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global, input_forcings.nx_global]),
+        #                                        staggerloc=ESMF.StaggerLoc.CENTER,
+        #                                        coord_sys=ESMF.CoordSys.SPH_DEG)
+        input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.nx_global, input_forcings.ny_global]),
                                                 staggerloc=ESMF.StaggerLoc.CENTER,
                                                 coord_sys=ESMF.CoordSys.SPH_DEG)
     except:
@@ -430,14 +443,18 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
-        input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
-        input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
-        input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
+        #input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
+        #input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
+        #input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
+        #input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+        input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
+        input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+        input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
+        input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
         input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
         input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
     except:
@@ -461,6 +478,8 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
             # 2D grids.
             latTmp = np.repeat(idTmp.variables['latitude'][:][:, np.newaxis], input_forcings.nx_global, axis=1)
             lonTmp = np.tile(idTmp.variables['longitude'][:], (input_forcings.ny_global, 1))
+        latTmp = np.rot90(latTmp)
+        lonTmp = np.rot90(lonTmp)
     MpiConfig.comm.barrier()
 
     # Scatter global GFS latitude grid to processors..
@@ -479,14 +498,16 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
+        #input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
+        input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(1)
     except:
         ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input GFS ESMF grid."
         errMod.err_out(ConfigOptions)
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(1)
+        #input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(1)
+        input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(0)
     except:
         ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
         errMod.err_out(ConfigOptions)
@@ -500,13 +521,15 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     lonTmp = None
 
     # Create a ESMF field to hold the incoming data.
-    input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in, name="GFS_NATIVE")
+    input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in, name=input_forcings.productName + \
+                                                                                "_NATIVE")
 
     MpiConfig.comm.barrier()
 
     # Scatter global grid to processors..
     if MpiConfig.rank == 0:
         varTmp = idTmp[input_forcings.netcdf_var_names[forceCount]][0, :, :]
+        varTmp = np.rot90(varTmp)
     else:
         varTmp = None
     varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
@@ -521,5 +544,4 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                            input_forcings.esmf_field_out,
                                            regrid_method=ESMF.RegridMethod.BILINEAR,
-                                           unmapped_action=ESMF.UnmappedAction.IGNORE,
-                                           pole_method=ESMF.PoleMethod.NONE)
+                                           unmapped_action=ESMF.UnmappedAction.IGNORE)
