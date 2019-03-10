@@ -521,4 +521,5 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                            input_forcings.esmf_field_out,
                                            regrid_method=ESMF.RegridMethod.BILINEAR,
-                                           unmapped_action=ESMF.UnmappedAction.IGNORE)
+                                           unmapped_action=ESMF.UnmappedAction.IGNORE,
+                                           pole_method=ESMF.PoleMethod.NONE)
