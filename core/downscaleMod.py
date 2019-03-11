@@ -80,10 +80,19 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
+    # Assign existing, un-downscaled temperatures to a temporary placeholder, which
+    # will be used for specific humidity downscaling.
+    if input_forcings.q2dDownscaleOpt > 0:
+        input_forcings.t2dTmp[:,:] = input_forcings.final_forcings[4,:,:]
+
     # Apply single lapse rate value to the input 2-meter
     # temperature values.
-    input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
+    indValid = np.where(input_forcings.final_forcings[4,:,:] != ConfigOptions.globalNdv)
+    input_forcings.final_forcings[indValid] = input_forcings.final_forcings[indValid] + \
                                            (6.49/1000.0)*elevDiff
+
+    # Reset for memory efficiency
+    indValid = None
 
 def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
@@ -96,9 +105,19 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
-    input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
-                                           (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
-                                           (input_forcings.final_forcings[4,:,:]*287.05)
+    # Assign existing, un-downscaled pressure values to a temporary placeholder, which
+    # will be used for specific humidity downscaling.
+    if input_forcings.q2dDownscaleOpt > 0:
+        input_forcings.psfcTmp[:, :] = input_forcings.final_forcings[6, :, :]
+
+    indValid = np.where(input_forcings.final_forcings[6,:,:] != ConfigOptions.globalNdv)
+
+    input_forcings.final_forcings[indValid] = input_forcings.final_forcings[indValid] +\
+                                           (input_forcings.final_forcings[indValid]*elevDiff*9.8)/\
+                                           (input_forcings.final_forcings[indValid]*287.05)
+
+    # Reset for memory efficiency
+    indValid = None
 
 def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
@@ -110,14 +129,19 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param GeoMetaWrfHydro:
     :return:
     """
+    # Establish where we have missing values.
+    indNdv = np.where(input_forcings.final_forcings[5,:,:] == ConfigOptions.globalNdv)
+
     # First calculate relative humidity given original surface pressure and 2-meter
     # temperature
     relHum = rel_hum(input_forcings,ConfigOptions)
 
     # Downscale 2-meter specific humidity
     q2Tmp = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
+    q2Tmp[indNdv] = ConfigOptions.globalNdv
     input_forcings.final_forcings[5,:,:] = q2Tmp
     q2Tmp = None
+    indNdv = None
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
@@ -127,6 +151,9 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param ConfigOptions:
     :return:
     """
+    # Calculate where we have missing values.
+    indNdv = np.where(input_forcings.final_forcings[7,:,:] == ConfigOptions.globalNdv)
+
     # By the time this function has been called, necessary input static grids (height, slope, etc),
     # should have been calculated for each local slab of data.
     DEGRAD = math.pi/180.0
@@ -140,11 +167,15 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
                       hrang_loc)
 
+    # Assign missing values based on our mask.
+    input_forcings.final_forcings[7,:,:] = ConfigOptions.globalNdv
+
     # Reset variables to free up memory
     DECLIN = None
     SOLCON = None
     coszen_loc = None
     hrang_loc = None
+    indNdv = None
 
 def radconst(ConfigOptions):
     """

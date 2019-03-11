@@ -324,6 +324,16 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
 
+        # If we have specified specific humidity downscaling, establish arrays to hold
+        # temporary temperature arrays that are un-downscaled.
+        if InputDict[force_key].q2dDownscaleOpt > 0:
+            InputDict[force_key].t2dTmp = np.empty([GeoMetaWrfHydro.ny_local,
+                                                    GeoMetaWrfHydro.nx_local],
+                                                   np.float32)
+            InputDict[force_key].psfcTmp = np.empty([GeoMetaWrfHydro.ny_local,
+                                                    GeoMetaWrfHydro.nx_local],
+                                                   np.float32)
+
         # Initialize the local final grid of values. This is represntative
         # of the local grid for this forcing, for a specific output timesetp.
         # This grid will be updated from one output timestep to another, and
