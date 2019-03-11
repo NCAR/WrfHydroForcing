@@ -128,9 +128,6 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     #except:
                     #    errMod.err_out(ConfigOptions)
-                    # TEMP DELETE LATER
-                    OutputObj.output_height[:,:] = inputForcingMod[forceKey].height[:,:]
-
                     MpiConfig.comm.barrier()
 
                     # Run temporal interpolation on the grids.
