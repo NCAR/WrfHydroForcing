@@ -334,6 +334,6 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
         InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
-                                                GeoMetaWrfHydro.nx_local],np.int8)
+                                                GeoMetaWrfHydro.nx_local],np.float32)
 
     return InputDict

@@ -100,12 +100,11 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
             # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                ConfigOptions.globalNdv
             MpiConfig.comm.barrier()
 
             input_forcings.height[:,:] = input_forcings.esmf_field_out.data
-            # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.height[np.where(input_forcings.regridded_mask == 0)] = -9999.0
             MpiConfig.comm.barrier()
 
             # Close the temporary NetCDF file and remove it.
@@ -141,7 +140,8 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
-        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+            ConfigOptions.globalNdv
         MpiConfig.comm.barrier
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
@@ -278,7 +278,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
             # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                ConfigOptions.globalNdv
             MpiConfig.comm.barrier()
 
             input_forcings.height[:,:] = input_forcings.esmf_field_out.data
@@ -317,7 +318,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
-        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+            ConfigOptions.globalNdv
         MpiConfig.comm.barrier
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
@@ -519,28 +521,24 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     # Scatter global grid to processors..
     if MpiConfig.rank == 0:
         varTmp = idTmp[input_forcings.netcdf_var_names[forceCount]][0, :, :]
+        # Set all valid values to 1.0, and all missing values to 0.0. This will
+        # be used to generate an output mask that is used later on in downscaling, layering,
+        # etc.
+        varTmp[:,:] = 1.0
     else:
         varTmp = None
     varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
     MpiConfig.comm.barrier()
-
-    # Since we are creating a regridding object, we need to mask out anything that is
-    # not valid.
-    # 1.) Set all valid values for this input grid to 1. After regridding, any values
-    #     not equal to 1 will be set to the global missing value. This is important
-    #     later for bias correction, downscaling, and layering.
-    # 2.) Pass in the missing value for input forcings as a mask value that ESMF
-    #     will see. This will also result in a 0 value on the output grid.
-    varSubTmp[:,:] = 1.0
 
     # Place temporary data into the field array for generating the regridding object.
     input_forcings.esmf_field_in.data[:, :] = varSubTmp
     MpiConfig.comm.barrier()
 
     if MpiConfig.rank == 0:
-        print("CREATING GFS REGRID OBJECT")
+        print("CREATING REGRID OBJECT")
     input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                            input_forcings.esmf_field_out,
+                                           src_mask_values=np.array([0]),
                                            regrid_method=ESMF.RegridMethod.BILINEAR,
                                            unmapped_action=ESMF.UnmappedAction.IGNORE)
 
@@ -548,4 +546,4 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     # any 0 values.
     input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                              input_forcings.esmf_field_out)
-    input_forcings.regridded_mask[:,:] = input_forcings.esmf_field_out.data[:,:]
+    input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]

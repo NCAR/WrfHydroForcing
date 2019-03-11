@@ -61,6 +61,7 @@ class ConfigOptions:
         self.swBiasCorrectOpt = None
         self.lwBiasCorrectOpt = None
         self.precipBiasCorrectOpt = None
+        self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
 
     def read_config(self):
