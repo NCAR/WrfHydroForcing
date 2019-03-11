@@ -59,6 +59,7 @@ class input_forcings:
         self.esmf_field_out = None
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None
+        self.regridded_mask = None
         self.final_forcings = None
         self.ndv = None
         self.file_in1 = None
@@ -332,5 +333,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
+        InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
+                                                GeoMetaWrfHydro.nx_local],np.int8)
 
     return InputDict

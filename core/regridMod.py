@@ -99,9 +99,13 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 print("REGRIDDING HRRR HEIGHT FIELD")
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
+            # Set any pixel cells outside the input domain to the global missing value.
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
             MpiConfig.comm.barrier()
 
             input_forcings.height[:,:] = input_forcings.esmf_field_out.data
+            # Set any pixel cells outside the input domain to the global missing value.
+            input_forcings.height[np.where(input_forcings.regridded_mask == 0)] = -9999.0
             MpiConfig.comm.barrier()
 
             # Close the temporary NetCDF file and remove it.
@@ -136,6 +140,8 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
+        # Set any pixel cells outside the input domain to the global missing value.
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
         MpiConfig.comm.barrier
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
@@ -271,6 +277,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 print("REGRIDDING GFS HEIGHT FIELD")
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
+            # Set any pixel cells outside the input domain to the global missing value.
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
             MpiConfig.comm.barrier()
 
             input_forcings.height[:,:] = input_forcings.esmf_field_out.data
@@ -308,6 +316,8 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
+        # Set any pixel cells outside the input domain to the global missing value.
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = -9999.0
         MpiConfig.comm.barrier
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
@@ -435,10 +445,10 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
         input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
         input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
     except:
@@ -518,9 +528,24 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     input_forcings.esmf_field_in.data[:, :] = varSubTmp
     MpiConfig.comm.barrier()
 
+    # Since we are creating a regridding object, we need to mask out anything that is
+    # not valid.
+    # 1.) Set all valid values for this input grid to 1. After regridding, any values
+    #     not equal to 1 will be set to the global missing value. This is important
+    #     later for bias correction, downscaling, and layering.
+    # 2.) Pass in the missing value for input forcings as a mask value that ESMF
+    #     will see. This will also result in a 0 value on the output grid.
+    varSubTmp[:,:] = 1.0
+
     if MpiConfig.rank == 0:
         print("CREATING GFS REGRID OBJECT")
     input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                            input_forcings.esmf_field_out,
                                            regrid_method=ESMF.RegridMethod.BILINEAR,
                                            unmapped_action=ESMF.UnmappedAction.IGNORE)
+
+    # Run the regridding object on this test dataset. Check the output grid for
+    # any 0 values.
+    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                             input_forcings.esmf_field_out)
+    input_forcings.regridded_mask[:,:] = input_forcings.esmf_field_out.data[:,:]
