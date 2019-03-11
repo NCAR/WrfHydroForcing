@@ -31,7 +31,7 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     for forceTmp in range(0,8):
         outLayerCurrent = OutputObj.output_local[forceTmp,:,:]
         layerIn = input_forcings.final_forcings[forceTmp,:,:]
-        indSet = np.where((outLayerCurrent == ConfigOptions.globalNdv) & (layerIn != ConfigOptions.globalNdv))
+        indSet = np.where(layerIn == ConfigOptions.globalNdv)
         outLayerCurrent[indSet] = layerIn[indSet]
         OutputObj.output_local[forceTmp,:,:] = outLayerCurrent
 
