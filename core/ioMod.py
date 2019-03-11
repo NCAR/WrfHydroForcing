@@ -166,7 +166,6 @@ class OutputObj:
             if MpiConfig.rank == 0:
                 try:
                     dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
-                    dataOutTmp = np.rot90(dataOutTmp,3)
                 except:
                     ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
                     errMod.err_out(ConfigOptions)
