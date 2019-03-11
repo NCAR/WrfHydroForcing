@@ -107,10 +107,6 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             else:
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
-                    # Reset the final grids for this forcing product in anticipation of processing
-                    # for this time step.
-                    inputForcingMod[forceKey].final_forcings[:,:,:] = -9999.0
-
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:

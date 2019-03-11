@@ -134,7 +134,8 @@ class input_forcings:
             4: None,
             5: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
-            6: None,
+            6: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             7: None,
             8: None,
             9: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
@@ -153,7 +154,9 @@ class input_forcings:
             5: ['2 m above ground','2 m above ground',
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
-            6: None,
+            6: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             7: None,
             8: None,
             9:['2 m above ground','2 m above ground',
@@ -175,7 +178,10 @@ class input_forcings:
                 'UGRD_10maboveground','VGRD_10maboveground',
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
-            6: None,
+            6: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             7: None,
             8: None,
             9: ['TMP_2maboveground','SPFH_2maboveground',
@@ -192,7 +198,7 @@ class input_forcings:
             3: [4,5,0,1,3,7,2,6],
             4: None,
             5: [4,5,0,1,3,7,2,6],
-            6: None,
+            6: [4,5,0,1,3,7,2,6],
             7: None,
             8: None,
             9: [4,5,0,1,3,7,2,6],
@@ -214,6 +220,7 @@ class input_forcings:
         find_neighbor_files = {
             3: dateMod.find_gfs_neighbors,
             5: dateMod.find_conus_hrrr_neighbors,
+            6: dateMod.find_conus_rap_neighbors,
             9: dateMod.find_gfs_neighbors
         }
 
@@ -242,6 +249,7 @@ class input_forcings:
         regrid_inputs = {
             3: regridMod.regrid_gfs,
             5: regridMod.regrid_conus_hrrr,
+            6: regridMod.regrid_conus_rap,
             9: regridMod.regrid_gfs
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
