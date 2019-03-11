@@ -243,6 +243,11 @@ class GeoMetaWrfHydro:
                 ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
                 raise
 
+        # Reset temporary variables to free up memory
+        slopeTmp = None
+        slp_azi_tmp = None
+        varTmp = None
+
 
     def calc_slope(self,idTmp,ConfigOptions):
         """
