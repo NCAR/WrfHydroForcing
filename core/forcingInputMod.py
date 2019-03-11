@@ -4,12 +4,12 @@ parameters in all input forcing products. These parameters
 include things such as file types, grid definitions (including
 initializing ESMF grids and regrid objects), etc
 """
-#import ESMF
 from core import dateMod
 from core import regridMod
 import numpy as np
 from core import timeInterpMod
 import os
+from core import errMod
 
 class input_forcings:
     """
@@ -67,11 +67,15 @@ class input_forcings:
         self.fcst_hour2 = None
         self.fcst_date1 = None
         self.fcst_date2 = None
+        self.height = None
         self.netcdf_var_names = None
         self.input_map_output = None
         self.grib_levels = None
         self.grib_vars = None
         self.tmpFile = None
+        self.tmpFileHeight = None
+        self.psfcTmp = None
+        self.t2dTmp = None
 
     def define_product(self):
         """
@@ -127,7 +131,8 @@ class input_forcings:
             3: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
             4: None,
-            5: None,
+            5: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             6: None,
             7: None,
             8: None,
@@ -144,7 +149,9 @@ class input_forcings:
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
             4: None,
-            5: None,
+            5: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             6: None,
             7: None,
             8: None,
@@ -163,7 +170,10 @@ class input_forcings:
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
             4: None,
-            5: None,
+            5: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             6: None,
             7: None,
             8: None,
@@ -180,7 +190,7 @@ class input_forcings:
             2: None,
             3: [4,5,0,1,3,7,2,6],
             4: None,
-            5: None,
+            5: [4,5,0,1,3,7,2,6],
             6: None,
             7: None,
             8: None,
@@ -202,6 +212,7 @@ class input_forcings:
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
             3: dateMod.find_gfs_neighbors,
+            5: dateMod.find_conus_hrrr_neighbors,
             9: dateMod.find_gfs_neighbors
         }
 
@@ -229,6 +240,7 @@ class input_forcings:
         # code to the functions to that will regrid the data.
         regrid_inputs = {
             3: regridMod.regrid_gfs,
+            5: regridMod.regrid_conus_hrrr,
             9: regridMod.regrid_gfs
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
@@ -288,6 +300,15 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].precipDownscaleOpt = ConfigOptions.precipDownscaleOpt[force_tmp]
         InputDict[force_key].swDowscaleOpt = ConfigOptions.swDownscaleOpt[force_tmp]
         InputDict[force_key].psfcDownscaleOpt = ConfigOptions.psfcDownscaleOpt[force_tmp]
+        # Check to make sure the necessary input files for downscaling are present.
+        if InputDict[force_key].t2dDownscaleOpt == 2:
+            # We are using a pre-calculated lapse rate on the WRF-Hydro grid.
+            pathCheck = ConfigOptions.downscaleParamDir = "/T2M_Lapse_Rate_" + \
+                InputDict[force_key].productName + ".nc"
+            if not os.path.isfile(pathCheck):
+                ConfigOptions.errMsg = "Expected temperature lapse rate grid: " + \
+                    pathCheck + " not found."
+                errMod.err_out_screen(ConfigOptions.errMsg)
 
         InputDict[force_key].t2dBiasCorrectOpt = ConfigOptions.t2BiasCorrectOpt[force_tmp]
         InputDict[force_key].q2dBiasCorrectOpt = ConfigOptions.q2BiasCorrectOpt[force_tmp]
@@ -309,5 +330,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].final_forcings = np.empty([8,GeoMetaWrfHydro.ny_local,
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
+        InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
+                                                GeoMetaWrfHydro.nx_local],np.float32)
 
     return InputDict

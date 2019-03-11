@@ -24,7 +24,7 @@ class OutputObj:
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
         self.output_local = np.empty([8,GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
-        self.output_local[:,:,:] = self.out_ndv
+        #self.output_local[:,:,:] = self.out_ndv
 
     def output_final_ldasin(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
         """

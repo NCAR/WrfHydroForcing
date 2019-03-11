@@ -10,6 +10,153 @@ from netCDF4 import Dataset
 import numpy as np
 from core import ioMod
 
+def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
+    """
+    Function for handling regridding of HRRR data.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param wrfHydroGeoMeta:
+    :param MpiConfig:
+    :return:
+    """
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    # print("REGRID STATUS = " + str(input_forcings.regridComplete))
+    if input_forcings.regridComplete:
+        return
+
+    if MpiConfig.rank == 0:
+        print("REGRID STATUS = " + str(input_forcings.regridComplete))
+    # Create a path for a temporary NetCDF files that will
+    # be created through the wgrib2 process.
+    input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
+        "HRRR_CONUS_TMP.nc"
+    input_forcings.tmpFileHeight = ConfigOptions.scratch_dir + "/" + \
+                                   "HRRR_CONUS_TMP_HEIGHT.nc"
+
+    MpiConfig.comm.barrier()
+
+    # This file shouldn't exist.... but if it does (previously failed
+    # execution of the program), remove it.....
+    if MpiConfig.rank == 0:
+        if os.path.isfile(input_forcings.tmpFile):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                      input_forcings.tmpFile + " - Removing....."
+            errMod.log_warning(ConfigOptions)
+            try:
+                os.remove(input_forcings.tmpFile)
+            except:
+                errMod.err_out(ConfigOptions)
+
+    MpiConfig.comm.barrier()
+
+    forceCount = 0
+    for forceTmp in input_forcings.grib_vars:
+        # Create a temporary NetCDF file from the GRIB2 file.
+        cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
+              input_forcings.grib_vars[forceCount] + "):(" + \
+              input_forcings.grib_levels[forceCount] + "):(" + str(input_forcings.fcst_hour2) + \
+              " hour fcst):\" -netcdf " + input_forcings.tmpFile
+
+        idTmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+                                 ConfigOptions, MpiConfig, input_forcings.netcdf_var_names[forceCount])
+        MpiConfig.comm.barrier()
+
+        calcRegridFlag = check_regrid_status(idTmp, forceCount, input_forcings,
+                                             ConfigOptions, MpiConfig, wrfHydroGeoMeta)
+
+        if calcRegridFlag:
+            if MpiConfig.rank == 0:
+                print('CALCULATING WEIGHTS')
+            calculate_weights(MpiConfig, ConfigOptions,
+                              forceCount, input_forcings, idTmp)
+
+            # Read in the HRRR height field, which is used for downscaling purposes.
+            if MpiConfig.rank == 0:
+                print("READING IN HRRR HEIGHT FIELD")
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+                "\":(HGT):(surface):\" " + \
+                " -netcdf " + input_forcings.tmpFileHeight
+            idTmpHeight = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFileHeight,
+                                           cmd,ConfigOptions,MpiConfig,'HGT_surface')
+            MpiConfig.comm.barrier()
+
+            # Regrid the height variable.
+            if MpiConfig.rank == 0:
+                varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+            else:
+                varTmp = None
+            MpiConfig.comm.barrier()
+
+            varSubTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
+            MpiConfig.comm.barrier()
+
+            input_forcings.esmf_field_in.data[:,:] = varSubTmp
+            MpiConfig.comm.barrier()
+
+            if MpiConfig.rank == 0:
+                print("REGRIDDING HRRR HEIGHT FIELD")
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+            MpiConfig.comm.barrier()
+
+            input_forcings.height[:,:] = input_forcings.esmf_field_out.data
+            MpiConfig.comm.barrier()
+
+            # Close the temporary NetCDF file and remove it.
+            if MpiConfig.rank == 0:
+                try:
+                    idTmpHeight.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
+
+                try:
+                    os.remove(input_forcings.tmpFileHeight)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
+
+        MpiConfig.comm.barrier()
+
+        # Regrid the input variables.
+        if MpiConfig.rank == 0:
+            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
+            varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+        else:
+            varTmp = None
+        MpiConfig.comm.barrier()
+
+        varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
+        MpiConfig.comm.barrier
+
+        input_forcings.esmf_field_in.data[:,:] = varSubTmp
+        MpiConfig.comm.barrier
+
+        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                 input_forcings.esmf_field_out)
+        MpiConfig.comm.barrier
+
+        input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
+            input_forcings.esmf_field_out.data
+        MpiConfig.comm.barrier
+
+        # Close the temporary NetCDF file and remove it.
+        if MpiConfig.rank == 0:
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+                errMod.err_out(ConfigOptions)
+            try:
+                os.remove(input_forcings.tmpFile)
+            except:
+                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+                errMod.err_out()
+
+        forceCount = forceCount + 1
+
 def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     """
     Function for handing regridding of input GFS data
@@ -21,16 +168,17 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    #print("REGRID STATUS = " + str(input_forcings.regridComplete))
     if input_forcings.regridComplete:
         return
 
     if MpiConfig.rank == 0:
         print("REGRID STATUS = " + str(input_forcings.regridComplete))
-    # Create a path for a temporary NetCDF file that will
+    # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
         "GFS_TMP.nc"
+    input_forcings.tmpFileHeight = ConfigOptions.scratch_dir + "/" + \
+                                   "GFS_TMP_HEIGHT.nc"
 
     MpiConfig.comm.barrier()
 
@@ -95,6 +243,53 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 print('CALCULATING WEIGHTS')
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
+
+            # Read in the GFS height field, which is used for downscaling purposes.
+            if MpiConfig.rank == 0:
+                print("READING IN GFS HEIGHT FIELD")
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+                "\":(HGT):(surface):\" " + \
+                " -netcdf " + input_forcings.tmpFileHeight
+            idTmpHeight = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFileHeight,
+                                           cmd,ConfigOptions,MpiConfig,'HGT_surface')
+            MpiConfig.comm.barrier()
+
+            # Regrid the height variable.
+            if MpiConfig.rank == 0:
+                varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+            else:
+                varTmp = None
+            MpiConfig.comm.barrier()
+
+            varSubTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
+            MpiConfig.comm.barrier()
+
+            input_forcings.esmf_field_in.data[:,:] = varSubTmp
+            MpiConfig.comm.barrier()
+
+            if MpiConfig.rank == 0:
+                print("REGRIDDING GFS HEIGHT FIELD")
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+            MpiConfig.comm.barrier()
+
+            input_forcings.height[:,:] = input_forcings.esmf_field_out.data
+            MpiConfig.comm.barrier()
+
+            # Close the temporary NetCDF file and remove it.
+            if MpiConfig.rank == 0:
+                try:
+                    idTmpHeight.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
+
+                try:
+                    os.remove(input_forcings.tmpFileHeight)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                    raise Exception()
+
         MpiConfig.comm.barrier()
 
         # Regrid the input variables.
@@ -146,9 +341,11 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
     # If the destination ESMF field hasn't been created, create it here.
     if not input_forcings.esmf_field_out:
         try:
-            input_forcings.esmf_field_out = ESMF.Field(wrfHydroGeoMeta.esmf_grid, name='GFS_REGRIDDED')
+            input_forcings.esmf_field_out = ESMF.Field(wrfHydroGeoMeta.esmf_grid, name=input_forcings.productName + \
+                                                                                       'FORCING_REGRIDDED')
         except:
-            ConfigOptions.errMsg = "Unable to create GFS destination ESMF field object."
+            ConfigOptions.errMsg = "Unable to create " + input_forcings.productName + \
+                                   " destination ESMF field object."
             errMod.err_out(ConfigOptions)
 
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
@@ -238,10 +435,10 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-        # print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
+        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
         input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
         input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
     except:
@@ -254,12 +451,12 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         # Process lat/lon values from the GFS grid.
         if len(idTmp.variables['latitude'].shape) == 3:
             # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
+            latTmp = idTmp.variables['latitude'][0, :, :]
+            lonTmp = idTmp.variables['longitude'][0, :, :]
         elif len(idTmp.variables['longitude'].shape) == 2:
             # We have 2D grids already in place.
-            latTmp = id.variables['latitude'][0, :, :]
-            lonTmp = id.variables['longitude'][0, :, :]
+            latTmp = idTmp.variables['latitude'][:, :]
+            lonTmp = idTmp.variables['longitude'][:, :]
         elif len(idTmp.variables['latitude'].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
@@ -283,14 +480,14 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(0)
+        input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(1)
     except:
         ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input GFS ESMF grid."
         errMod.err_out(ConfigOptions)
     MpiConfig.comm.barrier()
 
     try:
-        input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(1)
+        input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(0)
     except:
         ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
         errMod.err_out(ConfigOptions)
@@ -304,7 +501,8 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     lonTmp = None
 
     # Create a ESMF field to hold the incoming data.
-    input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in, name="GFS_NATIVE")
+    input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in, name=input_forcings.productName + \
+                                                                                "_NATIVE")
 
     MpiConfig.comm.barrier()
 

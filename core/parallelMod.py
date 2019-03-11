@@ -1,5 +1,6 @@
 from mpi4py import MPI
 import os
+from core import errMod
 import numpy as np
 
 class MpiConfig:
@@ -96,3 +97,23 @@ class MpiConfig:
         arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
                    geoMeta.x_lower_bound:geoMeta.x_upper_bound]
         return arraySub
+
+    #def gather_array(self,array_gather,ConfigOptions):
+    #    """
+    #    Generic function for gathering local arrays from each processor
+    #    to a global array on processor 0.
+    #    :param array_gather:
+    #    :param ConfigOptions:
+    #    :return:
+    #    """
+    #    final = MpiConfig.comm.gather(array_gather[:, :], root=0)
+
+    #    MpiConfig.comm.barrier()
+
+
+    #    if self.rank == 0:
+    #        arrayGlobal = np.concatenate([final[i] for i in range(MpiConfig.size)].axis=0)
+    #    else:
+    #        arrayGlobal = None
+
+    #    return arrayGlobal
