@@ -1,5 +1,6 @@
 import sys
 import logging
+from mpi4py import MPI
 
 def err_out_screen(err_msg):
     """
@@ -13,6 +14,12 @@ def err_out_screen(err_msg):
     err_msg_out = 'ERROR: ' + err_msg
     print(err_msg_out)
     sys.exit(-1)
+
+def err_out_screen_para(err_msg):
+    err_msg_out = 'ERROR: ' + err_msg
+    print(err_msg_out)
+    MPI.Finalize()
+    sys.exit(1)
 
 def init_log(ConfigOptions):
     """
@@ -59,6 +66,7 @@ def err_out(ConfigOptions):
     :param ConfigOptions:
     :return:
     """
+    print(ConfigOptions.errMsg)
     try:
         logObj = logging.getLogger('logForcing')
     except:
@@ -77,9 +85,10 @@ def err_out(ConfigOptions):
         ConfigOptions.errMsg = "Unable to write error message to: " + \
             ConfigOptions.logFile
         raise Exception()
+    MPI.Finalize()
     sys.exit(1)
 
-def log_error(ConfigOptions):
+def log_critical(ConfigOptions):
     """
     Function for logging an error message without exiting without a
     non-zero exit status.

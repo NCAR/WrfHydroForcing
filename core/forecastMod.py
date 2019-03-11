@@ -3,6 +3,7 @@ import datetime
 import os
 import sys
 from core import downscaleMod
+from core import biasCorrectMod
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
     """
@@ -87,6 +88,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
+            ConfigOptions.current_output_date = OutputObj.outDate
             if MpiConfig.rank == 0:
                 print('=========================================')
                 print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
@@ -112,8 +114,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:
-                        print('Previous GFS File = ' + inputForcingMod[forceKey].file_in1)
-                        print('Next GFS File = ' + inputForcingMod[forceKey].file_in2)
+                        print('Previous INPUT File = ' + inputForcingMod[forceKey].file_in1)
+                        print('Next INPUT File = ' + inputForcingMod[forceKey].file_in2)
                     #try:
                     #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
                     #except:
@@ -136,15 +138,22 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    errMod.err_out(ConfigOptions)
                     MpiConfig.comm.barrier()
 
-                    # Run downscaling on grids for this output timestep.
-                    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    # Run bias correction.
+                    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
                     #try:
-                    #    downscaleMod.run_downscaling(inputForcingMod,ConfigOptions)
+                    #    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
+
+                    # Run downscaling on grids for this output timestep.
+                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
+                    #try:
+                    #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
                     #except:
                     #    errMod.err_out(ConfigOptions)
 
 
-                    # NEED STUBS FOR BIAS CORRECTION, AND FINAL LAYERING
+                    # NEED FINAL LAYERING
 
 
                     # Layer input forcings into final output grids. WILL NEED MODIFICATION!!!! This is

@@ -39,6 +39,123 @@ def calculate_lookback_window(ConfigOptions):
     ConfigOptions.nFcsts = int(nFcstSteps) + 1
     ConfigOptions.e_date_proc = ConfigOptions.b_date_proc + datetime.timedelta(seconds=nFcstSteps*ConfigOptions.fcst_freq*60)
 
+def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function to calculate the previous and after HRRR conus cycles based on the current timestep.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param dCurrent:
+    :param MpiConfg:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 5:
+            print("PROCESSING conus HRRR")
+
+    # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.
+    if dCurrent >= datetime.datetime(2018,10,1):
+        defaultHorizon = 18 # 18-hour forecasts.
+        sixHrHorizon = 36 # 36-hour forecasts every six hours.
+    else:
+        defaultHorizon = 18  # 18-hour forecasts.
+        sixHrHorizon = 18  # 18-hour forecasts every six hours.
+
+    # First find the current GFS forecast cycle that we are using.
+    currentHrrrCycle = ConfigOptions.current_fcst_cycle - \
+                       datetime.timedelta(seconds=
+                                          (input_forcings.userCycleOffset) * 60.0)
+    if currentHrrrCycle.hour%6 != 0:
+        hrrrHorizon = defaultHorizon
+    else:
+        hrrrHorizon = sixHrHorizon
+
+    # If the user has specified a forcing horizon that is greater than what is available
+    # for this time period, throw an error.
+    if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > hrrrHorizon:
+        ConfigOptions.errMsg = "User has specified a HRRR conus forecast horizon " + \
+            "that is greater than the maximum allowed hours of: " + \
+            str(hrrrHorizon)
+        print(ConfigOptions.errMsg)
+        raise Exception
+
+    if MpiConfg.rank == 0:
+        print("CURRENT HRRR CYCLE BEING USED = " + currentHrrrCycle.strftime('%Y-%m-%d %H'))
+
+    # Calculate the current forecast hour within this HRRR cycle.
+    dtTmp = dCurrent - currentHrrrCycle
+    currentHrrrHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
+    if MpiConfg.rank == 0:
+        print("Current HRRR Forecast Hour = " + str(currentHrrrHour))
+
+    # Calculate the previous file to process.
+    minSinceLastOutput = (currentHrrrHour * 60) % 60
+    if MpiConfg.rank == 0:
+        print(currentHrrrHour)
+        print(minSinceLastOutput)
+    if minSinceLastOutput == 0:
+        minSinceLastOutput = 60
+    prevHrrrDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
+    input_forcings.fcst_date1 = prevHrrrDate
+    if MpiConfg.rank == 0:
+        print(prevHrrrDate)
+    if minSinceLastOutput == 60:
+        minUntilNextOutput = 0
+    else:
+        minUntilNextOutput = 60 - minSinceLastOutput
+    nextHrrrDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
+    input_forcings.fcst_date2 = nextHrrrDate
+    if MpiConfg.rank == 0:
+        print(nextHrrrDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextHrrrDate - currentHrrrCycle
+    if MpiConfg.rank == 0:
+        print(currentHrrrCycle)
+    nextHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(nextHrrrForecastHour)
+    input_forcings.fcst_hour2 = nextHrrrForecastHour
+    dtTmp = prevHrrrDate - currentHrrrCycle
+    prevHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(prevHrrrForecastHour)
+    input_forcings.fcst_hour1 = prevHrrrForecastHour
+    # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevHrrrForecastHour == 0:
+        prevHrrrForecastHour = 1
+
+    # Calculate expected file paths.
+    tmpFile1 = input_forcings.inDir + '/hrrr.' + \
+               currentHrrrCycle.strftime('%Y%m%d') + "/hrrr.t" + \
+               currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
+               str(prevHrrrForecastHour).zfill(2) + '.grib2'
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
+    tmpFile2 = input_forcings.inDir + '/hrrr.' + \
+               currentHrrrCycle.strftime('%Y%m%d') + "/hrrr.t" + \
+               currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
+               str(nextHrrrForecastHour).zfill(2) + '.grib2'
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        input_forcings.file_in1 = tmpFile1
+        input_forcings.file_in2 = tmpFile2
+        input_forcings.regridComplete = False
+        if input_forcings.file_in2 == tmpFile1:
+            if ConfigOptions.current_output_step == 1:
+                if MpiConfg.rank == 0:
+                    print('We are on the first output timestep.')
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            else:
+                # The forecast window has shifted. Reset the states.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
     Function to calcualte the previous and after GFS cycles based on the current timestep.
