@@ -524,10 +524,6 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
     MpiConfig.comm.barrier()
 
-    # Place temporary data into the field array for generating the regridding object.
-    input_forcings.esmf_field_in.data[:, :] = varSubTmp
-    MpiConfig.comm.barrier()
-
     # Since we are creating a regridding object, we need to mask out anything that is
     # not valid.
     # 1.) Set all valid values for this input grid to 1. After regridding, any values
@@ -536,6 +532,10 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     # 2.) Pass in the missing value for input forcings as a mask value that ESMF
     #     will see. This will also result in a 0 value on the output grid.
     varSubTmp[:,:] = 1.0
+
+    # Place temporary data into the field array for generating the regridding object.
+    input_forcings.esmf_field_in.data[:, :] = varSubTmp
+    MpiConfig.comm.barrier()
 
     if MpiConfig.rank == 0:
         print("CREATING GFS REGRID OBJECT")
