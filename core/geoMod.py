@@ -39,14 +39,10 @@ class GeoMetaWrfHydro:
         are calculated within the ESMF software.
         :return:
         """
-        #self.x_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][1]
-        #self.x_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][1]
-        #self.y_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][0]
-        #self.y_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        self.x_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][0]
-        self.x_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        self.y_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][1]
-        self.y_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][1]
+        self.x_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][1]
+        self.x_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][1]
+        self.y_lower_bound = self.esmf_grid.lower_bounds[ESMF.StaggerLoc.CENTER][0]
+        self.y_upper_bound = self.esmf_grid.upper_bounds[ESMF.StaggerLoc.CENTER][0]
         self.nx_local = self.x_upper_bound - self.x_lower_bound
         self.ny_local = self.y_upper_bound - self.y_lower_bound
 
@@ -112,12 +108,9 @@ class GeoMetaWrfHydro:
         MpiConfig.comm.barrier()
 
         try:
-            self.esmf_grid = ESMF.Grid(np.array([self.nx_global, self.ny_global]),
+            self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
                                        staggerloc=ESMF.StaggerLoc.CENTER,
                                        coord_sys=ESMF.CoordSys.SPH_DEG)
-            #elf.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
-            #                           staggerloc=ESMF.StaggerLoc.CENTER,
-            #                           coord_sys=ESMF.CoordSys.SPH_DEG)
         except:
             ConfigOptions.errMsg = "Unable to create ESMF grid for WRF-Hydro " \
                                    "geogrid: " + ConfigOptions.geogrid
@@ -127,8 +120,6 @@ class GeoMetaWrfHydro:
 
         self.esmf_lat = self.esmf_grid.get_coords(1)
         self.esmf_lon = self.esmf_grid.get_coords(0)
-        #self.esmf_lat = self.esmf_grid.get_coords(0)
-        #self.esmf_lon = self.esmf_grid.get_coords(1)
 
         MpiConfig.comm.barrier()
 
@@ -138,7 +129,6 @@ class GeoMetaWrfHydro:
         # Scatter global XLAT_M grid to processors..
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['XLAT_M'][0,:,:]
-            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
 
@@ -164,7 +154,6 @@ class GeoMetaWrfHydro:
         # Scatter global XLONG_M grid to processors..
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['XLONG_M'][0, :, :]
-            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
 
@@ -188,7 +177,6 @@ class GeoMetaWrfHydro:
         # Scatter the COSALPHA,SINALPHA grids to the processors.
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['COSALPHA'][0,:,:]
-            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
         MpiConfig.comm.barrier()
@@ -201,7 +189,6 @@ class GeoMetaWrfHydro:
 
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['SINALPHA'][0, :, :]
-            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
         MpiConfig.comm.barrier()
@@ -216,7 +203,6 @@ class GeoMetaWrfHydro:
         # purposes.
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['HGT_M'][0, :, :]
-            varTmp = np.rot90(varTmp)
         else:
             varTmp = None
         MpiConfig.comm.barrier()
@@ -232,8 +218,6 @@ class GeoMetaWrfHydro:
         if MpiConfig.rank == 0:
             try:
                 slopeTmp, slp_azi_tmp = self.calc_slope(idTmp,ConfigOptions)
-                slopeTmp = np.rot90(slopeTmp)
-                slp_azi_tmp = np.rot90(slp_azi_tmp)
             except:
                 raise
         else:

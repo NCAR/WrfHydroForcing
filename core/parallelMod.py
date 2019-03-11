@@ -85,27 +85,17 @@ class MpiConfig:
         if self.rank == 0:
             arrayGlobalTmp = array_broadcast
         else:
-            #if data_type_flag == 1:
-            #    arrayGlobalTmp = np.empty([geoMeta.ny_global,
-            #                               geoMeta.nx_global],
-            #                              np.float32)
-            #if data_type_flag == 2:
-            #    arrayGlobalTmp = np.empty([geoMeta.ny_global,
-            #                               geoMeta.nx_global],
-            #                              np.float64)
             if data_type_flag == 1:
-                arrayGlobalTmp = np.empty([geoMeta.nx_global,
-                                           geoMeta.ny_global],
+                arrayGlobalTmp = np.empty([geoMeta.ny_global,
+                                           geoMeta.nx_global],
                                           np.float32)
             if data_type_flag == 2:
-                arrayGlobalTmp = np.empty([geoMeta.nx_global,
-                                           geoMeta.ny_global],
+                arrayGlobalTmp = np.empty([geoMeta.ny_global,
+                                           geoMeta.nx_global],
                                           np.float64)
         self.comm.Bcast(arrayGlobalTmp, root=0)
-        arraySub = arrayGlobalTmp[geoMeta.x_lower_bound:geoMeta.x_upper_bound,
-                   geoMeta.y_lower_bound:geoMeta.y_upper_bound]
-        #arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
-        #           geoMeta.x_lower_bound:geoMeta.x_upper_bound]
+        arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
+                   geoMeta.x_lower_bound:geoMeta.x_upper_bound]
         return arraySub
 
     #def gather_array(self,array_gather,ConfigOptions):
