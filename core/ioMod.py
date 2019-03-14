@@ -130,7 +130,7 @@ class OutputObj:
             # Loop through and create each variable, along with expected attributes.
             for varTmp in output_variable_attribute_dict:
                 try:
-                    idOut.createVariable(varTmp,'f4',('time','y','x'))
+                    idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                 except:
                     ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                     errMod.err_out(ConfigOptions)

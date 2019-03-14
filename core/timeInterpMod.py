@@ -62,6 +62,19 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     dtFromNext = ConfigOptions.current_output_step - input_forcings.fcst_date2
     weight2 = 1-(dtFromNext.total_seconds()/(input_forcings.outFreq*60.0))
 
+    # Calculate where we have missing data in either the previous or next forcing dataset.
+    ind1Ndv = np.where(input_forcings.regridded_forcings1 == ConfigOptions.globalNdv)
+    ind2Ndv = np.where(input_forcings.regridded_forcings2 == ConfigOptions.globalNdv)
+
     input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings1[:,:,:]*weight1 + \
         input_forcings.regridded_forcings2[:,:,:]*weight2
+
+    # Set any pixel cells that were missing for either window to missing value.
+    input_forcings.final_forcings[ind1Ndv] = ConfigOptions.globalNdv
+    input_forcings.final_forcings[ind2Ndv] = ConfigOptions.globalNdv
+
+    # Reset for memory efficiency.
+    ind1Ndv = None
+    ind2Ndv = None
+
 
