@@ -4,6 +4,7 @@ import os
 import sys
 from core import downscaleMod
 from core import biasCorrectMod
+from core import layeringMod
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
     """
@@ -107,10 +108,6 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
             else:
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
-                    # Reset the final grids for this forcing product in anticipation of processing
-                    # for this time step.
-                    inputForcingMod[forceKey].final_forcings[:,:,:] = -9999.0
-
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
                     if MpiConfig.rank == 0:
@@ -151,15 +148,17 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
                     #except:
                     #    errMod.err_out(ConfigOptions)
-
-
-                    # NEED FINAL LAYERING
-
-
-                    # Layer input forcings into final output grids. WILL NEED MODIFICATION!!!! This is
-                    # for testing purposes, but will be modified into a function later.
-                    OutputObj.output_local[:,:,:] = inputForcingMod[forceKey].final_forcings[:,:,:]
                     MpiConfig.comm.barrier()
+
+                    # Layer in forcings from this product.
+                    layeringMod.layer_final_forcings(OutputObj,inputForcingMod[forceKey],ConfigOptions,MpiConfig)
+                    try:
+                        layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
+                    except:
+                        errMod.err_out(ConfigOptions)
+                    MpiConfig.comm.barrier()
+
+                # STUB FOR SUPPLEMENTAL FORCINGS
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)

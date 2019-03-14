@@ -59,6 +59,7 @@ class input_forcings:
         self.esmf_field_out = None
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None
+        self.regridded_mask = None
         self.final_forcings = None
         self.ndv = None
         self.file_in1 = None
@@ -133,7 +134,8 @@ class input_forcings:
             4: None,
             5: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
-            6: None,
+            6: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             7: None,
             8: None,
             9: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
@@ -152,7 +154,9 @@ class input_forcings:
             5: ['2 m above ground','2 m above ground',
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
-            6: None,
+            6: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             7: None,
             8: None,
             9:['2 m above ground','2 m above ground',
@@ -174,7 +178,10 @@ class input_forcings:
                 'UGRD_10maboveground','VGRD_10maboveground',
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
-            6: None,
+            6: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             7: None,
             8: None,
             9: ['TMP_2maboveground','SPFH_2maboveground',
@@ -191,7 +198,7 @@ class input_forcings:
             3: [4,5,0,1,3,7,2,6],
             4: None,
             5: [4,5,0,1,3,7,2,6],
-            6: None,
+            6: [4,5,0,1,3,7,2,6],
             7: None,
             8: None,
             9: [4,5,0,1,3,7,2,6],
@@ -213,6 +220,7 @@ class input_forcings:
         find_neighbor_files = {
             3: dateMod.find_gfs_neighbors,
             5: dateMod.find_conus_hrrr_neighbors,
+            6: dateMod.find_conus_rap_neighbors,
             9: dateMod.find_gfs_neighbors
         }
 
@@ -241,6 +249,7 @@ class input_forcings:
         regrid_inputs = {
             3: regridMod.regrid_gfs,
             5: regridMod.regrid_conus_hrrr,
+            6: regridMod.regrid_conus_rap,
             9: regridMod.regrid_gfs
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
@@ -323,6 +332,16 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
 
+        # If we have specified specific humidity downscaling, establish arrays to hold
+        # temporary temperature arrays that are un-downscaled.
+        if InputDict[force_key].q2dDownscaleOpt > 0:
+            InputDict[force_key].t2dTmp = np.empty([GeoMetaWrfHydro.ny_local,
+                                                    GeoMetaWrfHydro.nx_local],
+                                                   np.float32)
+            InputDict[force_key].psfcTmp = np.empty([GeoMetaWrfHydro.ny_local,
+                                                    GeoMetaWrfHydro.nx_local],
+                                                   np.float32)
+
         # Initialize the local final grid of values. This is represntative
         # of the local grid for this forcing, for a specific output timesetp.
         # This grid will be updated from one output timestep to another, and
@@ -331,6 +350,8 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
+                                                GeoMetaWrfHydro.nx_local],np.float32)
+        InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
 
     return InputDict
