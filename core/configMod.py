@@ -19,6 +19,7 @@ class ConfigOptions:
         self.input_forcings = None
         self.input_force_dirs = None
         self.number_inputs = None
+        self.number_custom_inputs = 0
         self.output_freq = None
         self.output_dir = None
         self.scratch_dir = None
@@ -40,6 +41,7 @@ class ConfigOptions:
         self.fcst_input_offsets = None
         self.process_window = None
         self.geogrid = None
+        self.spatial_meta = None
         self.regrid_opt = None
         self.config_path = config
         self.errMsg = None
@@ -61,6 +63,7 @@ class ConfigOptions:
         self.swBiasCorrectOpt = None
         self.lwBiasCorrectOpt = None
         self.precipBiasCorrectOpt = None
+        self.customFcstFreq = None
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
 
@@ -95,6 +98,9 @@ class ConfigOptions:
             if forceOpt < 0 or forceOpt > 10:
                 errMod.err_out_screen('Please specify InputForcings values between '
                                       '1 and 10.')
+            # Keep tabs on how many custom input forcings we have.
+            if forceOpt == 10:
+                self.number_custom_inputs = self.number_custom_inputs + 1
 
         # Read in the input directories for each forcing option.
         try:
@@ -392,6 +398,19 @@ class ConfigOptions:
         if not os.path.isfile(self.geogrid):
             errMod.err_out_screen('Unable to locate necessary geogrid file: ' + self.geogrid)
 
+        # Check for the optional geospatial land metadata file.
+        try:
+            self.spatial_meta = config['Geospatial']['SpatialMetaIn']
+        except KeyError:
+            errMod.err_out_screen('Unable to locate SpatialMetaIn in the configuration file.')
+        if len(self.spatial_meta) == 0:
+            # No spatial metadata file found.
+            self.spatial_meta = None
+        else:
+            if not os.path.isfile(self.spatial_meta):
+                errMod.err_out_screen('Unable to locate optional spatial metadata file: ' +
+                                      self.spatial_meta)
+
         # Process regridding options.
         try:
             self.regrid_opt = json.loads(config['Regridding']['RegridOpt'])
@@ -650,3 +669,17 @@ class ConfigOptions:
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 
         # PLUG FOR READING IN ENSEMBLE INFORMATION
+
+        # Read in information for the custom input NetCDF files that are to be processed.
+        # Read in the ForecastInputHorizons options.
+        try:
+            self.customFcstFreq = json.loads(config['Custom']['custom_input_fcst_freq'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in'
+                                  'configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper custom_input_fcst_freq  option specified in '
+                                  'configuration file')
+        if len(self.customFcstFreq != self.number_custom_inputs):
+            errMod.err_out_screen('Improper custom_input fcst_freq specified. This number must'
+                                  ' match the frequency of custom input forcings selected.')

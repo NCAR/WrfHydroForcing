@@ -433,3 +433,56 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                 # The GFS window has shifted. Reset fields 2 to
                 # be fields 1.
                 input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+
+def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function to calculate the previous and after hourly custom NetCDF files for use in processing.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param dCurrent:
+    :param MpiConfg:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 5:
+            print("PROCESSING custom hourly NetCDF files.")
+
+    # Normally, we do a check to make sure the input horizons chosen by the user are not
+    # greater than an expeted value. However, since these are custom input NetCDF files,
+    # we are foregoing that check.
+    currentCustomCycle = ConfigOptions.current_fcst_cycle - \
+                         datetime.timedelta(seconds=
+                                            (input_forcings.userCycleOffset) * 60.0)
+
+    if MpiConfg.rank == 0:
+        print("CURRENT CUSTOM CYCLE BEING USED = " + currentCustomCycle.strftime('%Y-%m-%d %H'))
+
+    # Calculate the current forecast hour within this cycle.
+    dtTmp = dCurrent - currentCustomCycle
+
+    currentCustomHour = int(dtTmp.days*24) + math.floor(dtTmp.seconds/3600.0)
+    currentCustomMin = math.floor((dtTmp.seconds%3600.0)/60.0)
+
+    if MpiConfg.rank == 0:
+        print("Current CUSTOM Forecast Hour = " + str(currentCustomHour))
+        print("Current CUSTOM Forecast Minute = " + str(currentCustomMin))
+
+    # Calculate the previous file to process.
+    #minSinceLastOutput = (currentCustomHour * 60) % 60
+    #if MpiConfg.rank == 0:
+    #    print(currentRapHour)
+    #    print(minSinceLastOutput)
+    #if minSinceLastOutput == 0:
+    #    minSinceLastOutput = 60
+    #prevRapDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
+    #input_forcings.fcst_date1 = prevRapDate
+    #if MpiConfg.rank == 0:
+    #    print(prevRapDate)
+    #if minSinceLastOutput == 60:
+    #    minUntilNextOutput = 0
+    #else:
+    #    minUntilNextOutput = 60 - minSinceLastOutput
+    #nextRapDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
+    #input_forcings.fcst_date2 = nextRapDate
+    #if MpiConfg.rank == 0:
+    #    print(nextRapDate)

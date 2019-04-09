@@ -106,10 +106,12 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     " to the next output timestep."
                 continue
             else:
+                ConfigOptions.currentForceNum = 0
+                ConfigOptions.currentCustomForceNum = 0
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
                     # Calculate the previous and next input cycle files from the inputs.
-                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
+                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig,forceNum)
                     if MpiConfig.rank == 0:
                         print('Previous INPUT File = ' + inputForcingMod[forceKey].file_in1)
                         print('Next INPUT File = ' + inputForcingMod[forceKey].file_in2)
@@ -157,6 +159,11 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     except:
                         errMod.err_out(ConfigOptions)
                     MpiConfig.comm.barrier()
+
+                    ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
+
+                    if forceKey == 10:
+                        ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
 
                 # STUB FOR SUPPLEMENTAL FORCINGS
 

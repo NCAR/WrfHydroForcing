@@ -44,15 +44,24 @@ class OutputObj:
         :return:
         """
         output_variable_attribute_dict = {
-            'U2D': [0,'m s-1','x_wind','10-m U-component of wind'],
-            'V2D': [1,'m s-1','y_wind','10-m V-component of wind'],
-            'LWDOWN': [2,'W m-2','surface downward longwave_flux','Surface downward long-wave radiation flux'],
-            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate'],
-            'T2D': [4,'K','air temperature','2-m Air Temperature'],
-            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity'],
-            'PSFC': [6,'Pa','air_pressure','Surface Pressure'],
-            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux','Surface downward short-wave radiation flux']
+            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point'],
+            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point'],
+            'LWDOWN': [2,'W m-2','surface downward longwave_flux','Surface downward long-wave radiation flux','time: point'],
+            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean'],
+            'T2D': [4,'K','air temperature','2-m Air Temperature','time: point'],
+            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point'],
+            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point'],
+            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux','Surface downward short-wave radiation flux','time point']
         }
+
+        # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
+        # We will default to the regridding method chosen for the first input forcing selected.
+        if ConfigOptions.regrid_opt[0] == 1:
+            regrid_att = "remapped via ESMF regrid_with_weights: Bilinear"
+        elif ConfigOptions.regrid_opt[0] == 2:
+            regrid_att = "remapped via ESMF regrid_with_weights: Nearest Neighbor"
+        elif ConfigOptions.regrid_opt[0] == 3:
+            regrid_att = "remapped via ESMF regrid_with_weights: Conservative Bilinear"
 
         # Ensure all processors are synced up before outputting.
         MpiConfig.comm.barrier()
@@ -111,21 +120,43 @@ class OutputObj:
             except:
                 ConfigOptions.errMsg = "Unable to create reference_time variable in: " + self.outPath
                 errMod.err_out(ConfigOptions)
-            try:
-                idOut.createVariable('x','f8',('x'))
-            except:
-                ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
-                errMod.err_out(ConfigOptions)
-            try:
-                idOut.createVariable('y','f8',('y'))
-            except:
-                ConfigOptions.errMsg = "Unable to create y variable in: " + self.outPath
-                errMod.err_out(ConfigOptions)
-            try:
-                idOut.createVariable('ProjectionCoordinateSystem','S1')
-            except:
-                ConfigOptions.errMsg = "Unable to create ProjectionCoordinateSystem in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+
+            # Create geospatial metadata coordinate variables if data was read in from an optional
+            # spatial metadata file.
+            if ConfigOptions.spatial_meta is not None:
+                # Create coordinate variables and populate with attributes read in.
+                try:
+                    idOut.createVariable('x','f8',('x'))
+                except:
+                    ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+                try:
+                    idOut.variables['x'].setncatts(geoMetaWrfHydro.x_coord_atts)
+                except:
+                    ConfigOptions.errMsg = "Unable to establish x coordinate attributes in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+
+                try:
+                    idOut.createVariable('y','f8',('y'))
+                except:
+                    ConfigOptions.errMsg = "Unable to create y variable in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+                try:
+                    idOut.variables['y'].setncatts(geoMetaWrfHydro.y_coord_atts)
+                except:
+                    ConfigOptions.errMsg = "Unable to establish y coordinate attributes in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+
+                try:
+                    idOut.createVariable('crs','S1')
+                except:
+                    ConfigOptions.errMsg = "Unable to create crs in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+                try:
+                    idOut.variables['crs'].setncatts(geoMetaWrfHydro.crs_atts)
+                except:
+                    ConfigOptions.errMsg = "Unable to establish crs attributes in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
 
             # Loop through and create each variable, along with expected attributes.
             for varTmp in output_variable_attribute_dict:
@@ -134,6 +165,41 @@ class OutputObj:
                 except:
                     ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                     errMod.err_out(ConfigOptions)
+                try:
+                    idOut.variables[varTmp].cell_methods = output_variable_attribute_dict[varTmp][4]
+                except:
+                    ConfigOptions.errMsg = "Unable to create cell_methods attribute for: " + varTmp + \
+                        " in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+                try:
+                    idOut.variables[varTmp].remap = regrid_att
+                except:
+                    ConfigOptions.errMsg = "Unable to create remap attribute for: " + varTmp + \
+                        " in: " + self.outPath
+                    errMod.err_out(ConfigOptions)
+                # Place geospatial metadata attributes in if we have them.
+                if ConfigOptions.spatial_meta is not None:
+                    try:
+                        idOut.variables[varTmp].grid_mapping = 'crs'
+                    except:
+                        ConfigOptions.errMsg = "Unable to create grid_mapping attribute for: " + varTmp + " in: " + \
+                            self.outPath
+                        errMod.err_out(ConfigOptions)
+                    if 'esri_pe_string' in geoMetaWrfHydro.crs_atts.keys():
+                        try:
+                            idOut.variables[varTmp].esri_pe_string = geoMetaWrfHydro.crs_atts['esri_pe_string']
+                        except:
+                            ConfigOptions.errMsg = "Unable to create esri_pe_string attribute for: " + varTmp + \
+                                " in: " + self.outPath
+                            errMod.err_out(ConfigOptions)
+                    if 'proj4' in geoMetaWrfHydro.spatial_global_atts.keys():
+                        try:
+                            idOut.variables[varTmp].proj4 = geoMetaWrfHydro.spatial_global_atts['proj4']
+                        except:
+                            ConfigOptions.errMsg = "Unable to create proj4 attribute for: " + varTmp + \
+                                " in: " + self.outPath
+                            errMod.err_out(ConfigOptions)
+
                 try:
                     idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][1]
                 except:

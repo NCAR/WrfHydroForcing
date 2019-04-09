@@ -63,6 +63,11 @@ def main():
         WrfHydroGeoMeta.initialize_destination_geo(jobMeta,mpiMeta)
     except:
         errMod.err_out_screen(jobMeta.errMsg)
+    if jobMeta.spatial_meta is not None:
+        try:
+            WrfHydroGeoMeta.initialize_geospatial_metadata(jobMeta,mpiMeta)
+        except:
+            errMod.err_out_screen(jobMeta.errMsg)
 
     mpiMeta.comm.barrier()
 
