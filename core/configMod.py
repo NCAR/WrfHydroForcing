@@ -63,6 +63,7 @@ class ConfigOptions:
         self.swBiasCorrectOpt = None
         self.lwBiasCorrectOpt = None
         self.precipBiasCorrectOpt = None
+        self.cfsv2EnsMember = None
         self.customFcstFreq = None
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
@@ -95,7 +96,7 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 10:
+            if forceOpt < 0 or forceOpt > 12:
                 errMod.err_out_screen('Please specify InputForcings values between '
                                       '1 and 10.')
             # Keep tabs on how many custom input forcings we have.
@@ -668,7 +669,21 @@ class ConfigOptions:
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 
-        # PLUG FOR READING IN ENSEMBLE INFORMATION
+        # Read in Ensemble information
+        # Read in CFS ensemble member information IF we have chosen CFSv2 as an input
+        # forcing.
+        for optTmp in self.input_forcings:
+            if optTmp == 7:
+                try:
+                    self.cfsv2EnsMember = json.loads(config['Ensembles']['cfsEnsNumber'])
+                except KeyError:
+                    errMod.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
+                                          'section of the configuration file')
+                except json.JSONDecodeError:
+                    errMod.err_out_screen('Improper cfsEnsNumber options specified in the '
+                                          'configuration file')
+                if self.cfsv2EnsMember < 1 or self.cfsv2EnsMember > 4:
+                    errMod.err_out_screen('Please chose an cfsEnsNumber value of 1,2,3 or 4.')
 
         # Read in information for the custom input NetCDF files that are to be processed.
         # Read in the ForecastInputHorizons options.
