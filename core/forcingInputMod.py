@@ -94,9 +94,9 @@ class input_forcings:
             7: "CFSv2_GRIB2",
             8: "WRF_ARW_Hawaii_GRIB2",
             9: "GFS_Production_025d_GRIB2",
-            10: "Custom_NetCDF",
-            11: "Custom_NetCDF",
-            12: "Custom_NetCDF"
+            10: "Custom_NetCDF_Hourly",
+            11: "Custom_NetCDF_Hourly",
+            12: "Custom_NetCDF_Hourly"
         }
         self.productName = product_names[self.keyValue]
 
@@ -270,7 +270,10 @@ class input_forcings:
             3: regridMod.regrid_gfs,
             5: regridMod.regrid_conus_hrrr,
             6: regridMod.regrid_conus_rap,
-            9: regridMod.regrid_gfs
+            9: regridMod.regrid_gfs,
+            10: regridMod.regrid_custom_hourly_netcdf,
+            11: regridMod.regrid_custom_hourly_netcdf,
+            12: regridMod.regrid_custom_hourly_netcdf
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:

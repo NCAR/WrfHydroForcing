@@ -319,3 +319,51 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     # Return the NetCDF file handle back to the user.
     return idTmp
 
+def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
+    """
+    Generic function to convert a NetCDF forcing file given a list of input forcing
+    variables.
+    :param GribFileIn:
+    :param NetCdfFileOut:
+    :param ConfigOptions:
+    :return:
+    """
+    # Open the NetCDF file on the master processor and read in data.
+    if MpiConfig.rank == 0:
+        if MpiConfig.rank == 0:
+            # Ensure file exists.
+            if not os.path.isfile(NetCdfFileIn):
+                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
+                                       " not found."
+                errMod.err_out(ConfigOptions)
+
+            # Open the NetCDF file.
+            try:
+                idTmp = Dataset(NetCdfFileIn, 'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                       NetCdfFileIn
+                errMod.err_out(ConfigOptions)
+
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                                       NetCdfFileIn
+                errMod.err_out(ConfigOptions)
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                       NetCdfFileIn
+                errMod.err_out(ConfigOptions)
+
+            # Loop through all the expected variables.
+            #if inputVar not in idTmp.variables.keys():
+            #    ConfigOptions.errMsg = "Unable to locate expected variable: " + \
+            #                           inputVar + " in: " + NetCdfFileOut
+            #    errMod.err_out(ConfigOptions)
+
+        else:
+            idTmp = None
+
+        # Return the NetCDF file handle back to the user.
+        return idTmp
+
