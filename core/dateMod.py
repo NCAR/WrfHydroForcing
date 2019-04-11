@@ -143,18 +143,17 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The HRRR window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The forecast window has shifted. Reset the states.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -260,18 +259,17 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The RAP window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The forecast window has shifted. Reset the states.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -416,23 +414,17 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The GFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        # If we have shifted GFS windows, check to see if the former
-        # 'next' GFS file is now the new 'previous' gfs file.
-        # If so, simply reset the end of the GFS window
-        # to be the new beginning of the next window.
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The GFS window has shifted. Reset fields 2 to
-                # be fields 1.
-                input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
 
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -555,23 +547,17 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The CFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        # If we have shifted CFS windows, check to see if the former
-        # 'next' CFS file is now the new 'previous' cfs file.
-        # If so, simply reset the end of the CFS window
-        # to be the new beginning of the next window.
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The CFS window has shifted. Reset fields 2 to
-                # be fields 1.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
 
 def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -660,15 +646,14 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The forecast window has shifted. Reset the states.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
