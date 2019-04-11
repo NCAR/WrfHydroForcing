@@ -213,7 +213,7 @@ class input_forcings:
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
-        input_matp_to_outputs = {
+        input_map_to_outputs = {
             1: None,
             2: None,
             3: [4,5,0,1,3,7,2,6],
@@ -227,7 +227,7 @@ class input_forcings:
             11: [4,5,0,1,3,7,2,6],
             12: [4,5,0,1,3,7,2,6],
         }
-        self.input_map_output = input_matp_to_outputs[self.keyValue]
+        self.input_map_output = input_map_to_outputs[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
