@@ -391,9 +391,6 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             # Regrid the height variable.
             if MpiConfig.rank == 0:
                 varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
-                # The CFSv2 height field has a missing value ring at the
-                # boundary between land/sea. Set these values to 0.0
-                varTmp[np.where(varTmp < -100.0)] = 0.0
             else:
                 varTmp = None
             MpiConfig.comm.barrier()

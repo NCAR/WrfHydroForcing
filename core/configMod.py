@@ -695,6 +695,6 @@ class ConfigOptions:
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper custom_input_fcst_freq  option specified in '
                                   'configuration file')
-        if len(self.customFcstFreq != self.number_custom_inputs):
+        if len(self.customFcstFreq) != self.number_custom_inputs:
             errMod.err_out_screen('Improper custom_input fcst_freq specified. This number must'
                                   ' match the frequency of custom input forcings selected.')

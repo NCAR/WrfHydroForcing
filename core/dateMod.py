@@ -450,7 +450,9 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     ensStr = str(ConfigOptions.cfsv2EnsMember)
     ensStr = ensStr.zfill(2)
     cfsOutHorizons = [6480] # Forecast cycles go out 9 months.
-    cfsOutFreq = [360] # Outputs are every six hours.
+    cfsOutFreq = {
+        6480: 360
+    }
 
     # If the user has specified a forcing horizon that is greater than what
     # is available here, return an error.
