@@ -722,9 +722,9 @@ class ConfigOptions:
 
             # Read in the regridding options.
             try:
-                self.regrid_opt_supp_pcp = json.loads(config['SuppPcp']['RegridOptSuppPcp'])
+                self.regrid_opt_supp_pcp = json.loads(config['SuppForcing']['RegridOptSuppPcp'])
             except KeyError:
-                errMod.err_out_screen('Unable to locate RegridOptSuppPcp under the SuppPcp section '
+                errMod.err_out_screen('Unable to locate RegridOptSuppPcp under the SuppForcing section '
                                       'in the configuration file.')
             except json.decoder.JSONDecodeError:
                 errMod.err_out_screen('Improper RegridOptSuppPcp options specified in the configuration file.')
@@ -740,9 +740,9 @@ class ConfigOptions:
 
             # Read in temporal interpolation options.
             try:
-                self.suppTemporalInterp = json.loads(config['SuppPcp']['SuppPcpTemporalInterpolation'])
+                self.suppTemporalInterp = json.loads(config['SuppForcing']['SuppPcpTemporalInterpolation'])
             except KeyError:
-                errMod.err_out_screen('Unable to locate SuppPcpTemporalInterpolation under the SuppPcp'
+                errMod.err_out_screen('Unable to locate SuppPcpTemporalInterpolation under the SuppForcing'
                                       ' section in the configuration file.')
             except json.decoder.JSONDecodeError:
                 errMod.err_out_screen('Improper SuppPcpTemporalInterpolation options specified in the '
