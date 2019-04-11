@@ -27,11 +27,11 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
     """
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step.
-    dtFromPrevious = ConfigOptions.current_output_step - input_forcings.fcst_date1
+    dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
 
     # Calculate the difference between the current output timesetp,
     # and the next forecast output step.
-    dtFromNext = ConfigOptions.current_output_step - input_forcings.fcst_date2
+    dtFromNext = ConfigOptions.current_output_date - input_forcings.fcst_date2
 
     if abs(dtFromNext.total_seconds()) <= abs(dtFromPrevious.total_seconds()):
         # Default to the regridded states from the next forecast output step.
@@ -53,14 +53,14 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step. Use this to calculate a fraction
     # of the previous forcing output to use in the final output for this step.
-    dtFromPrevious = ConfigOptions.current_output_step - input_forcings.fcst_date1
-    weight1 = 1-(dtFromPrevious.total_seconds()/(input_forcings.outFreq*60.0))
+    dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
+    weight1 = 1-(abs(dtFromPrevious.total_seconds())/(input_forcings.outFreq*60.0))
 
     # Calculate the difference between the current output timesetp,
     # and the next forecast output step. Use this to calculate a fraction of
     # the next forcing output to use in the final output for this step.
-    dtFromNext = ConfigOptions.current_output_step - input_forcings.fcst_date2
-    weight2 = 1-(dtFromNext.total_seconds()/(input_forcings.outFreq*60.0))
+    dtFromNext = ConfigOptions.current_output_date - input_forcings.fcst_date2
+    weight2 = 1-(abs(dtFromNext.total_seconds())/(input_forcings.outFreq*60.0))
 
     # Calculate where we have missing data in either the previous or next forcing dataset.
     ind1Ndv = np.where(input_forcings.regridded_forcings1 == ConfigOptions.globalNdv)

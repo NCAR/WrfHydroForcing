@@ -31,6 +31,12 @@ class GeoMetaWrfHydro:
         self.esmf_grid = None
         self.esmf_lat = None
         self.esmf_lon = None
+        self.crs_atts = None
+        self.x_coord_atts = None
+        self.x_coords = None
+        self.y_coord_atts = None
+        self.y_coords = None
+        self.spatial_global_atts = None
 
     def get_processor_bounds(self):
         """
@@ -248,6 +254,114 @@ class GeoMetaWrfHydro:
         slp_azi_tmp = None
         varTmp = None
 
+    def initialize_geospatial_metadata(self,ConfigOptions,MpiConfig):
+        """
+        Function that will read in crs/x/y geospatial metadata and coordinates
+        from the optional geospatial metadata file IF it was specified by the user in
+        the configuration file.
+        :param ConfigOptions:
+        :return:
+        """
+        # We will only read information on processor 0. This data is not necessary for the
+        # other processors, and is only used in the output routines.
+        if MpiConfig.rank == 0:
+            # Open the geospatial metadata file.
+            try:
+                idTmp = Dataset(ConfigOptions.spatial_meta,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open spatial metadata file: " + ConfigOptions.spatial_meta
+                raise
+
+            # Make sure the expected variables are present in the file.
+            if 'crs' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate crs variable in: " + ConfigOptions.spatial_meta
+                raise Exception()
+            if 'x' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate x variable in: " + ConfigOptions.spatial_meta
+                raise Exception()
+            if 'y' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate y variable in: " + ConfigOptions.spatial_meta
+                raise Exception()
+            # Extract names of variable attributes from each of the input geospatial variables. These
+            # can change, so we are making this as flexible as possible to accomodate future changes.
+            try:
+                crs_att_names = idTmp.variables['crs'].ncattrs()
+            except:
+                ConfigOptions.errMsg = "Unable to extract crs attribute names from: " + ConfigOptions.spatial_meta
+                raise
+            try:
+                x_coord_att_names = idTmp.variables['x'].ncattrs()
+            except:
+                ConfigOptions.errMsg = "Unable to extract x attribute names from: " + ConfigOptions.spatial_meta
+                raise
+            try:
+                y_coord_att_names = idTmp.variables['y'].ncattrs()
+            except:
+                ConfigOptions.errMsg = "Unable to extract y attribute names from: " + ConfigOptions.spatial_meta
+                raise
+            # Extract attribute values
+            try:
+                self.x_coord_atts = {item: idTmp.variables['x'].getncattr(item) for item in x_coord_att_names}
+            except:
+                ConfigOptions.errMsg = "Unable to extract x coordinate attributes from: " + ConfigOptions.spatial_meta
+                raise
+            try:
+                self.y_coord_atts = {item: idTmp.variables['y'].getncattr(item) for item in y_coord_att_names}
+            except:
+                ConfigOptions.errMsg = "Unable to extract y coordinate attributes from: " + ConfigOptions.spatial_meta
+                raise
+            try:
+                self.crs_atts = {item: idTmp.variables['crs'].getncattr(item) for item in crs_att_names}
+            except:
+                ConfigOptions.errMsg = "Unable to extract crs coordinate attributes from: " + ConfigOptions.spatial_meta
+                raise
+
+            # Extract global attributes
+            try:
+                global_att_names = idTmp.ncattrs()
+            except:
+                ConfigOptions.errMsg = "Unable to extract global attribute names from: " + ConfigOptions.spatial_meta
+                raise
+            try:
+                self.spatial_global_atts = {item: idTmp.getncattr(item) for item in global_att_names}
+            except:
+                ConfigOptions.errMsg = "Unable to extract global attributes from: " + ConfigOptions.spatial_meta
+                raise
+
+            # Extract x/y coordinate values
+            if len(idTmp.variables['x'].shape) == 1:
+                try:
+                    self.x_coords = idTmp.variables['x'][:].data
+                except:
+                    ConfigOptions.errMsg = "Unable to extract x coordinate values from: " + ConfigOptions.spatial_meta
+                    raise
+                try:
+                    self.y_coords = idTmp.variables['y'][:].data
+                except:
+                    ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
+                    raise
+
+            if len(idTmp.variables['x'].shape) == 2:
+                try:
+                    self.x_coords = idTmp.variables['x'][:,:].data
+                except:
+                    ConfigOptions.errMsg = "Unable to extract x coordinate values from: " + ConfigOptions.spatial_meta
+                    raise
+                try:
+                    self.y_coords = idTmp.variables['y'][:,:].data
+                except:
+                    ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
+                    raise
+
+
+            # Close the geospatial metadata file.
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close spatial metadata file: " + ConfigOptions.spatial_meta
+                raise
+
+        MpiConfig.comm.barrier()
 
     def calc_slope(self,idTmp,ConfigOptions):
         """

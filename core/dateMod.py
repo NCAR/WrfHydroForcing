@@ -143,18 +143,17 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The HRRR window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The forecast window has shifted. Reset the states.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -260,18 +259,17 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The RAP window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The forecast window has shifted. Reset the states.
-                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -416,20 +414,246 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The GFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        # If we have shifted GFS windows, check to see if the former
-        # 'next' GFS file is now the new 'previous' gfs file.
-        # If so, simply reset the end of the GFS window
-        # to be the new beginning of the next window.
-        if input_forcings.file_in2 == tmpFile1:
-            if ConfigOptions.current_output_step == 1:
-                if MpiConfg.rank == 0:
-                    print('We are on the first output timestep.')
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-            else:
-                # The GFS window has shifted. Reset fields 2 to
-                # be fields 1.
-                input_forcings.regridded_forcings1[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+
+def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function that will calculate the neighboring CFSv2 global GRIB2 files for a given
+    forcing output timestep.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param dCurrent:
+    :param MpiConfg:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        print("PROCESSING CFSv2")
+
+    ensStr = str(ConfigOptions.cfsv2EnsMember)
+    ensStr = ensStr.zfill(2)
+    cfsOutHorizons = [6480] # Forecast cycles go out 9 months.
+    cfsOutFreq = {
+        6480: 360
+    }
+
+    # If the user has specified a forcing horizon that is greater than what
+    # is available here, return an error.
+    if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > max(cfsOutHorizons):
+        ConfigOptions.errMsg = "User has specified a CFSv2 forecast horizon " \
+                               "that is greater than maximum allowed hours of: " \
+                               + str(max(cfsOutHorizons))
+        print(ConfigOptions.errMsg)
+        raise Exception
+
+    if MpiConfg.rank == 0:
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+
+    # First find the current GFS forecast cycle that we are using.
+    currentCfsCycle = ConfigOptions.current_fcst_cycle - \
+                      datetime.timedelta(seconds=
+                                         (input_forcings.userCycleOffset) * 60.0)
+    if MpiConfg.rank == 0:
+        print("CURRENT CFSv2 CYCLE BEING USED = " + currentCfsCycle.strftime('%Y-%m-%d %H'))
+
+    # Calculate the current forecast hour within this CFSv2 cycle.
+    dtTmp = dCurrent - currentCfsCycle
+    currentCfsHour = int(dtTmp.days * 24) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print("Current CFSv2 Forecast Hour = " + str(currentCfsHour))
+
+    # Calculate the CFS output frequency based on our current CFS forecast hour.
+    for horizonTmp in cfsOutHorizons:
+        if currentCfsHour <= horizonTmp:
+            currentCfsFreq = cfsOutFreq[horizonTmp]
+            input_forcings.outFreq = cfsOutFreq[horizonTmp]
+            break
+    if MpiConfg.rank == 0:
+        print("Current CFSv2 output frequency = " + str(currentCfsFreq))
+
+    # Calculate the previous file to process.
+    minSinceLastOutput = (currentCfsHour * 60) % currentCfsFreq
+    if MpiConfg.rank == 0:
+        print(currentCfsHour)
+        print(currentCfsFreq)
+        print(minSinceLastOutput)
+    if minSinceLastOutput == 0:
+        minSinceLastOutput = currentCfsFreq
+        # currentCfsHour = currentCfsHour
+        # previousCfsHour = currentCfsHour - int(currentCfsFreq/60.0)
+    prevCfsDate = dCurrent - \
+                  datetime.timedelta(seconds=minSinceLastOutput * 60)
+    input_forcings.fcst_date1 = prevCfsDate
+    if MpiConfg.rank == 0:
+        print(prevCfsDate)
+    if minSinceLastOutput == currentCfsFreq:
+        minUntilNextOutput = 0
+    else:
+        minUntilNextOutput = currentCfsFreq - minSinceLastOutput
+    nextCfsDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
+    input_forcings.fcst_date2 = nextCfsDate
+    if MpiConfg.rank == 0:
+        print(nextCfsDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextCfsDate - currentCfsCycle
+    if MpiConfg.rank == 0:
+        print(currentCfsCycle)
+    nextCfsForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(nextCfsForecastHour)
+    input_forcings.fcst_hour2 = nextCfsForecastHour
+    dtTmp = prevCfsDate - currentCfsCycle
+    prevCfsForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(prevCfsForecastHour)
+    input_forcings.fcst_hour1 = prevCfsForecastHour
+    # If we are on the first CFS forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevCfsForecastHour == 0:
+        prevCfsDate = nextCfsDate
+
+    # Calculate expected file paths.
+    tmpFile1 = input_forcings.inDir + "/cfs." + \
+        currentCfsCycle.strftime('%Y%m%d') + "/" + \
+        currentCfsCycle.strftime('%H') + "/" + \
+        "6hrly_grib_" + ensStr + "/flxf" + \
+        prevCfsDate.strftime('%Y%m%d%H') + "." + \
+        ensStr + "." + currentCfsCycle.strftime('%Y%m%d%H') + \
+        ".grb2"
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
+    tmpFile2 = input_forcings.inDir + "/cfs." + \
+               currentCfsCycle.strftime('%Y%m%d') + "/" + \
+               currentCfsCycle.strftime('%H') + "/" + \
+               "6hrly_grib_" + ensStr + "/flxf" + \
+               nextCfsDate.strftime('%Y%m%d%H') + "." + \
+               ensStr + "." + currentCfsCycle.strftime('%Y%m%d%H') + \
+               ".grb2"
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The CFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+        input_forcings.file_in1 = tmpFile1
+        input_forcings.file_in2 = tmpFile2
+        input_forcings.regridComplete = False
+
+def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function to calculate the previous and after hourly custom NetCDF files for use in processing.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param dCurrent:
+    :param MpiConfg:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 5:
+            print("PROCESSING custom hourly NetCDF files.")
+
+    # Normally, we do a check to make sure the input horizons chosen by the user are not
+    # greater than an expeted value. However, since these are custom input NetCDF files,
+    # we are foregoing that check.
+    currentCustomCycle = ConfigOptions.current_fcst_cycle - \
+                         datetime.timedelta(seconds=
+                                            (input_forcings.userCycleOffset) * 60.0)
+
+    if MpiConfg.rank == 0:
+        print("CURRENT CUSTOM CYCLE BEING USED = " + currentCustomCycle.strftime('%Y-%m-%d %H'))
+
+    # Calculate the current forecast hour within this cycle.
+    dtTmp = dCurrent - currentCustomCycle
+
+    currentCustomHour = int(dtTmp.days*24) + math.floor(dtTmp.seconds/3600.0)
+    currentCustomMin = math.floor((dtTmp.seconds%3600.0)/60.0)
+
+    if MpiConfg.rank == 0:
+        print("Current CUSTOM Forecast Hour = " + str(currentCustomHour))
+        print("Current CUSTOM Forecast Minute = " + str(currentCustomMin))
+
+    # Calculate the previous file to process.
+    minSinceLastOutput = (currentCustomHour * 60) % 60
+    if MpiConfg.rank == 0:
+        print(currentCustomHour)
+        print(minSinceLastOutput)
+    if minSinceLastOutput == 0:
+        minSinceLastOutput = 60
+    prevCustomDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
+    input_forcings.fcst_date1 = prevCustomDate
+    if MpiConfg.rank == 0:
+        print(prevCustomDate)
+    if minSinceLastOutput == 60:
+        minUntilNextOutput = 0
+    else:
+        minUntilNextOutput = 60 - minSinceLastOutput
+    nextCustomDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
+    input_forcings.fcst_date2 = nextCustomDate
+    if MpiConfg.rank == 0:
+        print(nextCustomDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextCustomDate - currentCustomCycle
+    if MpiConfg.rank == 0:
+        print(currentCustomCycle)
+    nextCustomForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(nextCustomForecastHour)
+    input_forcings.fcst_hour2 = nextCustomForecastHour
+    dtTmp = prevCustomDate - currentCustomCycle
+    prevCustomForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(prevCustomForecastHour)
+    input_forcings.fcst_hour1 = prevCustomForecastHour
+    # If we are on the first forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevCustomForecastHour == 0:
+        prevCustomForecastHour = 1
+
+    # Calculate expected file paths.
+    tmpFile1 = input_forcings.inDir + "/custom_hourly." + \
+                currentCustomCycle.strftime('%Y%m%d%H') + '.f' + \
+                str(prevCustomForecastHour).zfill(2) + '.nc'
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
+    tmpFile2 = input_forcings.inDir + '/custom_hourly.' + \
+                currentCustomCycle.strftime('%Y%m%d%H') + '.f' + \
+                str(nextCustomForecastHour).zfill(2) + '.nc'
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+        input_forcings.file_in1 = tmpFile1
+        input_forcings.file_in2 = tmpFile2
+        input_forcings.regridComplete = False
