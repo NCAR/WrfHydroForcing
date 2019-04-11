@@ -41,15 +41,20 @@ class supplemental_precip:
         self.esmf_field_out = None
         self.regridded_precip1 = None
         self.regridded_precip2 = None
+        self.regridded_rqi1 = None
+        self.regridded_rqi2 = None
         self.regridded_mask = None
         self.final_supp_precip = None
         self.file_in1 = None
         self.file_in2 = None
+        self.rqi_file_in1 = None
+        self.rqi_file_in2 = None
         self.pcp_hour1 = None
         self.pcp_hour2 = None
         self.pcp_date1 = None
         self.pcp_date2 = None
         self.netcdf_var_names = None
+        self.rqi_netcdf_var_names = None
         self.grib_levels = None
         self.grib_vars = None
         self.tmpFile = None
@@ -73,8 +78,8 @@ class supplemental_precip:
         self.fileType = product_types[self.keyValue]
 
         grib_vars_in = {
-            1: ['BLAH'],
-            2: ['BLAH']
+            1: None,
+            2: None
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -85,10 +90,16 @@ class supplemental_precip:
         self.grib_levels = grib_levels_in[self.keyValue]
 
         netcdf_variables = {
-            1: None,
-            2: None
+            1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
+            2: ['GaugeOnlyQPE01H_0mabovemeansealevel']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
+
+        netcdf_rqi_variables = {
+            1: ['RadarQualityIndex_0mabovemeansealevel'],
+            2: ['RadarQualityIndex_0mabovemeansealevel']
+        }
+        self.rqi_netcdf_var_names = netcdf_rqi_variables[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
@@ -102,7 +113,8 @@ class supplemental_precip:
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
-            1: dateMod.find_gfs_neighbors
+            1: dateMod.find_hourly_MRMS_radar_neighbors,
+            2: dateMod.find_hourly_MRMS_radar_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
