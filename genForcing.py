@@ -86,7 +86,7 @@ def main():
     if jobMeta.number_supp_pcp > 0:
         suppPcpMod = suppPrecipMod.initDict(jobMeta)
     else:
-        suppPrecipMod = None
+        suppPcpMod = None
 
     for fTmp in jobMeta.input_forcings:
         if mpiMeta.rank == 0:
