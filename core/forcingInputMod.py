@@ -91,10 +91,12 @@ class input_forcings:
             4: "NAM_Conus_Nest_GRIB2",
             5: "HRRR_Conus_GRIB2",
             6: "RAP_Conus_GRIB2",
-            7: "CFSv2_GRIB2",
+            7: "CFSv2_6Hr_Global_GRIB2",
             8: "WRF_ARW_Hawaii_GRIB2",
             9: "GFS_Production_025d_GRIB2",
-            10: "Custom_NetCDF"
+            10: "Custom_NetCDF_Hourly",
+            11: "Custom_NetCDF_Hourly",
+            12: "Custom_NetCDF_Hourly"
         }
         self.productName = product_names[self.keyValue]
 
@@ -108,7 +110,9 @@ class input_forcings:
             7: "GRIB2",
             8: "GRIB2",
             9: "GRIB2",
-            10: "NetCDF"
+            10: "NetCDF",
+            11: "NetCDF",
+            12: "NetCDF"
         }
         self.fileType = product_types[self.keyValue]
 
@@ -122,7 +126,9 @@ class input_forcings:
             7: 360,
             8: 1440,
             9: 360,
-            10: 60
+            10: -9999,
+            11: -9999,
+            12: -9999
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
@@ -136,11 +142,14 @@ class input_forcings:
                 'DLWRF','PRES'],
             6: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
-            7: None,
+            7: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
             8: None,
             9: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
                 'DLWRF','PRES'],
-            10: None
+            10: None,
+            11: None,
+            12: None
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -157,12 +166,16 @@ class input_forcings:
             6: ['2 m above ground','2 m above ground',
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
-            7: None,
+            7: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
             8: None,
             9:['2 m above ground','2 m above ground',
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
-            10: None
+            10: None,
+            11: None,
+            12: None
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -182,13 +195,21 @@ class input_forcings:
                 'UGRD_10maboveground','VGRD_10maboveground',
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
-            7: None,
+            7: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
             8: None,
             9: ['TMP_2maboveground','SPFH_2maboveground',
                 'UGRD_10maboveground','VGRD_10maboveground',
                 'PRATE_surface','DSWRF_surface','DLWRF_surface',
                 'PRES_surface'],
-            10: None
+            10: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
+                 'DLWRF','PRES'],
+            11: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
+                 'DLWRF','PRES'],
+            12: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
+                 'DLWRF','PRES']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -199,10 +220,12 @@ class input_forcings:
             4: None,
             5: [4,5,0,1,3,7,2,6],
             6: [4,5,0,1,3,7,2,6],
-            7: None,
+            7: [4,5,0,1,3,7,2,6],
             8: None,
             9: [4,5,0,1,3,7,2,6],
-            10: None
+            10: [4,5,0,1,3,7,2,6],
+            11: [4,5,0,1,3,7,2,6],
+            12: [4,5,0,1,3,7,2,6],
         }
         self.input_map_output = input_matp_to_outputs[self.keyValue]
 
@@ -221,7 +244,11 @@ class input_forcings:
             3: dateMod.find_gfs_neighbors,
             5: dateMod.find_conus_hrrr_neighbors,
             6: dateMod.find_conus_rap_neighbors,
-            9: dateMod.find_gfs_neighbors
+            7: dateMod.find_cfsv2_neighbors,
+            9: dateMod.find_gfs_neighbors,
+            10: dateMod.find_custom_hourly_neighbors,
+            11: dateMod.find_custom_hourly_neighbors,
+            12: dateMod.find_custom_hourly_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -250,7 +277,11 @@ class input_forcings:
             3: regridMod.regrid_gfs,
             5: regridMod.regrid_conus_hrrr,
             6: regridMod.regrid_conus_rap,
-            9: regridMod.regrid_gfs
+            7: regridMod.regrid_cfsv2,
+            9: regridMod.regrid_gfs,
+            10: regridMod.regrid_custom_hourly_netcdf,
+            11: regridMod.regrid_custom_hourly_netcdf,
+            12: regridMod.regrid_custom_hourly_netcdf
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
@@ -297,6 +328,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
     InputDict = {}
 
     # Loop through and initialize the empty class for each product.
+    custom_count = 0
     for force_tmp in range(0,ConfigOptions.number_inputs):
         force_key = ConfigOptions.input_forcings[force_tmp]
         InputDict[force_key] = input_forcings()
@@ -353,5 +385,10 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                 GeoMetaWrfHydro.nx_local],np.float32)
         InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
+
+        # Obtain custom input cycle frequencies
+        if force_key == 10 or force_key == 11 or force_key == 12:
+            InputDict[force_key].cycleFreq = ConfigOptions.customFcstFreq[custom_count]
+            custom_count = custom_count + 1
 
     return InputDict

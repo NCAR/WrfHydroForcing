@@ -19,6 +19,7 @@ class ConfigOptions:
         self.input_forcings = None
         self.input_force_dirs = None
         self.number_inputs = None
+        self.number_custom_inputs = 0
         self.output_freq = None
         self.output_dir = None
         self.scratch_dir = None
@@ -40,6 +41,7 @@ class ConfigOptions:
         self.fcst_input_offsets = None
         self.process_window = None
         self.geogrid = None
+        self.spatial_meta = None
         self.regrid_opt = None
         self.config_path = config
         self.errMsg = None
@@ -61,6 +63,8 @@ class ConfigOptions:
         self.swBiasCorrectOpt = None
         self.lwBiasCorrectOpt = None
         self.precipBiasCorrectOpt = None
+        self.cfsv2EnsMember = None
+        self.customFcstFreq = None
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
 
@@ -92,9 +96,12 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 10:
+            if forceOpt < 0 or forceOpt > 12:
                 errMod.err_out_screen('Please specify InputForcings values between '
                                       '1 and 10.')
+            # Keep tabs on how many custom input forcings we have.
+            if forceOpt == 10:
+                self.number_custom_inputs = self.number_custom_inputs + 1
 
         # Read in the input directories for each forcing option.
         try:
@@ -392,6 +399,19 @@ class ConfigOptions:
         if not os.path.isfile(self.geogrid):
             errMod.err_out_screen('Unable to locate necessary geogrid file: ' + self.geogrid)
 
+        # Check for the optional geospatial land metadata file.
+        try:
+            self.spatial_meta = config['Geospatial']['SpatialMetaIn']
+        except KeyError:
+            errMod.err_out_screen('Unable to locate SpatialMetaIn in the configuration file.')
+        if len(self.spatial_meta) == 0:
+            # No spatial metadata file found.
+            self.spatial_meta = None
+        else:
+            if not os.path.isfile(self.spatial_meta):
+                errMod.err_out_screen('Unable to locate optional spatial metadata file: ' +
+                                      self.spatial_meta)
+
         # Process regridding options.
         try:
             self.regrid_opt = json.loads(config['Regridding']['RegridOpt'])
@@ -649,4 +669,32 @@ class ConfigOptions:
 
         # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
 
-        # PLUG FOR READING IN ENSEMBLE INFORMATION
+        # Read in Ensemble information
+        # Read in CFS ensemble member information IF we have chosen CFSv2 as an input
+        # forcing.
+        for optTmp in self.input_forcings:
+            if optTmp == 7:
+                try:
+                    self.cfsv2EnsMember = json.loads(config['Ensembles']['cfsEnsNumber'])
+                except KeyError:
+                    errMod.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
+                                          'section of the configuration file')
+                except json.JSONDecodeError:
+                    errMod.err_out_screen('Improper cfsEnsNumber options specified in the '
+                                          'configuration file')
+                if self.cfsv2EnsMember < 1 or self.cfsv2EnsMember > 4:
+                    errMod.err_out_screen('Please chose an cfsEnsNumber value of 1,2,3 or 4.')
+
+        # Read in information for the custom input NetCDF files that are to be processed.
+        # Read in the ForecastInputHorizons options.
+        try:
+            self.customFcstFreq = json.loads(config['Custom']['custom_input_fcst_freq'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in'
+                                  'configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper custom_input_fcst_freq  option specified in '
+                                  'configuration file')
+        if len(self.customFcstFreq) != self.number_custom_inputs:
+            errMod.err_out_screen('Improper custom_input fcst_freq specified. This number must'
+                                  ' match the frequency of custom input forcings selected.')
