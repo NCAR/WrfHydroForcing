@@ -529,7 +529,7 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
     if prevCfsForecastHour == 0:
-        prevCfsForecastHour = 6
+        prevCfsDate = nextCfsDate
 
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + "/cfs." + \
@@ -558,7 +558,7 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
-        # If we have shifted GFS windows, check to see if the former
+        # If we have shifted CFS windows, check to see if the former
         # 'next' CFS file is now the new 'previous' cfs file.
         # If so, simply reset the end of the CFS window
         # to be the new beginning of the next window.

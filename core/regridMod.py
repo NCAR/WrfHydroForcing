@@ -132,10 +132,10 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
@@ -146,7 +146,14 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
             input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -285,21 +292,35 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
         input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
             ConfigOptions.globalNdv
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
             input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -438,21 +459,28 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
         input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
             ConfigOptions.globalNdv
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
             input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -548,21 +576,28 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
         MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
         input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
             ConfigOptions.globalNdv
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
             input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -726,21 +761,28 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
         # Set any pixel cells outside the input domain to the global missing value.
         input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
             ConfigOptions.globalNdv
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
 
         input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
             input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier
+        MpiConfig.comm.barrier()
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if ConfigOptions.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        MpiConfig.comm.barrier()
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
