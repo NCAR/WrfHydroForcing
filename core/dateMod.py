@@ -752,8 +752,12 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
         else:
             # The forecast window has shifted. Reset fields 2 to
             # be fields 1.
-            supplemental_precip.regridded_precip1[:,:] = supplemental_precip.regridded_precip2[:,:]
-            supplemental_precip.regridded_rqi1[:, :] = supplemental_precip.regridded_rqi2[:, :]
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+            #supplemental_precip.regridded_precip1[:,:] = supplemental_precip.regridded_precip2[:,:]
+            #supplemental_precip.regridded_rqi1[:, :] = supplemental_precip.regridded_rqi2[:, :]
         supplemental_precip.file_in1 = tmpFile1
         supplemental_precip.file_in2 = tmpFile2
         supplemental_precip.rqi_file_in1 = tmpRqiFile1
