@@ -70,6 +70,7 @@ class ConfigOptions:
         self.precipBiasCorrectOpt = None
         self.cfsv2EnsMember = None
         self.customFcstFreq = None
+        self.rqiThresh = 1.0
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
 
@@ -683,11 +684,24 @@ class ConfigOptions:
         self.number_supp_pcp = len(self.supp_precip_forcings)
 
         if self.number_supp_pcp > 0:
-            # Check to make sure supplemental precip options make sense
+            # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
+            # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
                 if suppOpt < 0 or suppOpt > 5:
                     errMod.err_out_screen('Please specify SuppForcing values between '
                                           '1 and 5.')
+                # Read in RQI threshold to apply to radar products.
+                if suppOpt == 1 or suppOpt == 2:
+                    try:
+                        self.rqiThresh = json.loads(config['SuppPcp']['RqiThreshold'])
+                    except KeyError:
+                        errMod.err_out_screen('Unable to locate RqiThreshold under '
+                                              'SuppPcp section in the configuration file.')
+                    except json.decoder.JSONDecodeError:
+                        errMod.err_out_screen('Improper RqiThreshold option in the configuration file.')
+                    # Make sure the RQI threshold makes sense.
+                    if self.rqiThresh < 0.0 or self.rqiThresh > 1.0:
+                        errMod.err_out_screen('Please specify an RqiThreshold between 0.0 and 1.0.')
 
             # Read in the input directories for each supplemental precipitation product.
             try:

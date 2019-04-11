@@ -61,8 +61,8 @@ class supplemental_precip:
         :return:
         """
         product_names = {
-            1: "MRMS_Radar_Only",
-            2: "MRMS_Gage_Corrected"
+            1: "MRMS_1HR_Radar_Only",
+            2: "MRMS_1HR_Gage_Corrected"
         }
         self.productName = product_names[self.keyValue]
 
@@ -89,6 +89,31 @@ class supplemental_precip:
             2: None
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
+
+    def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
+        """
+        Function that will calculate the last/next expected
+        supplemental precipitation file based on the current time step that
+        is being processed.
+        :param ConfigOptions:
+        :param dCurrent:
+        :return:
+        """
+        # First calculate the current input cycle date this
+        # WRF-Hydro output timestep corresponds to.
+        find_neighbor_files = {
+            1: dateMod.find_gfs_neighbors
+        }
+
+        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
+        # try:
+        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent,MpiConfig)
+        # except TypeError:
+        #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
+        #                           "supplemental precipitation: " + self.productName
+        #    raise
+        # except:
+        #    raise
 
 def initDict(ConfigOptions):
     """

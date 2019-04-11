@@ -657,3 +657,93 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+
+def find_MRMS_Radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function to calculate the previous and next MRMS radar-only QPE files.
+    :param supplemental_precip:
+    :param ConfigOptions:
+    :param dCurrent:
+    :param MpiConfg:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        if supplemental_precip.keyValue == 1:
+            print("PROCESSING MRMS radar-only QPE.")
+
+
+    # Calculate the current forecast hour within this cycle.
+    dtTmp = dCurrent - currentCustomCycle
+
+    currentCustomHour = int(dtTmp.days*24) + math.floor(dtTmp.seconds/3600.0)
+    currentCustomMin = math.floor((dtTmp.seconds%3600.0)/60.0)
+
+    if MpiConfg.rank == 0:
+        print("Current CUSTOM Forecast Hour = " + str(currentCustomHour))
+        print("Current CUSTOM Forecast Minute = " + str(currentCustomMin))
+
+    # Calculate the previous file to process.
+    minSinceLastOutput = (currentCustomHour * 60) % 60
+    if MpiConfg.rank == 0:
+        print(currentCustomHour)
+        print(minSinceLastOutput)
+    if minSinceLastOutput == 0:
+        minSinceLastOutput = 60
+    prevCustomDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
+    input_forcings.fcst_date1 = prevCustomDate
+    if MpiConfg.rank == 0:
+        print(prevCustomDate)
+    if minSinceLastOutput == 60:
+        minUntilNextOutput = 0
+    else:
+        minUntilNextOutput = 60 - minSinceLastOutput
+    nextCustomDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
+    input_forcings.fcst_date2 = nextCustomDate
+    if MpiConfg.rank == 0:
+        print(nextCustomDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextCustomDate - currentCustomCycle
+    if MpiConfg.rank == 0:
+        print(currentCustomCycle)
+    nextCustomForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(nextCustomForecastHour)
+    input_forcings.fcst_hour2 = nextCustomForecastHour
+    dtTmp = prevCustomDate - currentCustomCycle
+    prevCustomForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
+    if MpiConfg.rank == 0:
+        print(prevCustomForecastHour)
+    input_forcings.fcst_hour1 = prevCustomForecastHour
+    # If we are on the first forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevCustomForecastHour == 0:
+        prevCustomForecastHour = 1
+
+    # Calculate expected file paths.
+    tmpFile1 = input_forcings.inDir + "/custom_hourly." + \
+                currentCustomCycle.strftime('%Y%m%d%H') + '.f' + \
+                str(prevCustomForecastHour).zfill(2) + '.nc'
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
+    tmpFile2 = input_forcings.inDir + '/custom_hourly.' + \
+                currentCustomCycle.strftime('%Y%m%d%H') + '.f' + \
+                str(nextCustomForecastHour).zfill(2) + '.nc'
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+        input_forcings.file_in1 = tmpFile1
+        input_forcings.file_in2 = tmpFile2
+        input_forcings.regridComplete = False
