@@ -693,10 +693,10 @@ class ConfigOptions:
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt == 1 or suppOpt == 2:
                     try:
-                        self.rqiThresh = json.loads(config['SuppPcp']['RqiThreshold'])
+                        self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
                     except KeyError:
                         errMod.err_out_screen('Unable to locate RqiThreshold under '
-                                              'SuppPcp section in the configuration file.')
+                                              'SuppForcing section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         errMod.err_out_screen('Improper RqiThreshold option in the configuration file.')
                     # Make sure the RQI threshold makes sense.
@@ -705,13 +705,13 @@ class ConfigOptions:
 
             # Read in the input directories for each supplemental precipitation product.
             try:
-                self.supp_precip_dirs = config.get('SuppPcp', 'SuppPcpDirectories').split(',')
+                self.supp_precip_dirs = config.get('SuppForcing', 'SuppPcpDirectories').split(',')
             except KeyError:
-                errMod.err_out_screen('Unable to locate SuppPcpDirectories in SuppPcp section '
+                errMod.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                       'in the configuration file.')
             if len(self.supp_precip_dirs) != self.number_supp_pcp:
                 errMod.err_out_screen('Number of SuppPcpDirectories must match the number '
-                                      'of SuppPcp in the configuration file.')
+                                      'of SuppForcing in the configuration file.')
             # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
             # or new line characters.
             for dirTmp in range(0, len(self.supp_precip_dirs)):
