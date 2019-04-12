@@ -127,6 +127,30 @@ class supplemental_precip:
         # except:
         #    raise
 
+    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
+        """
+        Polymorphic function that will regrid input forcings to the
+        supplemental precipitation grids for this particular timestep. For
+        timesteps that require interpolation, two sets of input
+        forcing grids will be regridded IF we have come across new
+        files and the process flag has been reset.
+        :param ConfigOptions:
+        :return:
+        """
+        # Establish a mapping dictionary that will point the
+        # code to the functions to that will regrid the data.
+        regrid_inputs = {
+            1: regridMod.regrid_mrms_hourly,
+            2: regridMod.regrid_mrms_hourly
+        }
+        regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
+        #try:
+        #    regrid_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
+        #except:
+        #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
+        #        "input forcing: " + self.productName
+        #    raise
+
 def initDict(ConfigOptions):
     """
     Initial function to create an supplemental dictionary, which
