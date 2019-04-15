@@ -84,7 +84,7 @@ def main():
     # If we have specified supplemental precipitation products, initialize
     # the supp class.
     if jobMeta.number_supp_pcp > 0:
-        suppPcpMod = suppPrecipMod.initDict(jobMeta)
+        suppPcpMod = suppPrecipMod.initDict(jobMeta,WrfHydroGeoMeta)
     else:
         suppPcpMod = None
 
