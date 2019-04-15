@@ -179,6 +179,13 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                         #    errMod.err_out(ConfigOptions)
                         MpiConfig.comm.barrier()
 
+                        # Regrid the supplemental precipitation.
+                        suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                        #try:
+                        #except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                 MpiConfig.comm.barrier()

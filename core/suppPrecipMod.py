@@ -151,7 +151,7 @@ class supplemental_precip:
         #        "input forcing: " + self.productName
         #    raise
 
-def initDict(ConfigOptions):
+def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
     Initial function to create an supplemental dictionary, which
     will contain an abstract class for each supplemental precip product.
@@ -171,6 +171,15 @@ def initDict(ConfigOptions):
 
         InputDict[supp_pcp_key].inDir = ConfigOptions.supp_precip_dirs[supp_pcp_tmp]
         InputDict[supp_pcp_key].define_product()
+
+        # Initialize the local final grid of values
+        InputDict[supp_pcp_key].final_supp_pcp = np.empty([GeoMetaWrfHydro.ny_local,
+                                                           GeoMetaWrfHydro.nx_local],
+                                                          np.float64)
+        InputDict[supp_pcp_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
+                                                           GeoMetaWrfHydro.nx_local], np.float32)
+        #InputDict[supp_pcp_key].radar_rqi = np.empty([GeoMetaWrfHydro.ny_local,
+        #                                              GeoMetaWrfHydro.nx_local], np.float32)
 
     return InputDict
 

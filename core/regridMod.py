@@ -983,6 +983,12 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         supplemental_precip.esmf_field_out.data
     MpiConfig.comm.barrier()
 
+    # Check for any RQI values below the threshold specified by the user.
+    # Set these values to global NDV.
+    indFilter = np.where(supplemental_precip.regridded_rqi2 <= ConfigOptions.rqiThresh)
+    supplemental_precip.regridded_precip2[indFilter] = ConfigOptions.globalNdv
+    MpiConfig.comm.barrier()
+
     # If we are on the first timestep, set the previous regridded field to be
     # the latest as there are no states for time 0.
     if ConfigOptions.current_output_step == 1:
@@ -1094,6 +1100,10 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
         supplemental_precip.regridded_precip1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
         supplemental_precip.regridded_precip2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                      np.float32)
+        supplemental_precip.regridded_rqi1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                      np.float32)
+        supplemental_precip.regridded_rqi2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
 
     if MpiConfig.rank == 0:
@@ -1320,10 +1330,10 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
         supplemental_precip.x_upper_bound = supplemental_precip.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         supplemental_precip.y_lower_bound = supplemental_precip.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         supplemental_precip.y_upper_bound = supplemental_precip.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(supplemental_precip.x_lower_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(supplemental_precip.x_upper_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(supplemental_precip.y_lower_bound))
-        print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(supplemental_precip.y_upper_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP XBOUND1 = ' + str(supplemental_precip.x_lower_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP XBOUND2 = ' + str(supplemental_precip.x_upper_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP YBOUND1 = ' + str(supplemental_precip.y_lower_bound))
+        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP YBOUND2 = ' + str(supplemental_precip.y_upper_bound))
         supplemental_precip.nx_local = supplemental_precip.x_upper_bound - supplemental_precip.x_lower_bound
         supplemental_precip.ny_local = supplemental_precip.y_upper_bound - supplemental_precip.y_lower_bound
     except:
