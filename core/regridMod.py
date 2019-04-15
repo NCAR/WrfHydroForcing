@@ -989,6 +989,13 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     supplemental_precip.regridded_precip2[indFilter] = ConfigOptions.globalNdv
     MpiConfig.comm.barrier()
 
+    # Convert the hourly precipitation total to a rate of mm/s
+    indValid = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
+    supplemental_precip.regridded_precip2[indValid] = supplemental_precip.regridded_precip2[indValid]/3600.0
+    # Reset index variables to free up memory
+    indValid = None
+    indFilter = None
+
     # If we are on the first timestep, set the previous regridded field to be
     # the latest as there are no states for time 0.
     if ConfigOptions.current_output_step == 1:
