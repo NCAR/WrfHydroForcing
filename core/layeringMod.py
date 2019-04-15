@@ -50,8 +50,8 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     :param MpiConfig:
     :return:
     """
-    indSet = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
-    layerIn = supplemental_precip.regridded_precip2
+    indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
+    layerIn = supplemental_precip.final_supp_precip
     layerOut = OutputObj.output_local[3,:,:]
     layerOut[indSet] = layerIn[indSet]
 

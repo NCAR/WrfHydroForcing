@@ -53,6 +53,7 @@ class supplemental_precip:
         self.pcp_hour2 = None
         self.pcp_date1 = None
         self.pcp_date2 = None
+        self.input_frequency = None
         self.netcdf_var_names = None
         self.rqi_netcdf_var_names = None
         self.grib_levels = None
@@ -151,6 +152,31 @@ class supplemental_precip:
         #        "input forcing: " + self.productName
         #    raise
 
+    def temporal_interpolate_inputs(self,ConfigOptions,MpiConfig):
+        """
+        Polymorphic function that will run temporal interpolation of
+        the supplemental precipitation grids that have been regridded. This is
+        especially important for supplemental precips that have large output
+        frequencies. This is also important for frequent WRF-Hydro
+        input timesteps.
+        :param ConfigOptions:
+        :param MpiConfig:
+        :return:
+        """
+        temporal_interpolate_inputs = {
+            0: timeInterpMod.no_interpolation_supp_pcp,
+            1: timeInterpMod.nearest_neighbor_supp_pcp,
+            2: timeInterpMod.weighted_average_supp_pcp
+        }
+        temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
+        #temporal_interpolate_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
+        #try:
+        #    temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
+        #except:
+        #    ConfigOptions.errMsg = "Unable to execute temporal_interpolate_inputs " + \
+        #        " for input forcing: " + self.productName
+        #    raise
+
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
     Initial function to create an supplemental dictionary, which
@@ -178,8 +204,6 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                           np.float64)
         InputDict[supp_pcp_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
                                                            GeoMetaWrfHydro.nx_local], np.float32)
-        #InputDict[supp_pcp_key].radar_rqi = np.empty([GeoMetaWrfHydro.ny_local,
-        #                                              GeoMetaWrfHydro.nx_local], np.float32)
 
     return InputDict
 

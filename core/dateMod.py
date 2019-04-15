@@ -681,6 +681,9 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     currentHr = dCurrent.hour
     currentMin = dCurrent.minute
 
+    # Set the input file frequency to be hourly.
+    supplemental_precip.input_frequency = 60.0
+
     prevDate1 = datetime.datetime(currentYr,currentMo,currentDay,currentHr)
     dtTmp = dCurrent - prevDate1
     if dtTmp.total_seconds() == 0:
