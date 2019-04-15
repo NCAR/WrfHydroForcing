@@ -52,10 +52,10 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     """
     indSet = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.regridded_precip2
-    layerOut = OutputObj.output_local[4,:,:]
+    layerOut = OutputObj.output_local[3,:,:]
     layerOut[indSet] = layerIn[indSet]
 
-    OutputObj.output_local[4,:,:] = layerOut
+    OutputObj.output_local[3,:,:] = layerOut
 
     # Reset local variables to reduce memory usage.
     layerIn = None
