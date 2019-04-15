@@ -91,7 +91,7 @@ class supplemental_precip:
 
         netcdf_variables = {
             1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
-            2: ['GaugeOnlyQPE01H_0mabovemeansealevel']
+            2: ['GaugeCorrQPE01H_0mabovemeansealevel']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
