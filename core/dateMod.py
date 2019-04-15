@@ -426,6 +426,137 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
 
+def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
+    """
+    Function to calcualte the previous and after NAM Nest cycles based on the current timestep.
+    This function was written to be generic enough to accomodate any of the NAM nest flavors.
+    :param input_forcings:
+    :param ConfigOptions:
+    :return:
+    """
+    if MpiConfg.rank == 0:
+        if input_forcings.keyValue == 13:
+            print("PROCESSING Hawaii NAM Nest")
+        if input_forcings.keyValue == 14:
+            print("PROCESSING Puerto Rico NAM Nest")
+
+    # Establish how often our NAM nest cycles occur.
+    if dCurrent >= datetime.datetime(2012,10,1):
+        namNestOutHorizons = [60]
+        namNestOutFreq = {
+            60: 60
+        }
+
+    # If the user has specified a forcing horizon that is greater than what
+    # is available here, return an error.
+    if (input_forcings.userFcstHorizon+input_forcings.userCycleOffset)/60.0 > max(namNestOutHorizons):
+        ConfigOptions.errMsg = "User has specified a NAM nest forecast horizon " \
+                               "that is greater than maximum allowed hours of: " \
+                               + str(max(namNestOutHorizons))
+        print(ConfigOptions.errMsg)
+        raise Exception
+
+    if MpiConfg.rank == 0:
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+
+    # First find the current NAM nest forecast cycle that we are using.
+    currentNamNestCycle = ConfigOptions.current_fcst_cycle - \
+                          datetime.timedelta(seconds=
+                                             (input_forcings.userCycleOffset)*60.0)
+    if MpiConfg.rank == 0:
+        print("CURRENT NAM NEST CYCLE BEING USED = " + currentNamNestCycle.strftime('%Y-%m-%d %H'))
+
+    # Calculate the current forecast hour within this NAM nest cycle.
+    dtTmp = dCurrent - currentNamNestCycle
+    currentNamNestHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
+    if MpiConfg.rank == 0:
+        print("Current NAM Nest Forecast Hour = " + str(currentNamNestHour))
+
+    # Calculate the NAM Nest output frequency based on our current NAM Nest forecast hour.
+    for horizonTmp in namNestOutHorizons:
+        if currentNamNestHour <= horizonTmp:
+            currentNamNestFreq = namNestOutFreq[horizonTmp]
+            input_forcings.outFreq = namNestOutFreq[horizonTmp]
+            break
+    if MpiConfg.rank == 0:
+        print("Current NAM nest output frequency = " + str(currentNamNestFreq))
+
+    # Calculate the previous file to process.
+    minSinceLastOutput = (currentNamNestHour*60)%currentNamNestFreq
+    if MpiConfg.rank == 0:
+        print(currentNamNestHour)
+        print(currentNamNestFreq)
+        print(minSinceLastOutput)
+    if minSinceLastOutput == 0:
+        minSinceLastOutput = currentNamNestFreq
+    prevNamNestDate = dCurrent - \
+                  datetime.timedelta(seconds=minSinceLastOutput*60)
+    input_forcings.fcst_date1 = prevNamNestDate
+    if MpiConfg.rank == 0:
+        print(prevNamNestDate)
+    if minSinceLastOutput == currentNamNestFreq:
+        minUntilNextOutput = 0
+    else:
+        minUntilNextOutput = currentNamNestFreq - minSinceLastOutput
+    nextNamNestDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
+    input_forcings.fcst_date2 = nextNamNestDate
+    if MpiConfg.rank == 0:
+        print(nextNamNestDate)
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dtTmp = nextNamNestDate - currentNamNestCycle
+    if MpiConfg.rank == 0:
+        print(currentNamNestCycle)
+    nextNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    if MpiConfg.rank == 0:
+        print(nextNamNestForecastHour)
+    input_forcings.fcst_hour2 = nextNamNestForecastHour
+    dtTmp = prevNamNestDate - currentNamNestCycle
+    prevNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
+    if MpiConfg.rank == 0:
+        print(prevNamNestForecastHour)
+    input_forcings.fcst_hour1 = prevNamNestForecastHour
+    # If we are on the first NAM nest forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prevNamNestForecastHour == 0:
+        prevNamNestForecastHour = 1
+
+    if input_forcings.keyValue == 13:
+        domainString = "hawaiinest"
+    elif input_forcings.keyValue == 14:
+        domainString = "priconest"
+
+    # Calculate expected file paths.
+    tmpFile1 = input_forcings.inDir + '/nam.' + \
+        currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
+        currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hires.f' + \
+        str(prevNamNestForecastHour).zfill(2) + '.tm00.grib2'
+    if MpiConfg.rank == 0:
+        print(tmpFile1)
+    tmpFile2 = input_forcings.inDir + '/nam.' + \
+               currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
+               currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hires.f' + \
+               str(nextNamNestForecastHour).zfill(2) + '.tm00.grib2'
+    if MpiConfg.rank == 0:
+        print(tmpFile2)
+        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
+        if ConfigOptions.current_output_step == 1:
+            print('We are on the first output timestep.')
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+        else:
+            # The GFS window has shifted. Reset fields 2 to
+            # be fields 1.
+            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+        input_forcings.file_in1 = tmpFile1
+        input_forcings.file_in2 = tmpFile2
+        input_forcings.regridComplete = False
+
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
     Function that will calculate the neighboring CFSv2 global GRIB2 files for a given

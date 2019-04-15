@@ -96,7 +96,9 @@ class input_forcings:
             9: "GFS_Production_025d_GRIB2",
             10: "Custom_NetCDF_Hourly",
             11: "Custom_NetCDF_Hourly",
-            12: "Custom_NetCDF_Hourly"
+            12: "Custom_NetCDF_Hourly",
+            13: "NAM_Nest_3km_Hawaii",
+            14: "NAM_Nest_3km_PuertoRico"
         }
         self.productName = product_names[self.keyValue]
 
@@ -112,7 +114,9 @@ class input_forcings:
             9: "GRIB2",
             10: "NetCDF",
             11: "NetCDF",
-            12: "NetCDF"
+            12: "NetCDF",
+            13: "GRIB2",
+            14: "GRIB2"
         }
         self.fileType = product_types[self.keyValue]
 
@@ -128,7 +132,9 @@ class input_forcings:
             9: 360,
             10: -9999,
             11: -9999,
-            12: -9999
+            12: -9999,
+            13: 360,
+            14: 360
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
@@ -149,7 +155,11 @@ class input_forcings:
                 'DLWRF','PRES'],
             10: None,
             11: None,
-            12: None
+            12: None,
+            13: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES'],
+            14: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
+                'DLWRF','PRES']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -170,12 +180,19 @@ class input_forcings:
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
             8: None,
-            9:['2 m above ground','2 m above ground',
+            9: ['2 m above ground','2 m above ground',
                 '10 m above ground','10 m above ground',
                 'surface','surface','surface','surface'],
             10: None,
             11: None,
-            12: None
+            12: None,
+            13: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface'],
+            14: ['2 m above ground','2 m above ground',
+                '10 m above ground','10 m above ground',
+                'surface','surface','surface','surface']
+
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -209,7 +226,15 @@ class input_forcings:
             11: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
                  'DLWRF','PRES'],
             12: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
-                 'DLWRF','PRES']
+                 'DLWRF','PRES'],
+            13: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface'],
+            14: ['TMP_2maboveground','SPFH_2maboveground',
+                'UGRD_10maboveground','VGRD_10maboveground',
+                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+                'PRES_surface']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -226,6 +251,8 @@ class input_forcings:
             10: [4,5,0,1,3,7,2,6],
             11: [4,5,0,1,3,7,2,6],
             12: [4,5,0,1,3,7,2,6],
+            13: [4,5,0,1,3,7,2,6],
+            14: [4,5,0,1,3,7,2,6]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
@@ -248,7 +275,9 @@ class input_forcings:
             9: dateMod.find_gfs_neighbors,
             10: dateMod.find_custom_hourly_neighbors,
             11: dateMod.find_custom_hourly_neighbors,
-            12: dateMod.find_custom_hourly_neighbors
+            12: dateMod.find_custom_hourly_neighbors,
+            13: dateMod.find_nam_nest_neighbors,
+            14: dateMod.find_nam_nest_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -281,7 +310,9 @@ class input_forcings:
             9: regridMod.regrid_gfs,
             10: regridMod.regrid_custom_hourly_netcdf,
             11: regridMod.regrid_custom_hourly_netcdf,
-            12: regridMod.regrid_custom_hourly_netcdf
+            12: regridMod.regrid_custom_hourly_netcdf,
+            13: regridMod.regrid_nam_nest,
+            14: regridMod.regrid_nam_nest
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
