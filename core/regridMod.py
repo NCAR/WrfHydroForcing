@@ -951,9 +951,9 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
             ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_rqi_nc
             errMod.err_out(ConfigOptions)
         try:
-            os.remove(mrms_tmp_nc)
+            os.remove(mrms_tmp_rqi_nc)
         except:
-            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_nc
+            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_rqi_nc
             errMod.err_out()
 
     MpiConfig.comm.barrier()
