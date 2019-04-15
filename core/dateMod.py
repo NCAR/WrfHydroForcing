@@ -526,6 +526,8 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         domainString = "hawaiinest"
     elif input_forcings.keyValue == 14:
         domainString = "priconest"
+    elif input_forcings.keyValue == 15:
+        domainString = "alaskanest"
 
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + '/nam.' + \
