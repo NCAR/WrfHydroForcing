@@ -713,12 +713,12 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
                    "0000.grib2.gz"
     if supplemental_precip.keyValue == 2:
         tmpFile1 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeOnly_QPE_01H_00.00_" + \
+                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                    "0000.grib2.gz"
         tmpFile2 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeOnly_QPE_01H_00.00_" + \
+                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                    "0000.grib2.gz"
