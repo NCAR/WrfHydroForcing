@@ -530,13 +530,13 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Calculate expected file paths.
     tmpFile1 = input_forcings.inDir + '/nam.' + \
         currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
-        currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hires.f' + \
+        currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
         str(prevNamNestForecastHour).zfill(2) + '.tm00.grib2'
     if MpiConfg.rank == 0:
         print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/nam.' + \
                currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
-               currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hires.f' + \
+               currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
                str(nextNamNestForecastHour).zfill(2) + '.tm00.grib2'
     if MpiConfg.rank == 0:
         print(tmpFile2)
