@@ -37,3 +37,33 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
 
         # Reset for next iteration and memory efficiency.
         indSet = None
+    MpiConfig.comm.barrier()
+
+def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions,MpiConfig):
+    """
+    Function to layer in supplemental precipitation where we have valid values. Any pixel
+    cells that contain missing values will not be layered in, and background input forcings
+    will be used instead.
+    :param OutputObj:
+    :param supplemental_precip:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :return:
+    """
+    indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
+    layerIn = supplemental_precip.final_supp_precip
+    layerOut = OutputObj.output_local[3,:,:]
+    if len(indSet[0]) != 0:
+        layerOut[indSet] = layerIn[indSet]
+    else:
+        # We have all missing data for the supplemental precip for this step.
+        layerOut = layerOut
+
+    OutputObj.output_local[3,:,:] = layerOut
+
+    # Reset local variables to reduce memory usage.
+    layerIn = None
+    layerOut = None
+    indSet = None
+
+    MpiConfig.comm.barrier()

@@ -6,7 +6,7 @@ from core import downscaleMod
 from core import biasCorrectMod
 from core import layeringMod
 
-def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,OutputObj):
+def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,MpiConfig,OutputObj):
     """
     Main calling module for running realtime forecasts and re-forecasts.
     :param jobMeta:
@@ -154,10 +154,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
 
                     # Layer in forcings from this product.
                     layeringMod.layer_final_forcings(OutputObj,inputForcingMod[forceKey],ConfigOptions,MpiConfig)
-                    try:
-                        layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
-                    except:
-                        errMod.err_out(ConfigOptions)
+                    #try:
+                    #    layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
+                    #except:
+                    #    errMod.err_out(ConfigOptions)
                     MpiConfig.comm.barrier()
 
                     ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
@@ -165,7 +165,46 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,MpiConfig,Ou
                     if forceKey == 10:
                         ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
 
-                # STUB FOR SUPPLEMENTAL FORCINGS
+                # Process supplemental precipitation if we specified in the configuration file.
+                if ConfigOptions.number_supp_pcp > 0:
+                    for suppPcpKey in ConfigOptions.supp_precip_forcings:
+                        # Like with input forcings, calculate the neighboring files to use.
+                        suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
+                        if suppPcpMod[suppPcpKey].file_in1 and suppPcpMod[suppPcpKey].file_in2:
+                            if MpiConfig.rank == 0:
+                                print('Previous SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in1)
+                                print('Next SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in2)
+                        # try:
+                        #    suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
+                        # except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
+                        # Regrid the supplemental precipitation.
+                        suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                        #try:
+                        #except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
+                        # Run temporal interpolation on the grids.
+                        suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                        # try:
+                        #    suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                        # except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
+                        # Layer in the supplemental precipitation into the current output object.
+                        layeringMod.layer_supplemental_precipitation(OutputObj,suppPcpMod[suppPcpKey],
+                                                                     ConfigOptions,MpiConfig)
+                        #try:
+                        #    layeringMod.layer_supplemental_precipitation(OutputObj, suppPcpMod[suppPcpKey],
+                        #                                                 ConfigOptions, MpiConfig)
+                        #except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)

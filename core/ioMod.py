@@ -9,6 +9,8 @@ from core import errMod
 import numpy as np
 import os
 import subprocess
+import gzip
+import shutil
 
 class OutputObj:
     """
@@ -367,3 +369,28 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
         # Return the NetCDF file handle back to the user.
         return idTmp
 
+def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
+    """
+    Generic I/O function to unzip a .gz file to a new location.
+    :param GzFileIn:
+    :param FileOut:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :return:
+    """
+    if MpiConfig.rank == 0:
+        # Unzip the file in place.
+        try:
+            with gzip.open(GzFileIn, 'rb') as fTmpGz:
+                with open(FileOut, 'wb') as fTmp:
+                    shutil.copyfileobj(fTmpGz, fTmp)
+        except:
+            ConfigOptions.errMsg = "Unable to unzip: " + GzFileIn
+            raise
+
+        if not os.path.isfile(FileOut):
+            ConfigOptions.errMsg = "Unable to locate expected unzipped file: " + \
+                                   FileOut
+            raise Exception()
+    else:
+        return
