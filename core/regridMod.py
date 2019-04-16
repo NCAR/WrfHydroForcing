@@ -1340,7 +1340,7 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
 
     MpiConfig.comm.barrier()
 
-    if input_forcings.nx_global == None or input_forcings.ny_global == None:
+    if input_forcings.nx_global is None or input_forcings.ny_global is None:
         # This is the first timestep.
         # Create out regridded numpy arrays to hold the regridded data.
         input_forcings.regridded_forcings1 = np.empty([8, wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
@@ -1349,7 +1349,7 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
                                                       np.float32)
 
     if MpiConfig.rank == 0:
-        if input_forcings.nx_global == None or input_forcings.ny_global == None:
+        if input_forcings.nx_global is None or input_forcings.ny_global is None:
             # This is the first timestep.
             calcRegridFlag = True
         else:
@@ -1396,7 +1396,7 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
 
     MpiConfig.comm.barrier()
 
-    if supplemental_precip.nx_global == None or supplemental_precip.ny_global == None:
+    if supplemental_precip.nx_global is None or supplemental_precip.ny_global is None:
         # This is the first timestep.
         # Create out regridded numpy arrays to hold the regridded data.
         supplemental_precip.regridded_precip1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
@@ -1409,7 +1409,7 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
                                                       np.float32)
 
     if MpiConfig.rank == 0:
-        if supplemental_precip.nx_global == None or supplemental_precip.ny_global == None:
+        if supplemental_precip.nx_global is None or supplemental_precip.ny_global is None:
             # This is the first timestep.
             calcRegridFlag = True
         else:
@@ -1422,10 +1422,10 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
 
     # We will now check to see if the regridded arrays are still None. This means the fields were set to None
     # earlier for missing data. We need to reset them to nx_global/ny_global where the calcRegridFlag is False.
-    if supplemental_precip.regridded_precip2 == None:
+    if supplemental_precip.regridded_precip2 is None:
         supplemental_precip.regridded_precip2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                          np.float32)
-    if supplemental_precip.regridded_precip1 == None:
+    if supplemental_precip.regridded_precip1 is None:
         supplemental_precip.regridded_precip1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                          np.float32)
 
