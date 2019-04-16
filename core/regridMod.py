@@ -1420,6 +1420,15 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
                         != supplemental_precip.nx_global:
                     calcRegridFlag = True
 
+    # We will now check to see if the regridded arrays are still None. This means the fields were set to None
+    # earlier for missing data. We need to reset them to nx_global/ny_global where the calcRegridFlag is False.
+    if supplemental_precip.regridded_precip2 == None:
+        supplemental_precip.regridded_precip2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                         np.float32)
+    if supplemental_precip.regridded_precip1 == None:
+        supplemental_precip.regridded_precip1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+                                                         np.float32)
+
     MpiConfig.comm.barrier()
 
     # Broadcast the flag to the other processors.
