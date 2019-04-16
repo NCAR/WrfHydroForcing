@@ -53,6 +53,8 @@ class supplemental_precip:
         self.pcp_hour2 = None
         self.pcp_date1 = None
         self.pcp_date2 = None
+        self.fcst_hour1 = None
+        self.fcst_hour2 = None
         self.input_frequency = None
         self.netcdf_var_names = None
         self.rqi_netcdf_var_names = None
@@ -68,37 +70,49 @@ class supplemental_precip:
         """
         product_names = {
             1: "MRMS_1HR_Radar_Only",
-            2: "MRMS_1HR_Gage_Corrected"
+            2: "MRMS_1HR_Gage_Corrected",
+            3: "WRF_ARW_Hawaii_2p5km_PCP",
+            4: "WRF_ARW_PuertoRico_2p5km_PCP"
         }
         self.productName = product_names[self.keyValue]
 
         product_types = {
             1: "GRIB2",
-            2: "GRIB2"
+            2: "GRIB2",
+            3: "GRIB2",
+            4: "GRIB2"
         }
         self.fileType = product_types[self.keyValue]
 
         grib_vars_in = {
             1: None,
-            2: None
+            2: None,
+            3: None,
+            4: None
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
         grib_levels_in = {
             1: ['BLAH'],
-            2: ['BLAH']
+            2: ['BLAH'],
+            3: ['BLAH'],
+            4: ['BLAH']
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
         netcdf_variables = {
             1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
-            2: ['GaugeCorrQPE01H_0mabovemeansealevel']
+            2: ['GaugeCorrQPE01H_0mabovemeansealevel'],
+            3: ['APCP_surface'],
+            4: ['APCP_surface']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
         netcdf_rqi_variables = {
             1: ['RadarQualityIndex_0mabovemeansealevel'],
-            2: ['RadarQualityIndex_0mabovemeansealevel']
+            2: ['RadarQualityIndex_0mabovemeansealevel'],
+            3: None,
+            4: None
         }
         self.rqi_netcdf_var_names = netcdf_rqi_variables[self.keyValue]
 
@@ -115,7 +129,9 @@ class supplemental_precip:
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
             1: dateMod.find_hourly_MRMS_radar_neighbors,
-            2: dateMod.find_hourly_MRMS_radar_neighbors
+            2: dateMod.find_hourly_MRMS_radar_neighbors,
+            3: dateMod.find_hourly_WRF_ARW_HiRes_PCP_neighbors,
+            4: dateMod.find_hourly_WRF_ARW_HiRes_PCP_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
@@ -142,7 +158,9 @@ class supplemental_precip:
         # code to the functions to that will regrid the data.
         regrid_inputs = {
             1: regridMod.regrid_mrms_hourly,
-            2: regridMod.regrid_mrms_hourly
+            2: regridMod.regrid_mrms_hourly,
+            3: regridMod.regrid_hourly_WRF_ARW_HiRes_PCP,
+            4: regridMod.regrid_hourly_WRF_ARW_HiRes_PCP
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:

@@ -992,6 +992,15 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     mrms_tmp_rqi_nc = ConfigOptions.scratch_dir + "/MRMS_RQI_TMP.nc"
     MpiConfig.comm.barrier()
 
+    # If the input paths have been set to None, this means input is missing. We will
+    # alert the user, and set the final output grids to be the global NDV and return.
+    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+        if MpiConfig.rank == 0:
+            "NO MRMS PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
+        supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip1[:, :] = ConfigOptions.globalNdv
+        return
+
     # These files shouldn't exist. If they do, remove them.
     if MpiConfig.rank == 0:
         if os.path.isfile(mrms_tmp_grib2):
@@ -1028,6 +1037,15 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
                 errMod.err_out(ConfigOptions)
 
     MpiConfig.comm.barrier()
+
+    # If the input paths have been set to None, this means input is missing. We will
+    # alert the user, and set the final output grids to be the global NDV and return.
+    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+        if MpiConfig.rank == 0:
+            "NO MRMS PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
+        supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip1[:, :] = ConfigOptions.globalNdv
+        return
 
     # Unzip MRMS files to temporary locations.
     try:
@@ -1177,6 +1195,124 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
             os.remove(mrms_tmp_nc)
         except:
             ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_nc
+            errMod.err_out()
+
+def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
+    """
+    Function for handling regridding hourly forecasted ARW precipitation for hi-res nests.
+    :param supplemental_precip:
+    :param ConfigOptions:
+    :param wrfHydroGeoMeta:
+    :param MpiConfig:
+    :return:
+    """
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    if supplemental_precip.regridComplete:
+        return
+
+    if MpiConfig.rank == 0:
+        print("REGRID STATUS = " + str(supplemental_precip.regridComplete))
+    # Create a path for a temporary NetCDF files that will
+    # be created through the wgrib2 process.
+    arw_tmp_nc = ConfigOptions.scratch_dir + "/ARW_PCP_TMP.nc"
+    MpiConfig.comm.barrier()
+
+    # These files shouldn't exist. If they do, remove them.
+    if MpiConfig.rank == 0:
+        if os.path.isfile(arw_tmp_nc):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                      arw_tmp_nc + " - Removing....."
+            errMod.log_warning(ConfigOptions)
+            try:
+                os.remove(arw_tmp_nc)
+            except:
+                errMod.err_out(ConfigOptions)
+    MpiConfig.comm.barrier()
+
+    # If the input paths have been set to None, this means input is missing. We will
+    # alert the user, and set the final output grids to be the global NDV and return.
+    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+        if MpiConfig.rank == 0:
+            "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
+        supplemental_precip.regridded_precip2[:,:] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip1[:,:] = ConfigOptions.globalNdv
+        return
+    MpiConfig.comm.barrier()
+
+    # Create a temporary NetCDF file from the GRIB2 file.
+    cmd = "wgrib2 " + supplemental_precip.file_in2 + " -match \":(" + \
+          "APCP):(surface):(" + str(supplemental_precip.fcst_hour1) + \
+          "-" + str(supplemental_precip.fcst_hour2) + " hour acc fcst):\"" + \
+          " -netcdf " + arw_tmp_nc
+
+    idTmp = ioMod.open_grib2(supplemental_precip.file_in2, arw_tmp_nc, cmd,
+                             ConfigOptions, MpiConfig, "APCP_surface")
+    MpiConfig.comm.barrier()
+
+    # Check to see if we need to calculate regridding weights.
+    calcRegridFlag = check_supp_pcp_regrid_status(idTmp, supplemental_precip,ConfigOptions,
+                                                  MpiConfig, wrfHydroGeoMeta)
+    MpiConfig.comm.barrier()
+
+    if calcRegridFlag:
+        if MpiConfig.rank == 0:
+            print('CALCULATING ARW WEIGHTS')
+        calculate_supp_pcp_weights(MpiConfig, ConfigOptions,
+                                   supplemental_precip, idTmp, arw_tmp_nc)
+
+    # Regrid the input variables.
+    if MpiConfig.rank == 0:
+        print("REGRIDDING: APCP_surface")
+        varTmp = idTmp.variables['APCP_surface'][0, :, :]
+    else:
+        varTmp = None
+    MpiConfig.comm.barrier()
+
+    varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+    MpiConfig.comm.barrier()
+
+    supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
+    MpiConfig.comm.barrier()
+
+    supplemental_precip.esmf_field_out = supplemental_precip.regridObj(supplemental_precip.esmf_field_in,
+                                                                       supplemental_precip.esmf_field_out)
+    # Set any pixel cells outside the input domain to the global missing value.
+    supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
+        ConfigOptions.globalNdv
+    MpiConfig.comm.barrier()
+
+    supplemental_precip.regridded_precip2[:, :] = \
+        supplemental_precip.esmf_field_out.data
+    MpiConfig.comm.barrier()
+
+    # Convert the hourly precipitation total to a rate of mm/s
+    indValid = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
+    supplemental_precip.regridded_precip2[indValid] = supplemental_precip.regridded_precip2[indValid]/3600.0
+    # Reset index variables to free up memory
+    indValid = None
+
+    # If we are on the first timestep, set the previous regridded field to be
+    # the latest as there are no states for time 0.
+    if ConfigOptions.current_output_step == 1:
+        supplemental_precip.regridded_precip1[:, :] = \
+            supplemental_precip.regridded_precip2[:, :]
+        supplemental_precip.regridded_rqi1[:, :] = \
+            supplemental_precip.regridded_rqi2[:, :]
+    MpiConfig.comm.barrier()
+
+    # Close the temporary NetCDF file and remove it.
+    if MpiConfig.rank == 0:
+        try:
+            idTmp.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close NetCDF file: " + arw_tmp_nc
+            errMod.err_out(ConfigOptions)
+        try:
+            os.remove(arw_tmp_nc)
+        except:
+            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + arw_tmp_nc
             errMod.err_out()
 
 def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,wrfHydroGeoMeta):
