@@ -217,9 +217,9 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[supp_pcp_key].define_product()
 
         # Initialize the local final grid of values
-        InputDict[supp_pcp_key].final_supp_pcp = np.empty([GeoMetaWrfHydro.ny_local,
-                                                           GeoMetaWrfHydro.nx_local],
-                                                          np.float64)
+        InputDict[supp_pcp_key].final_supp_precip = np.empty([GeoMetaWrfHydro.ny_local,
+                                                              GeoMetaWrfHydro.nx_local],
+                                                             np.float64)
         InputDict[supp_pcp_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
                                                            GeoMetaWrfHydro.nx_local], np.float32)
 
