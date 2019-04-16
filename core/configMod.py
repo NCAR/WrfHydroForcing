@@ -17,8 +17,11 @@ class ConfigOptions:
         param config: The user-specified path to the configuration file.
         """
         self.input_forcings = None
+        self.supp_precip_forcings = None
         self.input_force_dirs = None
+        self.supp_precip_dirs = None
         self.number_inputs = None
+        self.number_supp_pcp = None
         self.number_custom_inputs = 0
         self.output_freq = None
         self.output_dir = None
@@ -43,6 +46,7 @@ class ConfigOptions:
         self.geogrid = None
         self.spatial_meta = None
         self.regrid_opt = None
+        self.regrid_opt_supp_pcp = None
         self.config_path = config
         self.errMsg = None
         self.statusMsg = None
@@ -50,6 +54,7 @@ class ConfigOptions:
         self.logHandle = None
         self.dScaleParamDir = None
         self.forceTemoralInterp = None
+        self.suppTemporalInterp = None
         self.downscaleParamDir = None
         self.t2dDownscaleOpt = None
         self.swDownscaleOpt = None
@@ -65,6 +70,7 @@ class ConfigOptions:
         self.precipBiasCorrectOpt = None
         self.cfsv2EnsMember = None
         self.customFcstFreq = None
+        self.rqiThresh = 1.0
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
 
@@ -96,9 +102,9 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 12:
+            if forceOpt < 0 or forceOpt > 15:
                 errMod.err_out_screen('Please specify InputForcings values between '
-                                      '1 and 10.')
+                                      '1 and 15.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -667,7 +673,89 @@ class ConfigOptions:
                 errMod.err_out_screen('Invalid PrecipBiasCorrection options specified in the '
                                       'configuration file.')
 
-        # PLUG FOR READING IN SUPPLEMENTAL PRECIP PRODUCTS
+        # Read in supplemental precipitation options as an array of values to map.
+        try:
+            self.supp_precip_forcings = json.loads(config['SuppForcing']['SuppPcp'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate SuppPcp under SuppForcing section in'
+                                  'configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper SuppPcp option specified in configuration file')
+        self.number_supp_pcp = len(self.supp_precip_forcings)
+
+        if self.number_supp_pcp > 0:
+            # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
+            # if any radar products where chosen.
+            for suppOpt in self.supp_precip_forcings:
+                if suppOpt < 0 or suppOpt > 5:
+                    errMod.err_out_screen('Please specify SuppForcing values between '
+                                          '1 and 5.')
+                # Read in RQI threshold to apply to radar products.
+                if suppOpt == 1 or suppOpt == 2:
+                    try:
+                        self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
+                    except KeyError:
+                        errMod.err_out_screen('Unable to locate RqiThreshold under '
+                                              'SuppForcing section in the configuration file.')
+                    except json.decoder.JSONDecodeError:
+                        errMod.err_out_screen('Improper RqiThreshold option in the configuration file.')
+                    # Make sure the RQI threshold makes sense.
+                    if self.rqiThresh < 0.0 or self.rqiThresh > 1.0:
+                        errMod.err_out_screen('Please specify an RqiThreshold between 0.0 and 1.0.')
+
+            # Read in the input directories for each supplemental precipitation product.
+            try:
+                self.supp_precip_dirs = config.get('SuppForcing', 'SuppPcpDirectories').split(',')
+            except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
+                                      'in the configuration file.')
+            if len(self.supp_precip_dirs) != self.number_supp_pcp:
+                errMod.err_out_screen('Number of SuppPcpDirectories must match the number '
+                                      'of SuppForcing in the configuration file.')
+            # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
+            # or new line characters.
+            for dirTmp in range(0, len(self.supp_precip_dirs)):
+                self.supp_precip_dirs[dirTmp] = self.supp_precip_dirs[dirTmp].strip()
+                if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
+                    errMod.err_out_screen('Unable to locate supp pcp directory: ' +
+                                          self.supp_precip_dirs[dirTmp])
+
+            # Read in the regridding options.
+            try:
+                self.regrid_opt_supp_pcp = json.loads(config['SuppForcing']['RegridOptSuppPcp'])
+            except KeyError:
+                errMod.err_out_screen('Unable to locate RegridOptSuppPcp under the SuppForcing section '
+                                      'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                errMod.err_out_screen('Improper RegridOptSuppPcp options specified in the configuration file.')
+            if len(self.regrid_opt_supp_pcp) != self.number_supp_pcp:
+                errMod.err_out_screen('Please specify RegridOptSuppPcp values for each corresponding supplemental '
+                                      'precipitation product in the configuration file.')
+            # Check to make sure regridding options makes sense.
+            for regridOpt in self.regrid_opt_supp_pcp:
+                if regridOpt < 1 or regridOpt > 3:
+                    errMod.err_out_screen('Invalid RegridOptSuppPcp chosen in the configuration file. Please'
+                                          ' choose a value of 1-3 for each corresponding '
+                                          'supplemental precipitation product.')
+
+            # Read in temporal interpolation options.
+            try:
+                self.suppTemporalInterp = json.loads(config['SuppForcing']['SuppPcpTemporalInterpolation'])
+            except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpTemporalInterpolation under the SuppForcing'
+                                      ' section in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                errMod.err_out_screen('Improper SuppPcpTemporalInterpolation options specified in the '
+                                      'configuration file.')
+            if len(self.suppTemporalInterp) != self.number_supp_pcp:
+                errMod.err_out_screen('Please specify SuppPcpTemporalInterpolation values for each '
+                                      'corresponding supplemental precip products in the configuration file.')
+            # Ensure the SuppPcpTemporalInterpolation values make sense.
+            for temporalInterpOpt in self.suppTemporalInterp:
+                if temporalInterpOpt < 0 or temporalInterpOpt > 2:
+                    errMod.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration '
+                                          'file. Please choose a value of 0-2 for each corresponding input '
+                                          'forcing.')
 
         # Read in Ensemble information
         # Read in CFS ensemble member information IF we have chosen CFSv2 as an input

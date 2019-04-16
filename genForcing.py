@@ -6,7 +6,7 @@ from core import configMod
 from core import ioMod
 from core import parallelMod
 from core import geoMod
-
+from core import suppPrecipMod
 from core import forcingInputMod
 from core import forecastMod
 
@@ -80,6 +80,14 @@ def main():
     # In addition, input ESMF grid objects will be created to hold data for
     # downscaling and regridding purposes.
     inputForcingMod = forcingInputMod.initDict(jobMeta,WrfHydroGeoMeta)
+
+    # If we have specified supplemental precipitation products, initialize
+    # the supp class.
+    if jobMeta.number_supp_pcp > 0:
+        suppPcpMod = suppPrecipMod.initDict(jobMeta,WrfHydroGeoMeta)
+    else:
+        suppPcpMod = None
+
     for fTmp in jobMeta.input_forcings:
         if mpiMeta.rank == 0:
             print('------------------------------')
@@ -96,7 +104,7 @@ def main():
     #    # Place code into here for calling the retro run mod.
     if jobMeta.refcst_flag or jobMeta.realtime_flag:
         # Place code in here for calling the forecasting module.
-        forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,inputForcingMod,mpiMeta,OutputObj)
+        forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
 
 
 if __name__ == "__main__":
