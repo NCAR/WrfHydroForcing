@@ -170,9 +170,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     for suppPcpKey in ConfigOptions.supp_precip_forcings:
                         # Like with input forcings, calculate the neighboring files to use.
                         suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
-                        if MpiConfig.rank == 0:
-                            print('Previous SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in1)
-                            print('Next SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in2)
+                        if suppPcpMod[suppPcpKey].file_in1 and suppPcpMod[suppPcpKey].file_in2:
+                            if MpiConfig.rank == 0:
+                                print('Previous SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in1)
+                                print('Next SUPP PCP File = ' + suppPcpMod[suppPcpKey].file_in2)
                         # try:
                         #    suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                         # except:

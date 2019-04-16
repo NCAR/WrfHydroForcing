@@ -997,8 +997,8 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
         if MpiConfig.rank == 0:
             "NO MRMS PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
-        supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
-        supplemental_precip.regridded_precip1[:, :] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip2[:, :] = None
+        supplemental_precip.regridded_precip1[:, :] = None
         return
 
     # These files shouldn't exist. If they do, remove them.
@@ -1043,8 +1043,8 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
         if MpiConfig.rank == 0:
             "NO MRMS PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
-        supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
-        supplemental_precip.regridded_precip1[:, :] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip2[:, :] = None
+        supplemental_precip.regridded_precip1[:, :] = None
         return
 
     # Unzip MRMS files to temporary locations.
@@ -1236,8 +1236,8 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
         if MpiConfig.rank == 0:
             "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
-        supplemental_precip.regridded_precip2[:,:] = ConfigOptions.globalNdv
-        supplemental_precip.regridded_precip1[:,:] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_precip2[:,:] = None
+        supplemental_precip.regridded_precip1[:,:] = None
         return
     MpiConfig.comm.barrier()
 

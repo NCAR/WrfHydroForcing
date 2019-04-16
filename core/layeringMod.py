@@ -53,7 +53,11 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.final_supp_precip
     layerOut = OutputObj.output_local[3,:,:]
-    layerOut[indSet] = layerIn[indSet]
+    if len(indSet) != 0:
+        layerOut[indSet] = layerIn[indSet]
+    else:
+        # We have all missing data for the supplemental precip for this step.
+        layerOut = layerOut
 
     OutputObj.output_local[3,:,:] = layerOut
 
