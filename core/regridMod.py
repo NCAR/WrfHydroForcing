@@ -1298,8 +1298,6 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     if ConfigOptions.current_output_step == 1:
         supplemental_precip.regridded_precip1[:, :] = \
             supplemental_precip.regridded_precip2[:, :]
-        supplemental_precip.regridded_rqi1[:, :] = \
-            supplemental_precip.regridded_rqi2[:, :]
     MpiConfig.comm.barrier()
 
     # Close the temporary NetCDF file and remove it.

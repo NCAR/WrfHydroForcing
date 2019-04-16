@@ -186,6 +186,14 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                         #    errMod.err_out(ConfigOptions)
                         MpiConfig.comm.barrier()
 
+                        # Run temporal interpolation on the grids.
+                        suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                        # try:
+                        #    suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                        # except:
+                        #    errMod.err_out(ConfigOptions)
+                        MpiConfig.comm.barrier()
+
                         # Layer in the supplemental precipitation into the current output object.
                         layeringMod.layer_supplemental_precipitation(OutputObj,suppPcpMod[suppPcpKey],
                                                                      ConfigOptions,MpiConfig)
