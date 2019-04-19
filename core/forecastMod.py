@@ -67,12 +67,11 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
             ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
             "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
-        if MpiConfig.rank == 0:
-            # Initialize the log file.
-            try:
-                errMod.init_log(ConfigOptions)
-            except:
-                errMod.err_out_screen(ConfigOptions.errMsg)
+        # Initialize the log file.
+        try:
+            errMod.init_log(ConfigOptions)
+        except:
+            errMod.err_out_screen(ConfigOptions.errMsg)
 
 
         # Loop through each output timestep. Perform the following functions:
