@@ -73,6 +73,7 @@ class ConfigOptions:
         self.rqiThresh = 1.0
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
+        self.errFlag = 0
 
     def read_config(self):
         """
