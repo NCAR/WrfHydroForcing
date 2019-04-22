@@ -49,6 +49,9 @@ def check_program_status(ConfigOptions,MpiConfig):
     else:
         assert data is None
 
+    # Sync up processors.
+    MpiConfig.comm.barrier()
+
 def init_log(ConfigOptions,MpiConfig):
     """
     Function for initializing log file for individual forecast cycles. Each
