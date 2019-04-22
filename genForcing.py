@@ -61,13 +61,15 @@ def main():
     WrfHydroGeoMeta = geoMod.GeoMetaWrfHydro()
     try:
         WrfHydroGeoMeta.initialize_destination_geo(jobMeta,mpiMeta)
-    except:
+    except Exception:
         errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
+    except KeyboardInterrupt:
+        errMod.err_out_screen_para('User keyboard interrupt',mpiMeta)
     if jobMeta.spatial_meta is not None:
         try:
             WrfHydroGeoMeta.initialize_geospatial_metadata(jobMeta,mpiMeta)
         except:
-            errMod.err_out_screen(jobMeta.errMsg)
+            errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
 
     mpiMeta.comm.barrier()
 
