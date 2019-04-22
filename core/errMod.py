@@ -42,6 +42,10 @@ def check_program_status(ConfigOptions,MpiConfig):
     if MpiConfig.rank == 0:
         for i in range(MpiConfig.size):
             print('RANK NUMBER: ' + str(i) + ' - STATUS: ' + str(data[i]))
+            if data[i] != 0:
+                print('FOUND ERROR ON RANK: ' + str(i))
+                MpiConfig.comm.Abort()
+                sys.exit(1)
     else:
         assert data is None
 
@@ -57,31 +61,31 @@ def init_log(ConfigOptions,MpiConfig):
     except:
         ConfigOptions.errMsg = "Unable to create logging object " \
                                "for: " + ConfigOptions.logFile
-        err_out_screen(ConfigOptions.errMsg)
+        err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
     try:
         formatter = logging.Formatter('[%(asctime)s]: %(levelname)s '
                                       '- %(message)s', '%m/%d %H:%M:%S')
     except:
         ConfigOptions.errMsg = "Unable to establish formatting for logger."
-        err_out_screen(ConfigOptions.errMsg)
+        err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
     try:
         ConfigOptions.logHandle = logging.FileHandler(ConfigOptions.logFile,mode='a')
     except:
         ConfigOptions.errMsg = "Unable to create log file handle for: " + \
             ConfigOptions.logFile
-        err_out_screen(ConfigOptions.errMsg)
+        err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
     try:
         ConfigOptions.logHandle.setFormatter(formatter)
     except:
         ConfigOptions.errMsg = "Unable to set formatting for: " + \
             ConfigOptions.logFile
-        err_out_screen(ConfigOptions.errMsg)
+        err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
     try:
         logObj.addHandler(ConfigOptions.logHandle)
     except:
         ConfigOptions.errMsg = "ERROR: Unable to add log handler for: " + \
             ConfigOptions.logFile
-        err_out_screen(ConfigOptions.errMsg)
+        err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
 
 def err_out(ConfigOptions):
     """
