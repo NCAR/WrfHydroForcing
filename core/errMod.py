@@ -24,7 +24,7 @@ def err_out_screen_para(err_msg,MpiConfig):
     :param MpiConfig:
     :return:
     """
-    err_msg_out = 'ERROR: ' + err_msg
+    err_msg_out = 'ERROR: RANK - ' + str(MpiConfig.rank) + ' : ' + err_msg
     print(err_msg_out)
     MpiConfig.comm.Abort()
     sys.exit(1)
