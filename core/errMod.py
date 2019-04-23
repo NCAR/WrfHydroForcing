@@ -37,13 +37,16 @@ def check_program_status(ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # Sync up processors to ensure everyone is on the same page.
+    MpiConfig.comm.barrier()
+
     # Collect values from each processor.
     data = MpiConfig.comm.gather(ConfigOptions.errFlag, root=0)
     if MpiConfig.rank == 0:
         for i in range(MpiConfig.size):
-            print('RANK NUMBER: ' + str(i) + ' - STATUS: ' + str(data[i]))
+            #print('RANK NUMBER: ' + str(i) + ' - STATUS: ' + str(data[i]))
             if data[i] != 0:
-                print('FOUND ERROR ON RANK: ' + str(i))
+                #print('FOUND ERROR ON RANK: ' + str(i))
                 MpiConfig.comm.Abort()
                 sys.exit(1)
     else:

@@ -32,21 +32,19 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
     # checked upon the beginning of this program to see if we
     # need to process any files.
 
-    if MpiConfig.rank == 0:
-        print('Forecast Cycle Length is: ' + str(ConfigOptions.cycle_length_minutes))
     for fcstCycleNum in range(ConfigOptions.nFcsts):
         ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + \
                                            datetime.timedelta(
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
-        if MpiConfig.rank == 0:
-            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-            print('Processing Forecast Cycle: ' + ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M'))
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
             ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
         completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
         if os.path.isfile(completeFlag):
+            ConfigOptions.statusMsg = "Forecast Cycle: " + \
+                                      ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M') + \
+                                      " has already completed."
+            errMod.log_msg(ConfigOptions, MpiConfig)
             # We have already completed processing this cycle,
             # move on.
             continue
@@ -59,7 +57,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                 except:
                     ConfigOptions.errMsg = "Unable to create output " \
                                            "directory: " + fcstCycleOutDir
-                    errMod.err_out_screen(ConfigOptions.errMsg)
+                    errMod.err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
+        errMod.check_program_status(ConfigOptions,MpiConfig)
 
         # Compose a path to a log file, which will contain information
         # about this forecast cycle.
@@ -69,10 +68,22 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
 
         # Initialize the log file.
         try:
-            errMod.init_log(ConfigOptions)
+            errMod.init_log(ConfigOptions,MpiConfig)
         except:
-            errMod.err_out_screen(ConfigOptions.errMsg)
+            errMod.err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
+        # Log information about this forecast cycle
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+            errMod.log_msg(ConfigOptions,MpiConfig)
+            ConfigOptions.statusMsg = 'Processing Forecast Cycle: ' + \
+                                      ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            ConfigOptions.statusMsg = 'Forecast Cycle Length is: ' + \
+                                      str(ConfigOptions.cycle_length_minutes) + " minutes"
+            errMod.log_msg(ConfigOptions, MpiConfig)
+        MpiConfig.comm.barrier()
 
         # Loop through each output timestep. Perform the following functions:
         # 1.) Calculate all necessary input files per user options.
@@ -90,19 +101,25 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
             )
             ConfigOptions.current_output_date = OutputObj.outDate
             if MpiConfig.rank == 0:
-                print('=========================================')
-                print("Processing for output timestep: " + OutputObj.outDate.strftime('%Y-%m-%d %H:%M'))
+                ConfigOptions.statusMsg = '========================================='
+                errMod.log_msg(ConfigOptions, MpiConfig)
+                ConfigOptions.statusMsg =  "Processing for output timestep: " + \
+                                           OutputObj.outDate.strftime('%Y-%m-%d %H:%M')
+                errMod.log_msg(ConfigOptions, MpiConfig)
+            MpiConfig.comm.barrier()
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
             OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
                 ".LDASIN_DOMAIN1"
-
             MpiConfig.comm.barrier()
 
             if os.path.isfile(OutputObj.outPath):
-                ConfigOptions.statusMsg = "Output file: " + OutputObj.outPath + " exists. Moving " + \
-                    " to the next output timestep."
+                if MpiConfig.rank == 0:
+                    ConfigOptions.statusMsg = "Output file: " + OutputObj.outPath + " exists. Moving " + \
+                                              " to the next output timestep."
+                    errMod.log_msg(ConfigOptions, MpiConfig)
+                errMod.check_program_status(ConfigOptions,MpiConfig)
                 continue
             else:
                 ConfigOptions.currentForceNum = 0
@@ -111,53 +128,27 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                 for forceKey in ConfigOptions.input_forcings:
                     # Calculate the previous and next input cycle files from the inputs.
                     inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
-                    if MpiConfig.rank == 0:
-                        print('Previous INPUT File = ' + inputForcingMod[forceKey].file_in1)
-                        print('Next INPUT File = ' + inputForcingMod[forceKey].file_in2)
-                    #try:
-                    #    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions,outputObj.outDate,MpiConfig)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    MpiConfig.comm.barrier()
+                    errMod.check_program_status(ConfigOptions,MpiConfig)
 
                     # Regrid forcings.
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
-                    #try:
-                    #    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    MpiConfig.comm.barrier()
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run temporal interpolation on the grids.
                     inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
-                    #try:
-                    #    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    MpiConfig.comm.barrier()
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run bias correction.
                     biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
-                    #try:
-                    #    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run downscaling on grids for this output timestep.
-                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
-                    #try:
-                    #    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    MpiConfig.comm.barrier()
+                    downscaleMod.run_downscaling(inputForcingMod[forceKey],ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Layer in forcings from this product.
                     layeringMod.layer_final_forcings(OutputObj,inputForcingMod[forceKey],ConfigOptions,MpiConfig)
-                    #try:
-                    #    layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
-                    #except:
-                    #    errMod.err_out(ConfigOptions)
-                    MpiConfig.comm.barrier()
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
 

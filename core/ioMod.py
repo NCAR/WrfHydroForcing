@@ -279,17 +279,17 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             errMod.log_warning(ConfigOptions)
         try:
             subprocess.run([Wgrib2Cmd],shell=True)
-            #cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
-            #                             stderr=subprocess.PIPE, shell=True)
         except:
             ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                 NetCdfFileOut
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
         # Ensure file exists.
         if not os.path.isfile(NetCdfFileOut):
             ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
                 " not found."
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
 
         # Open the NetCDF file.
         try:
@@ -297,27 +297,32 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         except:
             ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
                 NetCdfFileOut
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
 
         # Check for expected lat/lon variables.
         if 'latitude' not in idTmp.variables.keys():
             ConfigOptions.errMsg = "Unable to locate latitude from: " + \
                 GribFileIn
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
         if 'longitude' not in idTmp.variables.keys():
             ConfigOptions.errMsg = "Unable t locate longitude from: " + \
                 GribFileIn
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
 
         # Loop through all the expected variables.
         if inputVar not in idTmp.variables.keys():
             ConfigOptions.errMsg = "Unable to locate expected variable: " + \
                 inputVar + " in: " + NetCdfFileOut
-            errMod.err_out(ConfigOptions)
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return
 
     else:
         idTmp = None
 
+    MpiConfig.comm.barrier()
     # Return the NetCDF file handle back to the user.
     return idTmp
 

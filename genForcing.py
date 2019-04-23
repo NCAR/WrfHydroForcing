@@ -63,25 +63,30 @@ def main():
         WrfHydroGeoMeta.initialize_destination_geo(jobMeta,mpiMeta)
     except Exception:
         errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
-    except KeyboardInterrupt:
-        errMod.err_out_screen_para('User keyboard interrupt',mpiMeta)
     if jobMeta.spatial_meta is not None:
         try:
             WrfHydroGeoMeta.initialize_geospatial_metadata(jobMeta,mpiMeta)
-        except:
+        except Exception:
             errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
-
-    mpiMeta.comm.barrier()
+    errMod.check_program_status(jobMeta, mpiMeta)
 
     # Initialize our output object, which includes local slabs from the output grid.
-    OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
+    try:
+        OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
+    except Exception:
+        errMod.err_out_screen_para(jobMeta, mpiMeta)
+    errMod.check_program_status(jobMeta, mpiMeta)
 
     # Next, initialize our input forcing classes. These objects will contain
     # information about our source products (I.E. data type, grid sizes, etc).
     # Information will be mapped via the options specified by the user.
     # In addition, input ESMF grid objects will be created to hold data for
     # downscaling and regridding purposes.
-    inputForcingMod = forcingInputMod.initDict(jobMeta,WrfHydroGeoMeta)
+    try:
+        inputForcingMod = forcingInputMod.initDict(jobMeta,WrfHydroGeoMeta)
+    except Exception:
+        errMod.err_out_screen_para(jobMeta, mpiMeta)
+    errMod.check_program_status(jobMeta, mpiMeta)
 
     # If we have specified supplemental precipitation products, initialize
     # the supp class.
@@ -89,16 +94,7 @@ def main():
         suppPcpMod = suppPrecipMod.initDict(jobMeta,WrfHydroGeoMeta)
     else:
         suppPcpMod = None
-
-    for fTmp in jobMeta.input_forcings:
-        if mpiMeta.rank == 0:
-            print('------------------------------')
-            print(inputForcingMod[fTmp].keyValue)
-            print(inputForcingMod[fTmp].productName)
-            print(inputForcingMod[fTmp].fileType)
-            print('------------------------------')
-
-    mpiMeta.comm.barrier()
+    errMod.check_program_status(jobMeta, mpiMeta)
 
     # There are three run modes (retrospective/realtime/reforecast). We are breaking the main
     # workflow into either retrospective or forecasts (realtime/reforecasts)
@@ -106,7 +102,13 @@ def main():
     #    # Place code into here for calling the retro run mod.
     if jobMeta.refcst_flag or jobMeta.realtime_flag:
         # Place code in here for calling the forecasting module.
-        forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
+        forecastMod.process_forecasts(jobMeta, WrfHydroGeoMeta,inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
+        #try:
+        #    forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,
+        #                                  inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
+        #except Exception:
+        #    errMod.log_critical(jobMeta, mpiMeta)
+        errMod.check_program_status(jobMeta, mpiMeta)
 
 
 if __name__ == "__main__":

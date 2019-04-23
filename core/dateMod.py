@@ -50,8 +50,9 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     :return:
     """
     if MpiConfg.rank == 0:
-        if input_forcings.keyValue == 5:
-            print("PROCESSING conus HRRR")
+        ConfigOptions.statusMsg = "Processing Conus HRRR Data. Calculating neighboring " \
+                                  "files for this output timestep"
+        errMod.log_msg(ConfigOptions,MpiConfg)
 
     # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.
     if dCurrent >= datetime.datetime(2018,10,1):
@@ -76,17 +77,12 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         ConfigOptions.errMsg = "User has specified a HRRR conus forecast horizon " + \
             "that is greater than the maximum allowed hours of: " + \
             str(hrrrHorizon)
-        print(ConfigOptions.errMsg)
-        raise Exception
-
-    if MpiConfg.rank == 0:
-        print("CURRENT HRRR CYCLE BEING USED = " + currentHrrrCycle.strftime('%Y-%m-%d %H'))
+        errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this HRRR cycle.
     dtTmp = dCurrent - currentHrrrCycle
     currentHrrrHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print("Current HRRR Forecast Hour = " + str(currentHrrrHour))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentHrrrHour * 60) % 60
@@ -121,6 +117,8 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     if MpiConfg.rank == 0:
         print(prevHrrrForecastHour)
     input_forcings.fcst_hour1 = prevHrrrForecastHour
+    errMod.check_program_status(ConfigOptions,MpiConfg)
+
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
@@ -133,19 +131,23 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
                str(prevHrrrForecastHour).zfill(2) + '.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile1)
+        ConfigOptions.statusMsg = "Previous HRRR file being used: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+
     tmpFile2 = input_forcings.inDir + '/hrrr.' + \
                currentHrrrCycle.strftime('%Y%m%d') + "/hrrr.t" + \
                currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
                str(nextHrrrForecastHour).zfill(2) + '.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile2)
+        if MpiConfg.rank == 0:
+            ConfigOptions.statusMsg = "Next HRRR file being used: " + tmpFile2
+            errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
