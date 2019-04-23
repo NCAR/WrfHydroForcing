@@ -187,7 +187,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
         if MpiConfig.rank == 0:
             # Close the log file.
             try:
-                errMod.close_log(ConfigOptions)
+                errMod.close_log(ConfigOptions,MpiConfig)
             except:
-                errMod.err_out_screen(ConfigOptions.errMsg)
+                errMod.err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
 
