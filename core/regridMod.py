@@ -22,7 +22,6 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    # print("REGRID STATUS = " + str(input_forcings.regridComplete))
     if input_forcings.regridComplete:
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "No HRRR regridding required for this timesetp."
@@ -226,7 +225,6 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    # print("REGRID STATUS = " + str(input_forcings.regridComplete))
     if input_forcings.regridComplete:
         return
 
@@ -393,7 +391,6 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    # print("REGRID STATUS = " + str(input_forcings.regridComplete))
     if input_forcings.regridComplete:
         return
 
@@ -553,7 +550,6 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    # print("REGRID STATUS = " + str(input_forcings.regridComplete))
     if input_forcings.regridComplete:
         return
 
@@ -1582,10 +1578,6 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND1 = ' + str(input_forcings.x_lower_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' GFS XBOUND2 = ' + str(input_forcings.x_upper_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND1 = ' + str(input_forcings.y_lower_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' GFS YBOUND2 = ' + str(input_forcings.y_upper_bound))
         input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
         input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
     except:
@@ -1751,10 +1743,6 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
         supplemental_precip.x_upper_bound = supplemental_precip.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
         supplemental_precip.y_lower_bound = supplemental_precip.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
         supplemental_precip.y_upper_bound = supplemental_precip.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
-        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP XBOUND1 = ' + str(supplemental_precip.x_lower_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP XBOUND2 = ' + str(supplemental_precip.x_upper_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP YBOUND1 = ' + str(supplemental_precip.y_lower_bound))
-        #print('PROC: ' + str(MpiConfig.rank) + ' SUPP PCP YBOUND2 = ' + str(supplemental_precip.y_upper_bound))
         supplemental_precip.nx_local = supplemental_precip.x_upper_bound - supplemental_precip.x_lower_bound
         supplemental_precip.ny_local = supplemental_precip.y_upper_bound - supplemental_precip.y_lower_bound
     except:

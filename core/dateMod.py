@@ -86,36 +86,23 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentHrrrHour * 60) % 60
-    if MpiConfg.rank == 0:
-        print(currentHrrrHour)
-        print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = 60
     prevHrrrDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
     input_forcings.fcst_date1 = prevHrrrDate
-    if MpiConfg.rank == 0:
-        print(prevHrrrDate)
     if minSinceLastOutput == 60:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = 60 - minSinceLastOutput
     nextHrrrDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
     input_forcings.fcst_date2 = nextHrrrDate
-    if MpiConfg.rank == 0:
-        print(nextHrrrDate)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextHrrrDate - currentHrrrCycle
-    if MpiConfg.rank == 0:
-        print(currentHrrrCycle)
     nextHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(nextHrrrForecastHour)
     input_forcings.fcst_hour2 = nextHrrrForecastHour
     dtTmp = prevHrrrDate - currentHrrrCycle
     prevHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(prevHrrrForecastHour)
     input_forcings.fcst_hour1 = prevHrrrForecastHour
     errMod.check_program_status(ConfigOptions,MpiConfg)
 
