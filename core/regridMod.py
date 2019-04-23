@@ -1562,7 +1562,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
                                    input_forcings.netcdf_var_names[forceCount] + " from: " + \
                                    input_forcings.tmpFile
             errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions,errMod)
+    errMod.check_program_status(ConfigOptions,MpiConfig)
 
     # Broadcast the forcing nx/ny values
     input_forcings.ny_global = MpiConfig.broadcast_parameter(input_forcings.ny_global,
@@ -1580,7 +1580,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         ConfigOptions.errMsg = "Unable to create source GFS ESMF grid from temporary file: " + \
                                input_forcings.tmpFile
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     try:
         input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
@@ -1597,7 +1597,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         ConfigOptions.errMsg = "Unable to extract local X/Y boundaries from global grid from temporary " + \
                                "file: " + input_forcings.tmpFile
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
         # Process lat/lon values from the GFS grid.
@@ -1614,7 +1614,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
             # 2D grids.
             latTmp = np.repeat(idTmp.variables['latitude'][:][:, np.newaxis], input_forcings.nx_global, axis=1)
             lonTmp = np.tile(idTmp.variables['longitude'][:], (input_forcings.ny_global, 1))
-    errMod.check_program_status(ConfigOptions,errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Scatter global GFS latitude grid to processors..
     if MpiConfig.rank == 0:
@@ -1622,28 +1622,28 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     else:
         varTmp = None
     varSubLatTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-    errMod.check_program_status(ConfigOptions,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
         varTmp = lonTmp
     else:
         varTmp = None
     varSubLonTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-    errMod.check_program_status(ConfigOptions,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     try:
         input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(1)
     except:
         ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input GFS ESMF grid."
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     try:
         input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(0)
     except:
         ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     input_forcings.esmf_lats[:, :] = varSubLatTmp
     input_forcings.esmf_lons[:, :] = varSubLonTmp
@@ -1659,7 +1659,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     except:
         ConfigOptions.errMsg = "Unable to create HRRR ESMF field object."
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Scatter global grid to processors..
     if MpiConfig.rank == 0:
@@ -1671,7 +1671,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     else:
         varTmp = None
     varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-    errMod.check_program_status(ConfigOptions,errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Place temporary data into the field array for generating the regridding object.
     input_forcings.esmf_field_in.data[:, :] = varSubTmp
@@ -1680,7 +1680,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     if MpiConfig.rank == 0:
         ConfigOptions.statusMsg = "Creating HRRR weight object from ESMF"
         errMod.log_msg(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
     try:
         input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                                input_forcings.esmf_field_out,
@@ -1690,7 +1690,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     except:
         ConfigOptions.errMsg = "Unable to regrid HRRR input data from ESMF"
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Run the regridding object on this test dataset. Check the output grid for
     # any 0 values.
@@ -1700,7 +1700,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     except:
         ConfigOptions.errMsg = "Unable to extract regridded HRRR data from ESMF regridded field."
         errMod.log_critical(ConfigOptions,MpiConfig)
-    errMod.check_program_status(ConfigOptions, errMod)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]
 
