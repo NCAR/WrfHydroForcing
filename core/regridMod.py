@@ -989,7 +989,7 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            ConfigOptions.errMsg = "Regrdding NAM nest input variable: " + input_forcings.netcdf_var_names[forceCount]
+            ConfigOptions.statusMsg = "Regrdding NAM nest input variable: " + input_forcings.netcdf_var_names[forceCount]
             errMod.log_msg(ConfigOptions,MpiConfig)
             try:
                 varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0, :, :]
@@ -1577,7 +1577,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
                                                 staggerloc=ESMF.StaggerLoc.CENTER,
                                                 coord_sys=ESMF.CoordSys.SPH_DEG)
     except:
-        ConfigOptions.errMsg = "Unable to create source GFS ESMF grid from temporary file: " + \
+        ConfigOptions.errMsg = "Unable to create source ESMF grid from temporary file: " + \
                                input_forcings.tmpFile
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -1634,14 +1634,14 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     try:
         input_forcings.esmf_lats = input_forcings.esmf_grid_in.get_coords(1)
     except:
-        ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input GFS ESMF grid."
+        ConfigOptions.errMsg = "Unable to locate latitude coordinate object within input ESMF grid."
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     try:
         input_forcings.esmf_lons = input_forcings.esmf_grid_in.get_coords(0)
     except:
-        ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input GFS ESMF grid."
+        ConfigOptions.errMsg = "Unable to locate longitude coordinate object within input ESMF grid."
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -1657,7 +1657,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         input_forcings.esmf_field_in = ESMF.Field(input_forcings.esmf_grid_in,
                                                   name=input_forcings.productName + "_NATIVE")
     except:
-        ConfigOptions.errMsg = "Unable to create HRRR ESMF field object."
+        ConfigOptions.errMsg = "Unable to create ESMF field object."
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -1678,7 +1678,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     MpiConfig.comm.barrier()
 
     if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = "Creating HRRR weight object from ESMF"
+        ConfigOptions.statusMsg = "Creating weight object from ESMF"
         errMod.log_msg(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
     try:
@@ -1688,7 +1688,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
                                                regrid_method=ESMF.RegridMethod.BILINEAR,
                                                unmapped_action=ESMF.UnmappedAction.IGNORE)
     except:
-        ConfigOptions.errMsg = "Unable to regrid HRRR input data from ESMF"
+        ConfigOptions.errMsg = "Unable to regrid input data from ESMF"
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -1698,7 +1698,7 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                  input_forcings.esmf_field_out)
     except:
-        ConfigOptions.errMsg = "Unable to extract regridded HRRR data from ESMF regridded field."
+        ConfigOptions.errMsg = "Unable to extract regridded data from ESMF regridded field."
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
