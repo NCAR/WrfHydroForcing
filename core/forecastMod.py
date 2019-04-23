@@ -195,3 +195,9 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
             errMod.log_critical(ConfigOptions,MpiConfig)
         errMod.check_program_status(ConfigOptions,MpiConfig)
 
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Forcings complete for forecast cycle: " + \
+                                      ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
+            errMod.log_msg(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
