@@ -860,18 +860,18 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
     if input_forcings.regridComplete:
+        ConfigOptions.statusMsg = "No regridding of NAM nest data necessary for this timestep - already completed."
+        errMod.log_msg(ConfigOptions,MpiConfig)
         return
 
-    if MpiConfig.rank == 0:
-        print("REGRID STATUS = " + str(input_forcings.regridComplete))
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
         "NAM_NEST_TMP.nc"
     input_forcings.tmpFileHeight = ConfigOptions.scratch_dir + "/" + \
                                    "NAM_NEST_TMP_HEIGHT.nc"
+    errMod.check_program_status(ConfigOptions,MpiConfig)
 
-    MpiConfig.comm.barrier()
 
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
@@ -884,8 +884,7 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 os.remove(input_forcings.tmpFile)
             except:
                 errMod.err_out(ConfigOptions)
-
-    MpiConfig.comm.barrier()
+    errMod.check_program_status(ConfigOptions,MpiConfig)
 
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the apropriate
@@ -900,51 +899,76 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         idTmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                  ConfigOptions, MpiConfig, input_forcings.netcdf_var_names[forceCount])
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions,MpiConfig)
 
         calcRegridFlag = check_regrid_status(idTmp, forceCount, input_forcings,
                                              ConfigOptions, MpiConfig, wrfHydroGeoMeta)
+        errMod.check_program_status(ConfigOptions,MpiConfig)
 
         if calcRegridFlag:
             if MpiConfig.rank == 0:
-                print('CALCULATING WEIGHTS')
+                ConfigOptions.statusMsg = "Calculating NAM nest regridding weights...."
+                errMod.log_msg(ConfigOptions,MpiConfig)
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
+            errMod.check_program_status(ConfigOptions,MpiConfig)
 
             # Read in the RAP height field, which is used for downscaling purposes.
             if MpiConfig.rank == 0:
-                print("READING IN NAM Nest HEIGHT FIELD")
+                ConfigOptions.statusMsg = "Reading in NAM nest elevation data from GRIB2."
+                errMod.log_msg(ConfigOptions,MpiConfig)
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
                   "\":(HGT):(surface):\" " + \
                   " -netcdf " + input_forcings.tmpFileHeight
             idTmpHeight = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
                                            cmd, ConfigOptions, MpiConfig, 'HGT_surface')
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions,MpiConfig)
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
                 varTmp = idTmpHeight.variables['HGT_surface'][0, :, :]
             else:
                 varTmp = None
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions,MpiConfig)
 
             varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-            input_forcings.esmf_field_in.data[:, :] = varSubTmp
-            MpiConfig.comm.barrier()
+            try:
+                input_forcings.esmf_field_in.data[:, :] = varSubTmp
+            except:
+                ConfigOptions.errMsg = "Unable to place NetCDF NAM nest elevation data into the ESMF field object."
+                errMod.log_critical(ConfigOptions,MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             if MpiConfig.rank == 0:
-                print("REGRIDDING NAM Nest HEIGHT FIELD")
-            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                     input_forcings.esmf_field_out)
-            # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-                ConfigOptions.globalNdv
-            MpiConfig.comm.barrier()
+                ConfigOptions.statusMsg = "Regridding NAM nest elevation data to the WRF-Hydro domain."
+                errMod.log_msg(ConfigOptions,MpiConfig)
+            try:
+                input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                         input_forcings.esmf_field_out)
+            except:
+                ConfigOptions.errMsg = "Unable to regrid NAM nest elevation data to the WRF-Hydro domain " \
+                                       "using ESMF."
+                errMod.log_critical(ConfigOptions,MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-            input_forcings.height[:, :] = input_forcings.esmf_field_out.data
-            MpiConfig.comm.barrier()
+            # Set any pixel cells outside the input domain to the global missing value.
+            try:
+                input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                    ConfigOptions.globalNdv
+            except:
+                ConfigOptions.errMsg = "Unable to compute mask on NAM nest elevation data."
+                errMod.log_critical(ConfigOptions,MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
+            try:
+                input_forcings.height[:, :] = input_forcings.esmf_field_out.data
+            except:
+                ConfigOptions.errMsg = "Unable to extract ESMF regridded NAM nest elevation data to a local " \
+                                       "array."
+                errMod.log_critical(ConfigOptions,MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             # Close the temporary NetCDF file and remove it.
             if MpiConfig.rank == 0:
@@ -952,47 +976,72 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                     idTmpHeight.close()
                 except:
                     ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    raise Exception()
+                    errMod.log_critical(ConfigOptions,MpiConfig)
 
                 try:
                     os.remove(input_forcings.tmpFileHeight)
                 except:
                     ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    raise Exception()
+                    errMod.log_critical(ConfigOptions,MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
-            varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0, :, :]
+            ConfigOptions.errMsg = "Regrdding NAM nest input variable: " + input_forcings.netcdf_var_names[forceCount]
+            errMod.log_msg(ConfigOptions,MpiConfig)
+            try:
+                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract " + input_forcings.netcdf_var_names[forceCount] + \
+                                       " from: " + input_forcings.tmpFile
+                errMod.log_critical(ConfigOptions,MpiConfig)
         else:
             varTmp = None
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.esmf_field_in.data[:, :] = varSubTmp
-        MpiConfig.comm.barrier()
+        try:
+            input_forcings.esmf_field_in.data[:, :] = varSubTmp
+        except:
+            ConfigOptions.errMsg = "Unable to place local array into local ESMF field."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                 input_forcings.esmf_field_out)
+        try:
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+        except:
+            ConfigOptions.errMsg = "Unable to regrid input NAM nest forcing variables using ESMF."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
         # Set any pixel cells outside the input domain to the global missing value.
-        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-            ConfigOptions.globalNdv
-        MpiConfig.comm.barrier()
+        try:
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                ConfigOptions.globalNdv
+        except:
+            ConfigOptions.errMsg = "Unable to calculate mask from input NAM nest regridded forcings."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :] = \
-            input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier()
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :] = \
+                input_forcings.esmf_field_out.data
+        except:
+            ConfigOptions.errMsg = "Unable to place local ESMF regridded data into local array."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # If we are on the first timestep, set the previous regridded field to be
         # the latest as there are no states for time 0.
         if ConfigOptions.current_output_step == 1:
             input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -1000,12 +1049,13 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 idTmp.close()
             except:
                 ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
                 ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                errMod.err_out()
+                errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         forceCount = forceCount + 1
 
