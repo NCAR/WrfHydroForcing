@@ -475,39 +475,25 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentNamNestHour*60)%currentNamNestFreq
-    if MpiConfg.rank == 0:
-        print(currentNamNestHour)
-        print(currentNamNestFreq)
-        print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = currentNamNestFreq
     prevNamNestDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
     input_forcings.fcst_date1 = prevNamNestDate
-    if MpiConfg.rank == 0:
-        print(prevNamNestDate)
     if minSinceLastOutput == currentNamNestFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentNamNestFreq - minSinceLastOutput
     nextNamNestDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
     input_forcings.fcst_date2 = nextNamNestDate
-    if MpiConfg.rank == 0:
-        print(nextNamNestDate)
     errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextNamNestDate - currentNamNestCycle
-    if MpiConfg.rank == 0:
-        print(currentNamNestCycle)
     nextNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print(nextNamNestForecastHour)
     input_forcings.fcst_hour2 = nextNamNestForecastHour
     dtTmp = prevNamNestDate - currentNamNestCycle
     prevNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print(prevNamNestForecastHour)
     input_forcings.fcst_hour1 = prevNamNestForecastHour
     # If we are on the first NAM nest forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
