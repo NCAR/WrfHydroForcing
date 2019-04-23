@@ -137,7 +137,7 @@ def log_error(ConfigOptions,MpiConfig):
         err_out_screen_para(('Unable to set ERROR logger level on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
     try:
-        logObj.error("RANK: " + str(MpiConfig.rank) + " " + ConfigOptions.errMsg)
+        logObj.error("RANK: " + str(MpiConfig.rank) + " - " + ConfigOptions.errMsg)
     except:
         err_out_screen_para(('Unable to write ERROR message on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
@@ -161,7 +161,7 @@ def log_critical(ConfigOptions,MpiConfig):
         err_out_screen_para(('Unable to set CRITICAL logger level on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
     try:
-        logObj.critical("RANK: " + str(MpiConfig.rank) + " " + ConfigOptions.errMsg)
+        logObj.critical("RANK: " + str(MpiConfig.rank) + " - " + ConfigOptions.errMsg)
     except:
         err_out_screen_para(('Unable to write CRITICAL message on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
@@ -184,7 +184,7 @@ def log_warning(ConfigOptions,MpiConfig):
         err_out_screen_para(('Unable to set WARNING logger level on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
     try:
-        logObj.warning("RANK: " + str(MpiConfig.rank) + " " + ConfigOptions.statusMsg)
+        logObj.warning("RANK: " + str(MpiConfig.rank) + " - " + ConfigOptions.statusMsg)
     except:
         err_out_screen_para(('Unable to write WARNING message on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
@@ -206,7 +206,7 @@ def log_msg(ConfigOptions,MpiConfig):
         err_out_screen_para(('Unable to set INFO logger level on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
     try:
-        logObj.info("RANK: " + str(MpiConfig.rank) + " " + ConfigOptions.statusMsg)
+        logObj.info("RANK: " + str(MpiConfig.rank) + " - " + ConfigOptions.statusMsg)
     except:
         err_out_screen_para(('Unable to write INFO message on RANK: ' + str(MpiConfig.rank) +
                              ' for log file: ' + ConfigOptions.logFile),MpiConfig)
