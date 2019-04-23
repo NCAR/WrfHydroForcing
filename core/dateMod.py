@@ -437,12 +437,6 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     :param ConfigOptions:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if input_forcings.keyValue == 13:
-            print("PROCESSING Hawaii NAM Nest")
-        if input_forcings.keyValue == 14:
-            print("PROCESSING Puerto Rico NAM Nest")
-
     # Establish how often our NAM nest cycles occur.
     if dCurrent >= datetime.datetime(2012,10,1):
         namNestOutHorizons = [60]
@@ -456,24 +450,21 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         ConfigOptions.errMsg = "User has specified a NAM nest forecast horizon " \
                                "that is greater than maximum allowed hours of: " \
                                + str(max(namNestOutHorizons))
-        print(ConfigOptions.errMsg)
-        raise Exception
-
-    if MpiConfg.rank == 0:
-        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+        errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # First find the current NAM nest forecast cycle that we are using.
     currentNamNestCycle = ConfigOptions.current_fcst_cycle - \
                           datetime.timedelta(seconds=
                                              (input_forcings.userCycleOffset)*60.0)
     if MpiConfg.rank == 0:
-        print("CURRENT NAM NEST CYCLE BEING USED = " + currentNamNestCycle.strftime('%Y-%m-%d %H'))
+        ConfigOptions.statusMsg = "Current NAM nest cycle being used: " + currentNamNestCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this NAM nest cycle.
     dtTmp = dCurrent - currentNamNestCycle
     currentNamNestHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print("Current NAM Nest Forecast Hour = " + str(currentNamNestHour))
 
     # Calculate the NAM Nest output frequency based on our current NAM Nest forecast hour.
     for horizonTmp in namNestOutHorizons:
@@ -481,8 +472,6 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             currentNamNestFreq = namNestOutFreq[horizonTmp]
             input_forcings.outFreq = namNestOutFreq[horizonTmp]
             break
-    if MpiConfg.rank == 0:
-        print("Current NAM nest output frequency = " + str(currentNamNestFreq))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentNamNestHour*60)%currentNamNestFreq
@@ -505,6 +494,7 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     input_forcings.fcst_date2 = nextNamNestDate
     if MpiConfg.rank == 0:
         print(nextNamNestDate)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextNamNestDate - currentNamNestCycle
@@ -537,21 +527,21 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
         currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
         str(prevNamNestForecastHour).zfill(2) + '.tm00.grib2'
-    if MpiConfg.rank == 0:
-        print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/nam.' + \
                currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
                currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
                str(nextNamNestForecastHour).zfill(2) + '.tm00.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile2)
-        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+        ConfigOptions.statusMsg = "Previous NAM nest file being used: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+        ConfigOptions.statusMsg = "Next NAM nest file being used: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
