@@ -804,11 +804,6 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     :param MpiConfg:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if supplemental_precip.keyValue == 1:
-            print("PROCESSING MRMS radar-only QPE.")
-
-
     # First we need to find the nearest previous and next hour, which is
     # the previous/next MRMS files we will be using.
     currentYr = dCurrent.year
@@ -830,10 +825,6 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
         # We are between two MRMS hours.
         prevMrmsDate = prevDate1
         nextMrmsDate = prevMrmsDate + datetime.timedelta(seconds=3600.0)
-
-    if MpiConfg.rank == 0:
-        print('Previous MRMS Date = ' + prevMrmsDate.strftime('%Y-%m-%d:%H'))
-        print('Next MRMS Date = ' + nextMrmsDate.strftime('%Y-%m-%d:%H'))
 
     supplemental_precip.pcp_date1 = prevMrmsDate
     supplemental_precip.pcp_date2 = nextMrmsDate
@@ -874,16 +865,24 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
                   "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                   "0000.grib2.gz"
     if MpiConfg.rank == 0:
-        print(tmpFile1)
-        print(tmpFile2)
-        print(tmpRqiFile1)
-        print(tmpRqiFile2)
+        ConfigOptions.statusMsg = "Previous MRMS supplemental " \
+                                  "file: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS supplemental " \
+                                  "file: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
+                                  "file: " + tmpRqiFile1
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
+                                  "file: " + tmpRqiFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmpFile1 or supplemental_precip.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
             supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
             supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
@@ -908,9 +907,12 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     # added to the final output grids.
     if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
         if MpiConfg.rank == 0:
-            print("FOUND MISSING MRMS FILES. WILL NOT PROCESS SUPPLEMENTAL PRECIPITATION")
+            ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
+                                      "supplemental precipitation"
+            errMod.log_warning(ConfigOptions,MpiConfg)
         supplemental_precip.file_in2 = None
         supplemental_precip.file_in1 = None
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -922,17 +924,17 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     :param MpiConfg:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if supplemental_precip.keyValue == 3:
-            print('PROCESSING 2.5 KM ARW Hawaii Supplemental Precipitation')
-        if supplemental_precip.keyValue == 4:
-            print('PROCESSING 2.5 KM ARW Puerto Rico Supplemental Precipitation')
-
     if dCurrent >= datetime.datetime(2008, 10, 1):
         defaultHorizon = 48 # Current forecasts go out to 48 hours.
 
     # First find the current ARW forecast cycle that we are using.
     currentARWCycle = ConfigOptions.current_fcst_cycle
+
+    if MpiConfg.rank == 0:
+        ConfigOptions.statusMsg = "Processing WRF-ARW supplemental precipitation from " \
+                                  "forecast cycle: " + currentARWCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Apply some logic here to account for the ARW weirdness associated with the
     # odd forecast cycles.
@@ -940,7 +942,10 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
         # Data only available for 00/12 UTC cycles.
         if currentARWCycle.hour != 0 and currentARWCycle.hour != 12:
             if MpiConfg.rank == 0:
-                print("HAWAII ARW DATA NOT AVAILABLE FOR THIS CYCLE")
+                ConfigOptions.statusMsg = "No Hawaii WRF-ARW found for this cycle. " \
+                                          "No supplemental ARW " \
+                                          "precipitation will be used."
+                errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
             return
@@ -949,27 +954,32 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
         # Data only available for 06/18 UTC cycles.
         if currentARWCycle.hour != 6 and currentARWCycle.hour != 18:
             if MpiConfg.rank == 0:
-                print('PUERTO RICO DATA NOT AVAILABLE FOR THIS CYCLE')
+                ConfigOptions.statusMsg = "No Puerto Rico WRF-ARW found for this cycle. " \
+                                          "No supplemental ARW precipitation will be used."
+                errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
             return
         fcstHorizon = 48
 
     if MpiConfg.rank == 0:
-        print("CURRENT ARW CYCLE BEING USED = " + currentARWCycle.strftime('%Y-%m-%d %H'))
+        ConfigOptions.statusMsg = "Current ARW forecast cycle being used: " + \
+                                  currentARWCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this ARW cycle.
     dtTmp = dCurrent - currentARWCycle
     currentARWHour = int(dtTmp.days * 24) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print("Current ARW Forecast Hour = " + str(currentARWHour))
 
     if currentARWHour > fcstHorizon:
         if MpiConfg.rank == 0:
-            print('Current ARW Forecast Hour Greater Than Max Allowed of: ' + str(fcstHorizon))
+            ConfigOptions.statusMsg = "Current ARW forecast hour greater than max allowed " \
+                                      "of: " + str(fcstHorizon)
+            errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
             return
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentARWHour * 60) % 60
@@ -993,22 +1003,20 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextARWDate - currentARWCycle
-    if MpiConfg.rank == 0:
-        print(currentARWCycle)
     nextARWForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(nextARWForecastHour)
     if nextARWForecastHour > fcstHorizon:
         if MpiConfg.rank == 0:
-            print('Next ARW Forecast Hour Greater Than Max Allowed of: ' + str(fcstHorizon))
+            ConfigOptions.statusMsg = "Next ARW forecast hour greater than max allowed " \
+                                      "of: " + str(fcstHorizon)
+            errMod.log_msg(ConfigOptions, MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
             return
+    errMod.check_program_status(ConfigOptions,MpiConfg)
+
     supplemental_precip.fcst_hour2 = nextARWForecastHour
     dtTmp = prevARWDate - currentARWCycle
     prevARWForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(prevARWForecastHour)
     supplemental_precip.fcst_hour1 = prevARWForecastHour
 
     # If we are on the first ARW forecast hour (1), and we have calculated the previous forecast
@@ -1036,15 +1044,18 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
                    currentARWCycle.strftime('%Y%m%d') + '/hiresw.t' + \
                    currentARWCycle.strftime('%H') + 'z.arw_2p5km.f' + \
                    str(nextARWForecastHour).zfill(2) + '.pr.grib2'
+    errMod.check_program_status(ConfigOptions,MpiConfg)
     if MpiConfg.rank == 0:
-        print(tmpFile1)
-        print(tmpFile2)
+        ConfigOptions.statusMsg = "Previous ARW supplemental precipitation file: " + tmpFile1
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Next ARW supplemental precipitation file: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmpFile1 or supplemental_precip.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
             supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
         else:
@@ -1061,7 +1072,9 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     # added to the final output grids.
     if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
         if MpiConfg.rank == 0:
-            print("FOUND MISSING ARW FILES. WILL NOT PROCESS SUPPLEMENTAL PRECIPITATION")
+            ConfigOptions.statusMsg = "Found missing ARW file. Will not process supplemental precipitation for " \
+                                      "this time step."
+            errMod.log_msg(ConfigOptions, MpiConfg)
         supplemental_precip.file_in2 = None
         supplemental_precip.file_in1 = None
 
