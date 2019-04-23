@@ -157,6 +157,14 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -273,6 +281,14 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input RAP file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -428,6 +444,14 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input GFS file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -537,6 +561,14 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input NAM Nest file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -670,6 +702,14 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input CFSv2 file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
