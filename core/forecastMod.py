@@ -179,15 +179,19 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                 errMod.check_program_status(ConfigOptions, MpiConfig)
 
-
-            #sys.exit(1)
-
-        #sys.exit(1)
-
         if MpiConfig.rank == 0:
             # Close the log file.
             try:
                 errMod.close_log(ConfigOptions,MpiConfig)
             except:
                 errMod.err_out_screen_para(ConfigOptions.errMsg,MpiConfig)
+
+        # Success.... Now touch an empty complete file for this forecast cycle to indicate
+        # completion in case the code is re-ran.
+        try:
+            open(completeFlag,'a').close()
+        except:
+            ConfigOptions.errMsg = "Unable to create completion file: " + completeFlag
+            errMod.log_critical(ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions,MpiConfig)
 

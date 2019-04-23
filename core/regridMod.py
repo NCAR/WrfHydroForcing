@@ -30,11 +30,6 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         errMod.log_msg(ConfigOptions,MpiConfig)
         return
 
-    if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = "Does HRRR Need to be regridded: " + \
-                                  str(input_forcings.regridComplete)
-        errMod.log_msg(ConfigOptions,MpiConfig)
-
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
@@ -83,7 +78,7 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Read in the HRRR height field, which is used for downscaling purposes.
             if MpiConfig.rank == 0:
-                ConfigOptions.statusMsg = "Reding in HRRR elevation data."
+                ConfigOptions.statusMsg = "Reading in HRRR elevation data."
                 errMod.log_msg(ConfigOptions,MpiConfig)
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
                 "\":(HGT):(surface):\" " + \
