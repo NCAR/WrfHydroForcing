@@ -276,7 +276,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         # override.
         if os.path.isfile(NetCdfFileOut):
             ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
         try:
             subprocess.run([Wgrib2Cmd],shell=True)
         except:

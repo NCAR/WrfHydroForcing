@@ -48,7 +48,7 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if os.path.isfile(input_forcings.tmpFile):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
@@ -252,7 +252,7 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if os.path.isfile(input_forcings.tmpFile):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
@@ -419,7 +419,7 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if os.path.isfile(input_forcings.tmpFile):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
@@ -694,7 +694,7 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if os.path.isfile(input_forcings.tmpFile):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                 input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
@@ -879,7 +879,7 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         if os.path.isfile(input_forcings.tmpFile):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                 input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(input_forcings.tmpFile)
             except:
@@ -1105,7 +1105,7 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         if os.path.isfile(mrms_tmp_grib2):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       mrms_tmp_grib2 + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(mrms_tmp_grib2)
             except:
@@ -1113,7 +1113,7 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         if os.path.isfile(mrms_tmp_nc):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       mrms_tmp_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(mrms_tmp_nc)
             except:
@@ -1121,7 +1121,7 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         if os.path.isfile(mrms_tmp_rqi_grib2):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       mrms_tmp_rqi_grib2 + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(mrms_tmp_rqi_grib2)
             except:
@@ -1129,11 +1129,11 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         if os.path.isfile(mrms_tmp_rqi_nc):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       mrms_tmp_rqi_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(mrms_tmp_rqi_nc)
             except:
-                errMod.err_out(ConfigOptions)
+                errMod.err_out(ConfigOptions,MpiConfig)
 
     MpiConfig.comm.barrier()
 
@@ -1323,7 +1323,7 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
         if os.path.isfile(arw_tmp_nc):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                                       arw_tmp_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions)
+            errMod.log_warning(ConfigOptions,MpiConfig)
             try:
                 os.remove(arw_tmp_nc)
             except:
