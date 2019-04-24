@@ -73,35 +73,35 @@ class GeoMetaWrfHydro:
             except:
                 ConfigOptions.errMsg = "Unable to open the WRF-Hydro " + \
                                        "geogrid file: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
             try:
                 self.nx_global = idTmp.variables['XLAT_M'].shape[2]
             except:
                 ConfigOptions.errMsg = "Unable to extract X dimension size " + \
                                        "from XLAT_M in: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
             try:
                 self.ny_global = idTmp.variables['XLAT_M'].shape[1]
             except:
                 ConfigOptions.errMsg = "Unable to extract Y dimension size " + \
                                        "from XLAT_M in: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
             try:
                 self.dx_meters = idTmp.DX
             except:
                 ConfigOptions.errMsg = "Unable to extract DX global attribute " + \
                                        " in: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
             try:
                 self.dy_meters = idTmp.DY
             except:
                 ConfigOptions.errMsg = "Unable to extract DY global attribute " + \
                                        " in: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
         MpiConfig.comm.barrier()
 
@@ -120,7 +120,7 @@ class GeoMetaWrfHydro:
         except:
             ConfigOptions.errMsg = "Unable to create ESMF grid for WRF-Hydro " \
                                    "geogrid: " + ConfigOptions.geogrid
-            raise
+            raise Exception
 
         MpiConfig.comm.barrier()
 
@@ -153,7 +153,7 @@ class GeoMetaWrfHydro:
             varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
-            raise
+            raise Exception
 
         MpiConfig.comm.barrier()
 
@@ -176,7 +176,7 @@ class GeoMetaWrfHydro:
             varTmp = None
         except:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
-            raise
+            raise Exception
 
         MpiConfig.comm.barrier()
 
@@ -224,8 +224,8 @@ class GeoMetaWrfHydro:
         if MpiConfig.rank == 0:
             try:
                 slopeTmp, slp_azi_tmp = self.calc_slope(idTmp,ConfigOptions)
-            except:
-                raise
+            except Exception:
+                raise Exception
         else:
             slopeTmp = None
             slp_azi_tmp = None
@@ -247,7 +247,7 @@ class GeoMetaWrfHydro:
                 idTmp.close()
             except:
                 ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
-                raise
+                raise Exception
 
         # Reset temporary variables to free up memory
         slopeTmp = None
@@ -270,63 +270,63 @@ class GeoMetaWrfHydro:
                 idTmp = Dataset(ConfigOptions.spatial_meta,'r')
             except:
                 ConfigOptions.errMsg = "Unable to open spatial metadata file: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
 
             # Make sure the expected variables are present in the file.
             if 'crs' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate crs variable in: " + ConfigOptions.spatial_meta
-                raise Exception()
+                raise Exception
             if 'x' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate x variable in: " + ConfigOptions.spatial_meta
-                raise Exception()
+                raise Exception
             if 'y' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate y variable in: " + ConfigOptions.spatial_meta
-                raise Exception()
+                raise Exception
             # Extract names of variable attributes from each of the input geospatial variables. These
             # can change, so we are making this as flexible as possible to accomodate future changes.
             try:
                 crs_att_names = idTmp.variables['crs'].ncattrs()
             except:
                 ConfigOptions.errMsg = "Unable to extract crs attribute names from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             try:
                 x_coord_att_names = idTmp.variables['x'].ncattrs()
             except:
                 ConfigOptions.errMsg = "Unable to extract x attribute names from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             try:
                 y_coord_att_names = idTmp.variables['y'].ncattrs()
             except:
                 ConfigOptions.errMsg = "Unable to extract y attribute names from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             # Extract attribute values
             try:
                 self.x_coord_atts = {item: idTmp.variables['x'].getncattr(item) for item in x_coord_att_names}
             except:
                 ConfigOptions.errMsg = "Unable to extract x coordinate attributes from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             try:
                 self.y_coord_atts = {item: idTmp.variables['y'].getncattr(item) for item in y_coord_att_names}
             except:
                 ConfigOptions.errMsg = "Unable to extract y coordinate attributes from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             try:
                 self.crs_atts = {item: idTmp.variables['crs'].getncattr(item) for item in crs_att_names}
             except:
                 ConfigOptions.errMsg = "Unable to extract crs coordinate attributes from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
 
             # Extract global attributes
             try:
                 global_att_names = idTmp.ncattrs()
             except:
                 ConfigOptions.errMsg = "Unable to extract global attribute names from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
             try:
                 self.spatial_global_atts = {item: idTmp.getncattr(item) for item in global_att_names}
             except:
                 ConfigOptions.errMsg = "Unable to extract global attributes from: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
 
             # Extract x/y coordinate values
             if len(idTmp.variables['x'].shape) == 1:
@@ -334,24 +334,24 @@ class GeoMetaWrfHydro:
                     self.x_coords = idTmp.variables['x'][:].data
                 except:
                     ConfigOptions.errMsg = "Unable to extract x coordinate values from: " + ConfigOptions.spatial_meta
-                    raise
+                    raise Exception
                 try:
                     self.y_coords = idTmp.variables['y'][:].data
                 except:
                     ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
-                    raise
+                    raise Exception
 
             if len(idTmp.variables['x'].shape) == 2:
                 try:
                     self.x_coords = idTmp.variables['x'][:,:].data
                 except:
                     ConfigOptions.errMsg = "Unable to extract x coordinate values from: " + ConfigOptions.spatial_meta
-                    raise
+                    raise Exception
                 try:
                     self.y_coords = idTmp.variables['y'][:,:].data
                 except:
                     ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
-                    raise
+                    raise Exception
 
 
             # Close the geospatial metadata file.
@@ -359,7 +359,7 @@ class GeoMetaWrfHydro:
                 idTmp.close()
             except:
                 ConfigOptions.errMsg = "Unable to close spatial metadata file: " + ConfigOptions.spatial_meta
-                raise
+                raise Exception
 
         MpiConfig.comm.barrier()
 
@@ -393,13 +393,13 @@ class GeoMetaWrfHydro:
         # Ensure cosa/sina are correct dimensions
         if sinaGrid.shape[0] != self.ny_global or sinaGrid.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "SINALPHA dimensions mismatch in: " + ConfigOptions.geogrid
-            raise Exception()
+            raise Exception
         if cosaGrid.shape[0] != self.ny_global or cosaGrid.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "COSALPHA dimensions mismatch in: " + ConfigOptions.geogrid
-            raise Exception ()
+            raise Exception
         if heightDest.shape[0] != self.ny_global or heightDest.shape[1] != self.nx_global:
             ConfigOptions.errMsg = "HGT_M dimension mismatch in: " + ConfigOptions.geogrid
-            raise Exception()
+            raise Exception
 
         # Establish constants
         rdx = 1.0/self.dx_meters

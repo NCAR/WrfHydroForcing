@@ -295,14 +295,6 @@ class input_forcings:
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
-        #try:
-        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent,MpiConfig)
-        #except TypeError:
-        #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
-        #                           "input forcing: " + self.productName
-        #    raise
-        #except:
-        #    raise
 
     def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
         """
@@ -330,12 +322,6 @@ class input_forcings:
             15: regridMod.regrid_nam_nest
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
-        #try:
-        #    regrid_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
-        #except:
-        #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
-        #        "input forcing: " + self.productName
-        #    raise
 
     def temporal_interpolate_inputs(self,ConfigOptions,MpiConfig):
         """
@@ -354,13 +340,6 @@ class input_forcings:
             2: timeInterpMod.weighted_average
         }
         temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
-        #temporal_interpolate_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
-        #try:
-        #    temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
-        #except:
-        #    ConfigOptions.errMsg = "Unable to execute temporal_interpolate_inputs " + \
-        #        " for input forcing: " + self.productName
-        #    raise
 
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
@@ -395,7 +374,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
             if not os.path.isfile(pathCheck):
                 ConfigOptions.errMsg = "Expected temperature lapse rate grid: " + \
                     pathCheck + " not found."
-                errMod.err_out_screen(ConfigOptions.errMsg)
+                raise Exception
 
         InputDict[force_key].t2dBiasCorrectOpt = ConfigOptions.t2BiasCorrectOpt[force_tmp]
         InputDict[force_key].q2dBiasCorrectOpt = ConfigOptions.q2BiasCorrectOpt[force_tmp]
