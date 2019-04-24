@@ -367,14 +367,14 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].swDowscaleOpt = ConfigOptions.swDownscaleOpt[force_tmp]
         InputDict[force_key].psfcDownscaleOpt = ConfigOptions.psfcDownscaleOpt[force_tmp]
         # Check to make sure the necessary input files for downscaling are present.
-        if InputDict[force_key].t2dDownscaleOpt == 2:
-            # We are using a pre-calculated lapse rate on the WRF-Hydro grid.
-            pathCheck = ConfigOptions.downscaleParamDir = "/T2M_Lapse_Rate_" + \
-                InputDict[force_key].productName + ".nc"
-            if not os.path.isfile(pathCheck):
-                ConfigOptions.errMsg = "Expected temperature lapse rate grid: " + \
-                    pathCheck + " not found."
-                raise Exception
+        #if InputDict[force_key].t2dDownscaleOpt == 2:
+        #    # We are using a pre-calculated lapse rate on the WRF-Hydro grid.
+        #    pathCheck = ConfigOptions.downscaleParamDir = "/T2M_Lapse_Rate_" + \
+        #        InputDict[force_key].productName + ".nc"
+        #    if not os.path.isfile(pathCheck):
+        #        ConfigOptions.errMsg = "Expected temperature lapse rate grid: " + \
+        #            pathCheck + " not found."
+        #        raise Exception
 
         InputDict[force_key].t2dBiasCorrectOpt = ConfigOptions.t2BiasCorrectOpt[force_tmp]
         InputDict[force_key].q2dBiasCorrectOpt = ConfigOptions.q2BiasCorrectOpt[force_tmp]

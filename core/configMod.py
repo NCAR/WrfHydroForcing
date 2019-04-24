@@ -4,6 +4,7 @@ import json
 import datetime
 import os
 from core import dateMod
+import numpy as np
 
 
 class ConfigOptions:
@@ -52,10 +53,10 @@ class ConfigOptions:
         self.statusMsg = None
         self.logFile = None
         self.logHandle = None
-        self.dScaleParamDir = None
+        self.dScaleParamDirs = None
+        self.paramFlagArray = None
         self.forceTemoralInterp = None
         self.suppTemporalInterp = None
-        self.downscaleParamDir = None
         self.t2dDownscaleOpt = None
         self.swDownscaleOpt = None
         self.psfcDownscaleOpt = None
@@ -460,6 +461,9 @@ class ConfigOptions:
                                       'forcing.')
 
         # Read in the temperature downscaling options.
+        # Create temporary array to hold flags of if we need input parameter files.
+        paramFlag = np.empty([len(self.input_forcings)],np.int)
+        paramFlag[:] = 0
         try:
             self.t2dDownscaleOpt = json.loads(config['Downscaling']['TemperatureDownscaling'])
         except KeyError:
@@ -471,9 +475,14 @@ class ConfigOptions:
             errMod.err_out_screen('Please specify TemperatureDownscaling values for each corresponding'
                                   ' input forcings in the configuration file.')
         # Ensure the downscaling options chosen make sense.
+        countTmp = 0
         for optTmp in self.t2dDownscaleOpt:
             if optTmp < 0 or optTmp > 2:
-                errMod.err_out_screen('Invalid TemperatureDownscaling options specified in the configuration file.')
+                errMod.err_out_screen('Invalid TemperatureDownscaling options specified in '
+                                      'the configuration file.')
+            if optTmp == 2:
+                paramFlag[countTmp] = 1
+            countTmp = countTmp + 1
 
         # Read in the pressure downscaling options.
         try:
@@ -519,9 +528,14 @@ class ConfigOptions:
             errMod.err_out_screen('Please specify PrecipDownscaling values for each corresponding'
                                   ' input forcings in the configuration file.')
         # Ensure the downscaling options chosen make sense.
+        countTmp = 0
         for optTmp in self.precipDownscaleOpt:
             if optTmp < 0 or optTmp > 1:
-                errMod.err_out_screen('Invalid PrecipDownscaling options specified in the configuration file.')
+                errMod.err_out_screen('Invalid PrecipDownscaling options specified '
+                                      'in the configuration file.')
+            if optTmp == 1:
+                paramFlag[countTmp] = 1
+            countTmp = countTmp + 1
 
         # Read in humidity downscaling options.
         try:
@@ -540,13 +554,33 @@ class ConfigOptions:
                 errMod.err_out_screen('Invalid HumidityDownscaling options specified in the configuration file.')
 
         # Read in the downscaling parameter directory.
-        # HOW TO CHECK AGAINST OPTIONS??????
-        try:
-            self.dScaleParamDir = config['Downscaling']['DownscalingParamDir']
-        except KeyError:
-            errMod.err_out_screen('Unable to locate DownscalingParamDir in the configuration file.')
-        except ValueError:
-            errMod.err_out_screen('Improper DownscalingParamDir specified in the configuration file.')
+        self.paramFlagArray = paramFlag
+        if paramFlag.sum() > 0:
+            self.paramFlagArray = paramFlag
+            try:
+                tmpScaleParamDirs = config('Downscaling', 'DownscalingParamDirs').split(',')
+            except KeyError:
+                errMod.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
+            if len(tmpScaleParamDirs) != paramFlag.sum():
+                errMod.err_out_screen('Please specify a downscaling parameter directory for each '
+                                      'corresponging downscaling option that requires one.')
+            # Loop through each downscaling parameter directory and make sure they exist.
+            for dirTmp in range(0, len(tmpScaleParamDirs)):
+                tmpScaleParamDirs[dirTmp] = tmpScaleParamDirs[dirTmp].strip()
+                if not os.path.isdir(tmpScaleParamDirs[dirTmp]):
+                    errMod.err_out_screen('Unable to locate parameter directory: ' +
+                                          tmpScaleParamDirs[dirTmp])
+        # Create a list of downscaling parameter directories for each corresponding
+        # input forcing. If no directory is needed, or specified, we will set the value to
+        # NONE
+        countTmp = 0
+        self.dScaleParamDirs = []
+        for forceOpt in self.input_forcings:
+            if paramFlag[countTmp] == 0:
+                self.dScaleParamDirs = self.dScaleParamDirs.append('NONE')
+            if paramFlag[countTmp] == 1:
+                self.dScaleParamDirs = self.dScaleParamDirs.append(tmpScaleParamDirs[countTmp])
+            countTmp = countTmp + 1
 
         # Read in temperature bias correction options
         try:
