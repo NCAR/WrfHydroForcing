@@ -6,8 +6,9 @@ downscaling is needed, based off options specified by the user.
 import math
 import time
 import numpy as np
+from core import errMod
 
-def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     Top level module function that will downscale forcing variables
     for this particular input forcing product.
@@ -21,28 +22,28 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: simple_lapse
         #2: param_lapse
     }
-    downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
+    downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
 
     # Dictionary mapping to pressure downscaling.
     downscale_pressure = {
         0: no_downscale,
         1: pressure_down_classic
     }
-    downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
+    downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
 
     # Dictionary mapping to shortwave radiation downscaling
     downscale_sw = {
         0: no_downscale,
         1: ncar_topo_adj
     }
-    downscale_sw[input_forcings.swDowscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
+    downscale_sw[input_forcings.swDowscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
 
     # Dictionary mapping to specific humidity downscaling
     downscale_q2 = {
         0: no_downscale,
         1: q2_down_classic
     }
-    downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
+    downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
 
     # Dictionary mapping to precipitation downscaling.
     downscale_precip = {
@@ -50,9 +51,9 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro):
         1: no_downscale
         #1: precip_mtn_mapper
     }
-    downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro)
+    downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
 
-def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     Generic function for passing states through without any
     downscaling.
@@ -62,7 +63,7 @@ def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     """
     input_forcings.final_forcings = input_forcings.final_forcings
 
-def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     Function that applies a single lapse rate adjustment to modeled
     2-meter temperature by taking the difference of the native
@@ -72,6 +73,10 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param GeoMetaWrfHydro:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Applying simple lapse rate to temperature downscaling"
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
@@ -82,15 +87,26 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro):
 
     # Apply single lapse rate value to the input 2-meter
     # temperature values.
-    indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
-    input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
-                                           (6.49/1000.0)*elevDiff
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input forcings"
+        errMod.log_critical(ConfigOptions,MpiConfig)
+        return
+    try:
+        input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
+                                               (6.49/1000.0)*elevDiff
+    except:
+        ConfigOptions.errMsg = "Unable to apply lapse rate to input 2-meter temperatures."
+        errMod.log_critical(ConfigOptions,MpiConfig)
+        return
+
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
 
     # Reset for memory efficiency
     indNdv = None
 
-def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     Generic function to downscale surface pressure to the WRF-Hydro domain.
     :param input_forcings:
@@ -98,6 +114,10 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param GeoMetaWrfHydro:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing topographic adjustment to surface pressure."
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
@@ -106,16 +126,27 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     if input_forcings.q2dDownscaleOpt > 0:
         input_forcings.psfcTmp[:, :] = input_forcings.final_forcings[6, :, :]
 
-    indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
-    input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
-                                           (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
-                                           (input_forcings.final_forcings[4,:,:]*287.05)
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input forcings"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+    try:
+        input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
+                                               (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
+                                               (input_forcings.final_forcings[4,:,:]*287.05)
+    except:
+        ConfigOptions.errMsg = "Unable to downscale surface pressure to input forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
 
     # Reset for memory efficiency
     indNdv = None
 
-def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     NCAR function for downscaling 2-meter specific humidity using already downscaled
     2-meter temperature, unadjusted surface pressure, and downscaled surface
@@ -125,21 +156,42 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param GeoMetaWrfHydro:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing topographic adjustment to specific humidity."
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
     # Establish where we have missing values.
-    indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input forcings"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
 
     # First calculate relative humidity given original surface pressure and 2-meter
     # temperature
-    relHum = rel_hum(input_forcings,ConfigOptions)
+    try:
+        relHum = rel_hum(input_forcings,ConfigOptions,MpiConfig)
+    except:
+        ConfigOptions.errMsg = "Unable to perform topographic downscaling of incoming " \
+                               "specific humidity to relative humidity"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
 
     # Downscale 2-meter specific humidity
-    q2Tmp = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
+    try:
+        q2Tmp = mixhum_ptrh(input_forcings,relHum,2,ConfigOptions)
+    except:
+        ConfigOptions.errMsg = "Unable to perform topographic downscaling of " \
+                               "incoming specific humidity"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
     input_forcings.final_forcings[5,:,:] = q2Tmp
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
     q2Tmp = None
     indNdv = None
 
-def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
+def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     Topographic adjustment of incoming shortwave radiation fluxes,
     given input parameters.
@@ -147,21 +199,46 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro):
     :param ConfigOptions:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing topographic adjustment to incoming " \
+                                  "shortwave radiation flux."
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
     # Establish where we have missing values.
-    indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input forcings"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
 
     # By the time this function has been called, necessary input static grids (height, slope, etc),
     # should have been calculated for each local slab of data.
     DEGRAD = math.pi/180.0
     DPD = 360.0/365.0
-    DECLIN, SOLCON = radconst(ConfigOptions)
+    try:
+        DECLIN, SOLCON = radconst(ConfigOptions)
+    except:
+        ConfigOptions.errMsg = "Unable to calculate solar constants based on datetime information."
+        errMod.log_critical(ConfigOptions,MpiConfig)
+        return
 
-    print('CALCULATING COSZEN')
-    coszen_loc, hrang_loc = calc_coszen(ConfigOptions,DECLIN,GeoMetaWrfHydro)
+    try:
+        coszen_loc, hrang_loc = calc_coszen(ConfigOptions,DECLIN,GeoMetaWrfHydro)
+    except:
+        ConfigOptions.errMsg = "Unable to calculate COSZEN or HRANG variables for topographic adjustment " \
+                               "of incoming shortwave radiation"
+        errMod.log_critical(ConfigOptions,MpiConfig)
+        return
 
-    print('ADJUSTING SW')
-    TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
-                      hrang_loc)
+    try:
+        TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
+                          hrang_loc)
+    except:
+        ConfigOptions.errMsg = "Unable to perform final topographic adjustment of incoming " \
+                               "shortwave radiation fluxes."
+        errMod.log_critical(ConfigOptions,MpiConfig)
+        return
 
     # Assign missing values based on our mask.
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv

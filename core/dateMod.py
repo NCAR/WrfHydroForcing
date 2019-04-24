@@ -50,8 +50,9 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     :return:
     """
     if MpiConfg.rank == 0:
-        if input_forcings.keyValue == 5:
-            print("PROCESSING conus HRRR")
+        ConfigOptions.statusMsg = "Processing Conus HRRR Data. Calculating neighboring " \
+                                  "files for this output timestep"
+        errMod.log_msg(ConfigOptions,MpiConfg)
 
     # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.
     if dCurrent >= datetime.datetime(2018,10,1):
@@ -76,51 +77,35 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         ConfigOptions.errMsg = "User has specified a HRRR conus forecast horizon " + \
             "that is greater than the maximum allowed hours of: " + \
             str(hrrrHorizon)
-        print(ConfigOptions.errMsg)
-        raise Exception
-
-    if MpiConfg.rank == 0:
-        print("CURRENT HRRR CYCLE BEING USED = " + currentHrrrCycle.strftime('%Y-%m-%d %H'))
+        errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this HRRR cycle.
     dtTmp = dCurrent - currentHrrrCycle
     currentHrrrHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print("Current HRRR Forecast Hour = " + str(currentHrrrHour))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentHrrrHour * 60) % 60
-    if MpiConfg.rank == 0:
-        print(currentHrrrHour)
-        print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = 60
     prevHrrrDate = dCurrent - datetime.timedelta(seconds=minSinceLastOutput * 60)
     input_forcings.fcst_date1 = prevHrrrDate
-    if MpiConfg.rank == 0:
-        print(prevHrrrDate)
     if minSinceLastOutput == 60:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = 60 - minSinceLastOutput
     nextHrrrDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput * 60)
     input_forcings.fcst_date2 = nextHrrrDate
-    if MpiConfg.rank == 0:
-        print(nextHrrrDate)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextHrrrDate - currentHrrrCycle
-    if MpiConfg.rank == 0:
-        print(currentHrrrCycle)
     nextHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(nextHrrrForecastHour)
     input_forcings.fcst_hour2 = nextHrrrForecastHour
     dtTmp = prevHrrrDate - currentHrrrCycle
     prevHrrrForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(prevHrrrForecastHour)
     input_forcings.fcst_hour1 = prevHrrrForecastHour
+    errMod.check_program_status(ConfigOptions,MpiConfg)
+
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
@@ -133,19 +118,23 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
                str(prevHrrrForecastHour).zfill(2) + '.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile1)
+        ConfigOptions.statusMsg = "Previous HRRR file being used: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+
     tmpFile2 = input_forcings.inDir + '/hrrr.' + \
                currentHrrrCycle.strftime('%Y%m%d') + "/hrrr.t" + \
                currentHrrrCycle.strftime('%H') + 'z.wrfsfcf' + \
                str(nextHrrrForecastHour).zfill(2) + '.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile2)
+        if MpiConfg.rank == 0:
+            ConfigOptions.statusMsg = "Next HRRR file being used: " + tmpFile2
+            errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
@@ -155,6 +144,14 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -271,6 +268,14 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input RAP file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -426,6 +431,14 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input GFS file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -435,12 +448,6 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     :param ConfigOptions:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if input_forcings.keyValue == 13:
-            print("PROCESSING Hawaii NAM Nest")
-        if input_forcings.keyValue == 14:
-            print("PROCESSING Puerto Rico NAM Nest")
-
     # Establish how often our NAM nest cycles occur.
     if dCurrent >= datetime.datetime(2012,10,1):
         namNestOutHorizons = [60]
@@ -454,24 +461,21 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         ConfigOptions.errMsg = "User has specified a NAM nest forecast horizon " \
                                "that is greater than maximum allowed hours of: " \
                                + str(max(namNestOutHorizons))
-        print(ConfigOptions.errMsg)
-        raise Exception
-
-    if MpiConfg.rank == 0:
-        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+        errMod.log_critical(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # First find the current NAM nest forecast cycle that we are using.
     currentNamNestCycle = ConfigOptions.current_fcst_cycle - \
                           datetime.timedelta(seconds=
                                              (input_forcings.userCycleOffset)*60.0)
     if MpiConfg.rank == 0:
-        print("CURRENT NAM NEST CYCLE BEING USED = " + currentNamNestCycle.strftime('%Y-%m-%d %H'))
+        ConfigOptions.statusMsg = "Current NAM nest cycle being used: " + currentNamNestCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this NAM nest cycle.
     dtTmp = dCurrent - currentNamNestCycle
     currentNamNestHour = int(dtTmp.days*24) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print("Current NAM Nest Forecast Hour = " + str(currentNamNestHour))
 
     # Calculate the NAM Nest output frequency based on our current NAM Nest forecast hour.
     for horizonTmp in namNestOutHorizons:
@@ -479,43 +483,28 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             currentNamNestFreq = namNestOutFreq[horizonTmp]
             input_forcings.outFreq = namNestOutFreq[horizonTmp]
             break
-    if MpiConfg.rank == 0:
-        print("Current NAM nest output frequency = " + str(currentNamNestFreq))
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentNamNestHour*60)%currentNamNestFreq
-    if MpiConfg.rank == 0:
-        print(currentNamNestHour)
-        print(currentNamNestFreq)
-        print(minSinceLastOutput)
     if minSinceLastOutput == 0:
         minSinceLastOutput = currentNamNestFreq
     prevNamNestDate = dCurrent - \
                   datetime.timedelta(seconds=minSinceLastOutput*60)
     input_forcings.fcst_date1 = prevNamNestDate
-    if MpiConfg.rank == 0:
-        print(prevNamNestDate)
     if minSinceLastOutput == currentNamNestFreq:
         minUntilNextOutput = 0
     else:
         minUntilNextOutput = currentNamNestFreq - minSinceLastOutput
     nextNamNestDate = dCurrent + datetime.timedelta(seconds=minUntilNextOutput*60)
     input_forcings.fcst_date2 = nextNamNestDate
-    if MpiConfg.rank == 0:
-        print(nextNamNestDate)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextNamNestDate - currentNamNestCycle
-    if MpiConfg.rank == 0:
-        print(currentNamNestCycle)
     nextNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print(nextNamNestForecastHour)
     input_forcings.fcst_hour2 = nextNamNestForecastHour
     dtTmp = prevNamNestDate - currentNamNestCycle
     prevNamNestForecastHour = int(dtTmp.days*24.0) + int(dtTmp.seconds/3600.0)
-    if MpiConfg.rank == 0:
-        print(prevNamNestForecastHour)
     input_forcings.fcst_hour1 = prevNamNestForecastHour
     # If we are on the first NAM nest forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
@@ -535,21 +524,21 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
         currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
         str(prevNamNestForecastHour).zfill(2) + '.tm00.grib2'
-    if MpiConfg.rank == 0:
-        print(tmpFile1)
     tmpFile2 = input_forcings.inDir + '/nam.' + \
                currentNamNestCycle.strftime('%Y%m%d') + "/nam.t" + \
                currentNamNestCycle.strftime('%H') + 'z.' + domainString + '.hiresf' + \
                str(nextNamNestForecastHour).zfill(2) + '.tm00.grib2'
     if MpiConfg.rank == 0:
-        print(tmpFile2)
-        print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
+        ConfigOptions.statusMsg = "Previous NAM nest file being used: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+        ConfigOptions.statusMsg = "Next NAM nest file being used: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
@@ -559,6 +548,14 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input NAM Nest file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -692,6 +689,14 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         input_forcings.file_in1 = tmpFile1
         input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
+    errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            ConfigOptions.errMsg = "Expected input CFSv2 file: " + input_forcings.file_in2 + " not found."
+            errMod.log_critical(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -802,11 +807,6 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     :param MpiConfg:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if supplemental_precip.keyValue == 1:
-            print("PROCESSING MRMS radar-only QPE.")
-
-
     # First we need to find the nearest previous and next hour, which is
     # the previous/next MRMS files we will be using.
     currentYr = dCurrent.year
@@ -828,10 +828,6 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
         # We are between two MRMS hours.
         prevMrmsDate = prevDate1
         nextMrmsDate = prevMrmsDate + datetime.timedelta(seconds=3600.0)
-
-    if MpiConfg.rank == 0:
-        print('Previous MRMS Date = ' + prevMrmsDate.strftime('%Y-%m-%d:%H'))
-        print('Next MRMS Date = ' + nextMrmsDate.strftime('%Y-%m-%d:%H'))
 
     supplemental_precip.pcp_date1 = prevMrmsDate
     supplemental_precip.pcp_date2 = nextMrmsDate
@@ -872,16 +868,24 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
                   "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                   "0000.grib2.gz"
     if MpiConfg.rank == 0:
-        print(tmpFile1)
-        print(tmpFile2)
-        print(tmpRqiFile1)
-        print(tmpRqiFile2)
+        ConfigOptions.statusMsg = "Previous MRMS supplemental " \
+                                  "file: " + tmpFile1
+        errMod.log_msg(ConfigOptions,MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS supplemental " \
+                                  "file: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
+                                  "file: " + tmpRqiFile1
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
+                                  "file: " + tmpRqiFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmpFile1 or supplemental_precip.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
             supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
             supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
@@ -906,9 +910,12 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     # added to the final output grids.
     if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
         if MpiConfg.rank == 0:
-            print("FOUND MISSING MRMS FILES. WILL NOT PROCESS SUPPLEMENTAL PRECIPITATION")
+            ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
+                                      "supplemental precipitation"
+            errMod.log_warning(ConfigOptions,MpiConfg)
         supplemental_precip.file_in2 = None
         supplemental_precip.file_in1 = None
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -920,17 +927,17 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     :param MpiConfg:
     :return:
     """
-    if MpiConfg.rank == 0:
-        if supplemental_precip.keyValue == 3:
-            print('PROCESSING 2.5 KM ARW Hawaii Supplemental Precipitation')
-        if supplemental_precip.keyValue == 4:
-            print('PROCESSING 2.5 KM ARW Puerto Rico Supplemental Precipitation')
-
     if dCurrent >= datetime.datetime(2008, 10, 1):
         defaultHorizon = 48 # Current forecasts go out to 48 hours.
 
     # First find the current ARW forecast cycle that we are using.
     currentARWCycle = ConfigOptions.current_fcst_cycle
+
+    if MpiConfg.rank == 0:
+        ConfigOptions.statusMsg = "Processing WRF-ARW supplemental precipitation from " \
+                                  "forecast cycle: " + currentARWCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Apply some logic here to account for the ARW weirdness associated with the
     # odd forecast cycles.
@@ -938,7 +945,10 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
         # Data only available for 00/12 UTC cycles.
         if currentARWCycle.hour != 0 and currentARWCycle.hour != 12:
             if MpiConfg.rank == 0:
-                print("HAWAII ARW DATA NOT AVAILABLE FOR THIS CYCLE")
+                ConfigOptions.statusMsg = "No Hawaii WRF-ARW found for this cycle. " \
+                                          "No supplemental ARW " \
+                                          "precipitation will be used."
+                errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
             return
@@ -947,27 +957,32 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
         # Data only available for 06/18 UTC cycles.
         if currentARWCycle.hour != 6 and currentARWCycle.hour != 18:
             if MpiConfg.rank == 0:
-                print('PUERTO RICO DATA NOT AVAILABLE FOR THIS CYCLE')
+                ConfigOptions.statusMsg = "No Puerto Rico WRF-ARW found for this cycle. " \
+                                          "No supplemental ARW precipitation will be used."
+                errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
             return
         fcstHorizon = 48
 
     if MpiConfg.rank == 0:
-        print("CURRENT ARW CYCLE BEING USED = " + currentARWCycle.strftime('%Y-%m-%d %H'))
+        ConfigOptions.statusMsg = "Current ARW forecast cycle being used: " + \
+                                  currentARWCycle.strftime('%Y-%m-%d %H')
+        errMod.log_msg(ConfigOptions,MpiConfg)
 
     # Calculate the current forecast hour within this ARW cycle.
     dtTmp = dCurrent - currentARWCycle
     currentARWHour = int(dtTmp.days * 24) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print("Current ARW Forecast Hour = " + str(currentARWHour))
 
     if currentARWHour > fcstHorizon:
         if MpiConfg.rank == 0:
-            print('Current ARW Forecast Hour Greater Than Max Allowed of: ' + str(fcstHorizon))
+            ConfigOptions.statusMsg = "Current ARW forecast hour greater than max allowed " \
+                                      "of: " + str(fcstHorizon)
+            errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
             return
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the previous file to process.
     minSinceLastOutput = (currentARWHour * 60) % 60
@@ -991,22 +1006,20 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
 
     # Calculate the output forecast hours needed based on the prev/next dates.
     dtTmp = nextARWDate - currentARWCycle
-    if MpiConfg.rank == 0:
-        print(currentARWCycle)
     nextARWForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(nextARWForecastHour)
     if nextARWForecastHour > fcstHorizon:
         if MpiConfg.rank == 0:
-            print('Next ARW Forecast Hour Greater Than Max Allowed of: ' + str(fcstHorizon))
+            ConfigOptions.statusMsg = "Next ARW forecast hour greater than max allowed " \
+                                      "of: " + str(fcstHorizon)
+            errMod.log_msg(ConfigOptions, MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
             return
+    errMod.check_program_status(ConfigOptions,MpiConfg)
+
     supplemental_precip.fcst_hour2 = nextARWForecastHour
     dtTmp = prevARWDate - currentARWCycle
     prevARWForecastHour = int(dtTmp.days * 24.0) + int(dtTmp.seconds / 3600.0)
-    if MpiConfg.rank == 0:
-        print(prevARWForecastHour)
     supplemental_precip.fcst_hour1 = prevARWForecastHour
 
     # If we are on the first ARW forecast hour (1), and we have calculated the previous forecast
@@ -1034,15 +1047,18 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
                    currentARWCycle.strftime('%Y%m%d') + '/hiresw.t' + \
                    currentARWCycle.strftime('%H') + 'z.arw_2p5km.f' + \
                    str(nextARWForecastHour).zfill(2) + '.pr.grib2'
+    errMod.check_program_status(ConfigOptions,MpiConfg)
     if MpiConfg.rank == 0:
-        print(tmpFile1)
-        print(tmpFile2)
+        ConfigOptions.statusMsg = "Previous ARW supplemental precipitation file: " + tmpFile1
+        errMod.log_msg(ConfigOptions, MpiConfg)
+        ConfigOptions.statusMsg = "Next ARW supplemental precipitation file: " + tmpFile2
+        errMod.log_msg(ConfigOptions, MpiConfg)
+    errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmpFile1 or supplemental_precip.file_in2 != tmpFile2:
         if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
             supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
             supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
         else:
@@ -1059,7 +1075,9 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     # added to the final output grids.
     if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
         if MpiConfg.rank == 0:
-            print("FOUND MISSING ARW FILES. WILL NOT PROCESS SUPPLEMENTAL PRECIPITATION")
+            ConfigOptions.statusMsg = "Found missing ARW file. Will not process supplemental precipitation for " \
+                                      "this time step."
+            errMod.log_msg(ConfigOptions, MpiConfg)
         supplemental_precip.file_in2 = None
         supplemental_precip.file_in1 = None
 

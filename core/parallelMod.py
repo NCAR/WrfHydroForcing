@@ -52,7 +52,12 @@ class MpiConfig:
             tmpDict = {'varTmp':value_broadcast}
         else:
             tmpDict = None
-        tmpDict = self.comm.bcast(tmpDict,root=0)
+        try:
+            tmpDict = self.comm.bcast(tmpDict,root=0)
+        except:
+            ConfigOptions.errMsg = "Unable to broadcast single value from rank 0."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return None
         return tmpDict['varTmp']
 
     def scatter_array(self,geoMeta,array_broadcast,ConfigOptions):
@@ -78,7 +83,12 @@ class MpiConfig:
             tmpDict = {'varTmp':data_type_flag}
         else:
             tmpDict = None
-        tmpDict = self.comm.bcast(tmpDict,root=0)
+        try:
+            tmpDict = self.comm.bcast(tmpDict,root=0)
+        except:
+            ConfigOptions.errMsg = "Unable to broadcast numpy datatype value from rank 0"
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return None
         data_type_flag = tmpDict['varTmp']
 
         # Broadcast the global array to the child processors, then
@@ -93,7 +103,12 @@ class MpiConfig:
                 arrayGlobalTmp = np.empty([geoMeta.ny_global,
                                            geoMeta.nx_global],
                                           np.float64)
-        self.comm.Bcast(arrayGlobalTmp, root=0)
+        try:
+            self.comm.Bcast(arrayGlobalTmp, root=0)
+        except:
+            ConfigOptions.errMsg = "Unable to broadcast a global numpy array from rank 0"
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            return None
         arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
                    geoMeta.x_lower_bound:geoMeta.x_upper_bound]
         return arraySub
