@@ -95,6 +95,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate InputForcings under Input section in'
                                   'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputForcings under Input section in'
+                                  'configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper InputForcings option specified in '
                                   'configuration file')
@@ -118,6 +121,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate InputForcingDirectories in Input section '
                                   'in the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputForcingDirectories in Input section '
+                                  'in the configuration file.')
         if len(self.input_force_dirs) != self.number_inputs:
             errMod.err_out_screen('Number of InputForcingDirectories must match the number '
                                   'of InputForcings in the configuration file.')
@@ -138,6 +144,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate OutputFrequency in '
                                   'the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate OutputFrequency in '
+                                  'the configuration file.')
         if self.output_freq <= 0:
             errMod.err_out_screen('Please specify an OutputFrequency that'
                                   ' is greater than zero minutes.')
@@ -149,6 +158,9 @@ class ConfigOptions:
             errMod.err_out_screen('Improper OutDir specified in the '
                                   'configuration file.')
         except KeyError:
+            errMod.err_out_screen('Unable to locate OutDir in the '
+                                  'configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate OutDir in the '
                                   'configuration file.')
         if not os.path.isdir(self.output_dir):
@@ -164,6 +176,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate ScratchDir in the '
                                   'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate ScratchDir in the '
+                                  'configuration file.')
         if not os.path.isdir(self.scratch_dir):
             errMod.err_out_screen('Specified output directory: ' + \
                                   self.scratch_dir + ' not found')
@@ -172,6 +187,9 @@ class ConfigOptions:
         try:
             self.retro_flag = int(config['Retrospective']['RetroFlag'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate RetroFlag in the'
+                                  'configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate RetroFlag in the'
                                   'configuration file.')
         except ValueError:
@@ -187,6 +205,9 @@ class ConfigOptions:
             try:
                 beg_date_tmp = config['Retrospective']['BDateProc']
             except KeyError:
+                errMod.err_out_screen('Unable to locate BDateProc under Logistics section in'
+                                      'configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate BDateProc under Logistics section in'
                                       'configuration file.')
             if beg_date_tmp != '-9999':
@@ -205,6 +226,9 @@ class ConfigOptions:
             try:
                 end_date_tmp = config['Retrospective']['EDateProc']
             except KeyError:
+                errMod.err_out_screen('Unable to locate EDateProc under Logistics section in'
+                                      'configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate EDateProc under Logistics section in'
                                       'configuration file.')
             if end_date_tmp != '-9999':
@@ -243,6 +267,9 @@ class ConfigOptions:
             except KeyError:
                 errMod.err_out_screen('Unable to locate LookBack in the configuration '
                                       'file. Please verify entries exist.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate LookBack in the configuration '
+                                      'file. Please verify entries exist.')
 
             # If the Retro flag is off, and lookback is off, then we assume we are
             # running a reforecast.
@@ -252,6 +279,9 @@ class ConfigOptions:
                 try:
                     beg_date_tmp = config['Forecast']['RefcstBDateProc']
                 except KeyError:
+                    errMod.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in'
+                                          'configuration file.')
+                except configparser.NoOptionError:
                     errMod.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in'
                                           'configuration file.')
                 if beg_date_tmp != '-9999':
@@ -272,6 +302,9 @@ class ConfigOptions:
                 try:
                     end_date_tmp = config['Forecast']['RefcstEDateProc']
                 except KeyError:
+                    errMod.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in'
+                                          'configuration file.')
+                except configparser.NoOptionError:
                     errMod.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in'
                                           'configuration file.')
                 if end_date_tmp != '-9999':
@@ -311,6 +344,9 @@ class ConfigOptions:
             except KeyError:
                 errMod.err_out_screen('Unable to locate ForecastFrequency in the configuration '
                                       'file. Please verify entries exist.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate ForecastFrequency in the configuration '
+                                      'file. Please verify entries exist.')
             if self.fcst_freq <= 0:
                 errMod.err_out_screen('Please specify a ForecastFrequency in the configuration '
                                       'file greater than zero.')
@@ -331,6 +367,9 @@ class ConfigOptions:
                 except KeyError:
                     errMod.err_out_screen('Unable to locate ForecastShift in the configuration '
                                            'file. Please verify entries exist.')
+                except configparser.NoOptionError:
+                    errMod.err_out_screen('Unable to locate ForecastShift in the configuration '
+                                          'file. Please verify entries exist.')
                 if self.fcst_shift < 0:
                     errMod.err_out_screen('Please specify a ForecastShift in the configuration '
                                           'file greater than or equal to zero.')
@@ -354,6 +393,9 @@ class ConfigOptions:
             except KeyError:
                 errMod.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in'
                                       'configuration file.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in'
+                                      'configuration file.')
             except json.decoder.JSONDecodeError:
                 errMod.err_out_screen('Improper ForecastInputHorizons option specified in '
                                       'configuration file')
@@ -372,6 +414,9 @@ class ConfigOptions:
             try:
                 self.fcst_input_offsets = json.loads(config['Forecast']['ForecastInputOffsets'])
             except KeyError:
+                errMod.err_out_screen('Unable to locate ForecastInputOffsets under Forecast'
+                                      ' section in the configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate ForecastInputOffsets under Forecast'
                                       ' section in the configuration file.')
             except json.decoder.JSONDecodeError:
@@ -405,6 +450,8 @@ class ConfigOptions:
             self.geogrid = config['Geospatial']['GeogridIn']
         except KeyError:
             errMod.err_out_screen('Unable to locate GeogridIn in the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate GeogridIn in the configuration file.')
         if not os.path.isfile(self.geogrid):
             errMod.err_out_screen('Unable to locate necessary geogrid file: ' + self.geogrid)
 
@@ -427,6 +474,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate RegridOpt under the Regridding section '
                                   'in the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate RegridOpt under the Regridding section '
+                                  'in the configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper RegridOpt options specified in the configuration file.')
         if len(self.regrid_opt) != self.number_inputs:
@@ -446,6 +496,9 @@ class ConfigOptions:
         try:
             self.forceTemoralInterp = json.loads(config['Interpolation']['ForcingTemporalInterpolation'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation'
+                                  ' section in the configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation'
                                   ' section in the configuration file.')
         except json.decoder.JSONDecodeError:
@@ -470,6 +523,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
                                   ' section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper TemperatureDownscaling options specified in the configuration file.')
         if len(self.t2dDownscaleOpt) != self.number_inputs:
@@ -491,6 +547,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
                                   ' section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper PressureDownscaling options specified in the configuration file.')
         if len(self.psfcDownscaleOpt) != self.number_inputs:
@@ -507,6 +566,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
                                   ' section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper ShortwaveDownscaling options specified in the configuration file.')
         if len(self.swDownscaleOpt) != self.number_inputs:
@@ -521,6 +583,9 @@ class ConfigOptions:
         try:
             self.precipDownscaleOpt = json.loads(config['Downscaling']['PrecipDownscaling'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate PrecipDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate PrecipDownscaling under the Downscaling '
                                   ' section of the configuration file.')
         except json.decoder.JSONDecodeError:
@@ -544,6 +609,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
                                   ' section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
+                                  ' section of the configuration file.')
         except json.decoder.JSONDecodeError:
             errMod.err_out_screen('Improper HumidityDownscaling options specified in the configuration file.')
         if len(self.q2dDownscaleOpt) != self.number_inputs:
@@ -559,8 +627,12 @@ class ConfigOptions:
         if paramFlag.sum() > 0:
             self.paramFlagArray = paramFlag
             try:
-                tmpScaleParamDirs = config('Downscaling', 'DownscalingParamDirs').split(',')
+                tmpScaleParamDirs = config.get('Downscaling', 'DownscalingParamDirs').split(',')
             except KeyError:
+                errMod.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
             if len(tmpScaleParamDirs) != paramFlag.sum():
                 errMod.err_out_screen('Please specify a downscaling parameter directory for each '
@@ -589,6 +661,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
             errMod.err_out_screen('Improper TemperatureBiasCorrection options specified in '
                                   'the configuration file.')
@@ -605,6 +680,9 @@ class ConfigOptions:
         try:
             self.psfcBiasCorrectOpt = json.loads(config['BiasCorrection']['PressureBiasCorrection'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate PressureBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate PressureBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
@@ -625,6 +703,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate HumidityBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate HumidityBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
             errMod.err_out_screen('Improper HumdityBiasCorrection options specified in '
                                   'the configuration file.')
@@ -641,6 +722,9 @@ class ConfigOptions:
         try:
             self.windBiasCorrect = json.loads(config['BiasCorrection']['WindBiasCorrection'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate WindBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate WindBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
@@ -661,6 +745,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate SwBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate SwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
             errMod.err_out_screen('Improper SwBiasCorrection options specified in '
                                   'the configuration file.')
@@ -677,6 +764,9 @@ class ConfigOptions:
         try:
             self.lwBiasCorrectOpt = json.loads(config['BiasCorrection']['LwBiasCorrection'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate LwBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate LwBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
@@ -697,6 +787,9 @@ class ConfigOptions:
         except KeyError:
             errMod.err_out_screen('Unable to locate PrecipBiasCorrection under the '
                                   'BiasCorrection section of the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate PrecipBiasCorrection under the '
+                                  'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
             errMod.err_out_screen('Improper PrecipBiasCorrection options specified in '
                                   'the configuration file.')
@@ -713,6 +806,9 @@ class ConfigOptions:
         try:
             self.supp_precip_forcings = json.loads(config['SuppForcing']['SuppPcp'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate SuppPcp under SuppForcing section in'
+                                  'configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate SuppPcp under SuppForcing section in'
                                   'configuration file.')
         except json.decoder.JSONDecodeError:
@@ -733,6 +829,9 @@ class ConfigOptions:
                     except KeyError:
                         errMod.err_out_screen('Unable to locate RqiThreshold under '
                                               'SuppForcing section in the configuration file.')
+                    except configparser.NoOptionError:
+                        errMod.err_out_screen('Unable to locate RqiThreshold under '
+                                              'SuppForcing section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         errMod.err_out_screen('Improper RqiThreshold option in the configuration file.')
                     # Make sure the RQI threshold makes sense.
@@ -743,6 +842,9 @@ class ConfigOptions:
             try:
                 self.supp_precip_dirs = config.get('SuppForcing', 'SuppPcpDirectories').split(',')
             except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
+                                      'in the configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                       'in the configuration file.')
             if len(self.supp_precip_dirs) != self.number_supp_pcp:
@@ -762,6 +864,9 @@ class ConfigOptions:
             except KeyError:
                 errMod.err_out_screen('Unable to locate RegridOptSuppPcp under the SuppForcing section '
                                       'in the configuration file.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate RegridOptSuppPcp under the SuppForcing section '
+                                      'in the configuration file.')
             except json.decoder.JSONDecodeError:
                 errMod.err_out_screen('Improper RegridOptSuppPcp options specified in the configuration file.')
             if len(self.regrid_opt_supp_pcp) != self.number_supp_pcp:
@@ -778,6 +883,9 @@ class ConfigOptions:
             try:
                 self.suppTemporalInterp = json.loads(config['SuppForcing']['SuppPcpTemporalInterpolation'])
             except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpTemporalInterpolation under the SuppForcing'
+                                      ' section in the configuration file.')
+            except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate SuppPcpTemporalInterpolation under the SuppForcing'
                                       ' section in the configuration file.')
             except json.decoder.JSONDecodeError:
@@ -803,6 +911,9 @@ class ConfigOptions:
                 except KeyError:
                     errMod.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
                                           'section of the configuration file')
+                except configparser.NoOptionError:
+                    errMod.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
+                                          'section of the configuration file')
                 except json.JSONDecodeError:
                     errMod.err_out_screen('Improper cfsEnsNumber options specified in the '
                                           'configuration file')
@@ -814,6 +925,9 @@ class ConfigOptions:
         try:
             self.customFcstFreq = json.loads(config['Custom']['custom_input_fcst_freq'])
         except KeyError:
+            errMod.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in'
+                                  'configuration file.')
+        except configparser.NoOptionError:
             errMod.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in'
                                   'configuration file.')
         except json.decoder.JSONDecodeError:

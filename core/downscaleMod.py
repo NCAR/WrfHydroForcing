@@ -343,6 +343,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         ConfigOptions.statusMsg = "Performing NWM Monthly PRISM Mountain Mapper " \
                                   "Downscaling of Precipitation"
         errMod.log_msg(ConfigOptions,MpiConfig)
+        print(ConfigOptions.statusMsg)
 
     # Establish whether or not we need to read in new PRISM monthly climatology:
     # 1.) This is the first output timestep, and no grids have been initialized.
@@ -352,10 +353,12 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     if not input_forcings.nwmPRISM_denGrid and not input_forcings.nwmPRISM_numGrid:
         # We are on situation 1 - This is the first output step.
         initializeFlag = True
+        print('WE NEED TO READ IN PRISM GRIDS')
     if ConfigOptions.current_output_date.month != ConfigOptions.prev_output_date.month:
         # We are on situation #2 - The month has changed so we need to reinitialize the
         # PRISM grids.
         initializeFlag = True
+        print('MONTH CHANGE.... NEED TO READ IN NEW PRISM GRIDS.')
 
     if initializeFlag == True:
         # First reset the local PRISM grids to be safe.
@@ -367,6 +370,8 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
                         ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Numer.nc'
         denominatorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
                           ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Denom.nc'
+        print(numeratorPath)
+        print(denominatorPath)
 
         # Make sure files exist.
         if not os.path.isfile(numeratorPath):
@@ -384,6 +389,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         if MpiConfig.rank == 0:
             # Open the NetCDF parameter files. Check to make sure expected dimension sizes are in place, along with
             # variable names, etc.
+            print('OPENING PRISM PRISM PARAMETER FILES.')
             try:
                 idNum = Dataset(numeratorPath,'r')
             except:
@@ -462,6 +468,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
                 pass
 
             # Close the parameter files.
+            print('CLOSING PRISM PARAMETER FILES.')
             try:
                 idNum.close()
             except:
@@ -479,6 +486,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
             denDataTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
+        print('SCATTERING PRISM PARAMETER GRIDS.')
         # Scatter the array out to the local processors
         input_forcings.nwmPRISM_numGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, numDataTmp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -491,6 +499,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     numLocal = input_forcings.nwmPRISM_numGrid[:,:]
     denLocal = input_forcings.nwmPRISM_denGrid[:,:]
 
+    print('CALCULATING PRISM PARAM INDEX')
     # Establish index of where we have valid data.
     try:
         indValid = np.where((localRainRate > 0.01) & (denLocal > 0.01) & (numLocal > 0.01))
@@ -500,6 +509,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    print('CALCULATING NUMERATOR')
     try:
         localRainRate[indValid] = localRainRate[indValid] * numLocal[indValid]
     except:
@@ -507,6 +517,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    print('DIVIDING BY DENOMINATOR')
     try:
         localRainRate[indValid] = localRainRate[indValid] / denLocal[indValid]
     except:
@@ -522,6 +533,8 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     localRainRate = None
     numLocal = None
     denLocal = None
+
+    print('PRISM DOWNSCALING COMPLETE')
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
