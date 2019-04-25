@@ -7,6 +7,8 @@ import math
 import time
 import numpy as np
 from core import errMod
+from netCDF4 import Dataset
+import os
 
 def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -105,6 +107,143 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Reset for memory efficiency
     indNdv = None
+
+def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
+    """
+    Function that applies a apriori lapse rate adjustment to modeled
+    2-meter temperature by taking the difference of the native
+    input elevation and the WRF-hydro elevation. It's assumed this lapse
+    rate grid has already been regridded to the final output WRF-Hydro
+    grid.
+    :param inpute_forcings:
+    :param ConfigOptions:
+    :param GeoMetaWrfHydro:
+    :return:
+    """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Applying aprior lapse rate grid to temperature downscaling"
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
+    # Calculate the elevation difference.
+    elevDiff = input_forcings.height - GeoMetaWrfHydro.height
+
+    if not input_forcings.lapseGrid:
+        # We have not read in our lapse rate file. Read it in, do extensive checks,
+        # scatter the lapse rate grid out to individual processors, then apply the
+        # lapse rate to the 2-meter temperature grid.
+        if MpiConfig.rank == 0:
+            # First ensure we have a parameter directory
+            if input_forcings.paramDir == "NONE":
+                ConfigOptions.errMsg = "User has specified spatial temperature lapse rate " \
+                                       "downscaling while no downscaling parameter directory " \
+                                       "exists."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Compose the path to the lapse rate grid file.
+            lapsePath = input_forcings.paramDir + "/YOUR_MOMS_LAPSE_RATE.nc"
+            if not os.path.isfile(lapsePath):
+                ConfigOptions.errMsg = "Expected lapse rate parameter file: " + \
+                                       lapsePath + " does not exist."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the lapse rate file. Check for the expected variable, along with
+            # the dimension size to make sure everything matches up.
+            try:
+                idTmp = Dataset(lapsePath,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if not 'lapse' in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Expected 'lapse' variable not located in parameter " \
+                                       "file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                lapseTmp = idTmp.variables['lapse'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extracte 'lapse' variable from parameter: " \
+                                       "file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Check dimensions to ensure they match up to the output grid.
+            if lapseTmp.shape[0] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
+                                       "rate from parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if lapseTmp.shape[1] != GeoMetaWrfHydro.ny_global:
+                ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
+                                       "rate from parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Perform a quick search to ensure we don't have radical values.
+            indTmp = np.where(lapseTmp < 0.0)
+            if len(indTmp[0]) > 0:
+                ConfigOptions.errMsg = "Found missing values in the lapse rate grid from " \
+                                       "parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            indTmp = np.where(lapseTmp > 100.0)
+            if len(indTmp[0]) > 0:
+                ConfigOptions.errMsg = "Found excessively high values in the lapse rate grid from " \
+                                       "parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Close the parameter lapse rate file.
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            lapseTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the lapse rate grid to the other processors.
+        input_forcings.lapseGrid = MpiConfig.scatter_array(GeoMetaWrfHydro,lapseTmp,ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
+    temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input " + \
+                               input_forcings.productName + " regridded forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+    try:
+        indValid = np.where(temperature_grid_tmp != ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform search for valid values on input " + \
+                               input_forcings.productName + " regridded temperature forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+    try:
+        temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
+                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff)
+    except:
+        ConfigOptions.errMsg = "Unable to apply spatial lapse rate values to input " + \
+                               input_forcings.productName + " regridded temperature forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+
+    input_forcings.final_forcings[4,:,:] = temperature_grid_tmp
+    input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
+
+    # Reset for memory efficiency
+    indTmp = None
+    indNdv = None
+    indValid = None
+    elevDiff = None
+    temperature_grid_tmp = None
 
 def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """

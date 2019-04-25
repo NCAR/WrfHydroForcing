@@ -22,6 +22,7 @@ class input_forcings:
         """
         self.keyValue = None
         self.inDir = None
+        self.paramDir = None
         self.userFcstHorizon = None
         self.userCycleOffset = None
         self.productName = None
@@ -39,6 +40,7 @@ class input_forcings:
         self.regridOpt = None
         self.timeInterpOpt = None
         self.t2dDownscaleOpt = None
+        self.lapseGrid = None
         self.swDowscaleOpt = None
         self.precipDownscaleOpt = None
         self.q2dDownscaleOpt = None
@@ -385,6 +387,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].psfcBiasCorrectOpt = ConfigOptions.psfcBiasCorrectOpt[force_tmp]
 
         InputDict[force_key].inDir = ConfigOptions.input_force_dirs[force_tmp]
+        InputDict[force_key].paramDir = ConfigOptions.dScaleParamDirs[force_tmp]
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
