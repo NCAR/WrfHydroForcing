@@ -650,9 +650,9 @@ class ConfigOptions:
         self.dScaleParamDirs = []
         for forceOpt in self.input_forcings:
             if paramFlag[countTmp] == 0:
-                self.dScaleParamDirs = self.dScaleParamDirs.append('NONE')
+                self.dScaleParamDirs.append('NONE')
             if paramFlag[countTmp] == 1:
-                self.dScaleParamDirs = self.dScaleParamDirs.append(tmpScaleParamDirs[countTmp])
+                self.dScaleParamDirs.append(tmpScaleParamDirs[countTmp])
             countTmp = countTmp + 1
 
         # Read in temperature bias correction options
