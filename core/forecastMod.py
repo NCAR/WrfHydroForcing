@@ -100,6 +100,13 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                 seconds=ConfigOptions.output_freq*60*outStep
             )
             ConfigOptions.current_output_date = OutputObj.outDate
+            # Calculate the previous output timestep. This is used in potential downscaling routines.
+            if outStep == 1:
+                ConfigOptions.prev_output_date = ConfigOptions.current_output_date
+            else:
+                ConfigOptions.prev_output_date = ConfigOptions.current_output_date - datetime.timedelta(
+                    seconds=ConfigOptions.output_freq*60
+                )
             if MpiConfig.rank == 0:
                 ConfigOptions.statusMsg = '========================================='
                 errMod.log_msg(ConfigOptions, MpiConfig)

@@ -43,6 +43,8 @@ class input_forcings:
         self.lapseGrid = None
         self.swDowscaleOpt = None
         self.precipDownscaleOpt = None
+        self.nwmPRISM_numGrid = None
+        self.nwmPRISM_denGrid = None
         self.q2dDownscaleOpt = None
         self.psfcDownscaleOpt = None
         self.t2dBiasCorrectOpt = None

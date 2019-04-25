@@ -36,6 +36,7 @@ class ConfigOptions:
         self.current_fcst_cycle = None
         self.current_output_step = None
         self.cycle_length_minutes = None
+        self.prev_output_date = None
         self.current_output_date = None
         self.look_back = None
         self.fcst_freq = None
