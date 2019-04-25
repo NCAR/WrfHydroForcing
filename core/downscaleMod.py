@@ -50,7 +50,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary mapping to precipitation downscaling.
     downscale_precip = {
         0: no_downscale,
-        1: no_downscale
+        1: nwm_monthly_PRISM_downscale
         #1: precip_mtn_mapper
     }
     downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
