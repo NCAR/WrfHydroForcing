@@ -355,7 +355,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     # 2.) We have switched months from the last timestep. In this case, we need
     #     to re-initialize the grids for the current month.
     initializeFlag = False
-    if not input_forcings.nwmPRISM_denGrid and not input_forcings.nwmPRISM_numGrid:
+    if input_forcings.nwmPRISM_denGrid is None and input_forcings.nwmPRISM_numGrid is None:
         # We are on situation 1 - This is the first output step.
         initializeFlag = True
         print('WE NEED TO READ IN PRISM GRIDS')
