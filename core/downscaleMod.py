@@ -394,7 +394,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         if MpiConfig.rank == 0:
             # Open the NetCDF parameter files. Check to make sure expected dimension sizes are in place, along with
             # variable names, etc.
-            print('OPENING PRISM PRISM PARAMETER FILES.')
             try:
                 idNum = Dataset(numeratorPath,'r')
             except:
@@ -473,7 +472,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
                 pass
 
             # Close the parameter files.
-            print('CLOSING PRISM PARAMETER FILES.')
             try:
                 idNum.close()
             except:
@@ -491,7 +489,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
             denDataTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        print('SCATTERING PRISM PARAMETER GRIDS.')
         # Scatter the array out to the local processors
         input_forcings.nwmPRISM_numGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, numDataTmp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -504,17 +501,15 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     numLocal = input_forcings.nwmPRISM_numGrid[:,:]
     denLocal = input_forcings.nwmPRISM_denGrid[:,:]
 
-    print('CALCULATING PRISM PARAM INDEX')
     # Establish index of where we have valid data.
     try:
-        indValid = np.where((localRainRate > 0.01) & (denLocal > 0.01) & (numLocal > 0.01))
+        indValid = np.where((localRainRate > 0.0) & (denLocal > 0.0) & (numLocal > 0.0))
     except:
         ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
                                "param grid in mountain mapper downscaling"
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    print('CALCULATING NUMERATOR')
     try:
         localRainRate[indValid] = localRainRate[indValid] * numLocal[indValid]
     except:
@@ -522,7 +517,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    print('DIVIDING BY DENOMINATOR')
     try:
         localRainRate[indValid] = localRainRate[indValid] / denLocal[indValid]
     except:
@@ -538,8 +532,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     localRainRate = None
     numLocal = None
     denLocal = None
-
-    print('PRISM DOWNSCALING COMPLETE')
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
