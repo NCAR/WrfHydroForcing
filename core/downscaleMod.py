@@ -25,6 +25,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         2: param_lapse
     }
     downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to pressure downscaling.
     downscale_pressure = {
@@ -32,6 +33,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: pressure_down_classic
     }
     downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to shortwave radiation downscaling
     downscale_sw = {
@@ -39,6 +41,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: ncar_topo_adj
     }
     downscale_sw[input_forcings.swDowscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to specific humidity downscaling
     downscale_q2 = {
@@ -46,6 +49,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: q2_down_classic
     }
     downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to precipitation downscaling.
     downscale_precip = {
@@ -54,6 +58,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         #1: precip_mtn_mapper
     }
     downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """

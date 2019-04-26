@@ -146,7 +146,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run bias correction.
-                    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions)
+                    biasCorrectMod.run_bias_correction(inputForcingMod[forceKey],ConfigOptions,MpiConfig)
                     errMod.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run downscaling on grids for this output timestep.

@@ -3,7 +3,9 @@ Module file for incorporating bias correction for various input
 forcing variables. Calling tree will be guided based on user-specified
 options.
 """
-def run_bias_correction(input_forcings,ConfigOptions):
+from core import  errMod
+
+def run_bias_correction(input_forcings,ConfigOptions,MpiConfig):
     """
     Top level calling routine for initiating bias correction on
     this particular input forcing. This is called prior to downscaling,
@@ -18,6 +20,8 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings,
                                                                ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
 
     # Dictionary for mapping to humidity bias correction.
     bias_correct_humidity = {
@@ -25,6 +29,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_humidity[input_forcings.q2dBiasCorrectOpt](input_forcings,
                                                             ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to surface pressure bias correction.
     bias_correct_pressure = {
@@ -32,6 +37,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_pressure[input_forcings.psfcBiasCorrectOpt](input_forcings,
                                                              ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to incoming shortwave radiation correction.
     bias_correct_sw = {
@@ -39,6 +45,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings,
                                                      ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to incoming longwave radiation correction.
     bias_correct_lw = {
@@ -46,6 +53,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings,
                                                      ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to wind bias correction.
     bias_correct_wind = {
@@ -53,6 +61,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings,
                                                          ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to precipitation bias correction.
     bias_correct_precip = {
@@ -60,6 +69,7 @@ def run_bias_correction(input_forcings,ConfigOptions):
     }
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings,
                                                              ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Assign the temperature/pressure grids to temporary placeholders here.
     # these will be used if 2-meter specific humidity is downscaled.
