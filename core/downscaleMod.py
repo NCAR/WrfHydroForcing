@@ -310,7 +310,7 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # First calculate relative humidity given original surface pressure and 2-meter
     # temperature
     try:
-        relHum = rel_hum(input_forcings,ConfigOptions,MpiConfig)
+        relHum = rel_hum(input_forcings,ConfigOptions)
     except:
         ConfigOptions.errMsg = "Unable to perform topographic downscaling of incoming " \
                                "specific humidity to relative humidity"
