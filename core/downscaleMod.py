@@ -146,7 +146,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
                 pass
 
             # Compose the path to the lapse rate grid file.
-            lapsePath = input_forcings.paramDir + "/YOUR_MOMS_LAPSE_RATE.nc"
+            lapsePath = input_forcings.paramDir + "/lapse_param.nc"
             if not os.path.isfile(lapsePath):
                 ConfigOptions.errMsg = "Expected lapse rate parameter file: " + \
                                        lapsePath + " does not exist."

@@ -70,6 +70,7 @@ class ConfigOptions:
         self.swBiasCorrectOpt = None
         self.lwBiasCorrectOpt = None
         self.precipBiasCorrectOpt = None
+        self.runCfsNldasBiasCorrect = False
         self.cfsv2EnsMember = None
         self.customFcstFreq = None
         self.rqiThresh = 1.0
@@ -672,7 +673,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                       'configuration file.')
 
@@ -693,9 +694,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.psfcBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid PressureBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in humidity bias correction options.
         try:
@@ -714,9 +718,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.q2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in wind bias correction options.
         try:
@@ -735,9 +742,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.windBiasCorrect:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid WindBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in shortwave radiation bias correction options.
         try:
@@ -756,9 +766,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.swBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid SwBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in longwave radiation bias correction options.
         try:
@@ -777,9 +790,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.lwBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid LwBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in precipitation bias correction options.
         try:
@@ -798,9 +814,12 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.precipBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 0:
+            if optTmp < 0 or optTmp > 1:
                 errMod.err_out_screen('Invalid PrecipBiasCorrection options specified in the '
                                       'configuration file.')
+            if optTmp == 1:
+                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                self.runCfsNldasBiasCorrect = True
 
         # Read in supplemental precipitation options as an array of values to map.
         try:
