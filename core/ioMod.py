@@ -138,6 +138,20 @@ class OutputObj:
                     ConfigOptions.errMsg = "Unable to establish x coordinate attributes in: " + self.outPath
                     errMod.err_out(ConfigOptions)
 
+                # Place coordinate data into the output variable.
+                try:
+                    idOut.variables['x'][:] = geoMetaWrfHydro.x_coords
+                except:
+                    ConfigOptions.errMsg = "Unable to place x coordinate values into output variable " \
+                                           "for output file: " + self.outPath
+                    return
+                try:
+                    idOut.variables['y'][:] = geoMetaWrfHydro.x_coords
+                except:
+                    ConfigOptions.errMsg = "Unable to place y coordinate values into output variable " \
+                                           "for output file: " + self.outPath
+                    return
+
                 try:
                     idOut.createVariable('y','f8',('y'))
                 except:
