@@ -61,6 +61,13 @@ class input_forcings:
         self.regridObj = None
         self.esmf_field_in = None
         self.esmf_field_out = None
+        # --------------------------------
+        # Only used for CFSv2 bias correction
+        # as bias correction needs to take
+        # place prior to regridding.
+        self.global_input_forcings1 = None
+        self.global_input_forcings2 = None
+        # --------------------------------
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None
         self.regridded_mask = None
