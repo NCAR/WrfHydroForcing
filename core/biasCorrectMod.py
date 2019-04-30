@@ -133,6 +133,16 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         6: 'PSFC_PARAM_2',
         7: 'SW_PARAM_2'
     }
+    cfsParamPathVars = {
+        0: 'ugrd',
+        1: 'vgrd',
+        2: 'dlwsfc',
+        3: 'prate',
+        4: 'tmp2m',
+        5: 'q2m',
+        6: 'pressfc',
+        7: 'dswsfc'
+    }
 
     # Since this is NWM-specific, ensure we are actually running the NWM.
     if GeoMetaWrfHydro.nx_global != 4608:
@@ -207,9 +217,175 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
+        if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
+            ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Read in the NLDAS parameter grids.
+        try:
+            nldasParam1Tmp = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + " from: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            nldasParam2Tmp = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + " from: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if nldasParam1Tmp.shape[0] != 30 or nldasParam1Tmp.shape[1] != 60:
+            ConfigOptions.errMsg = "Parameter variable: " + nldasParam1Vars[force_num] + " from: " + \
+                                   nldas_param_file + " not of shape [30,60]."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if nldasParam2Tmp.shape[0] != 30 or nldasParam2Tmp.shape[1] != 60:
+            ConfigOptions.errMsg = "Parameter variable: " + nldasParam2Vars[force_num] + " from: " + \
+                                   nldas_param_file + " not of shape [30,60]."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Read in the zero precip prob grids if we are bias correcting precipitation.
+        if force_num == 3:
+            try:
+                zeroPcpTmp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract ZERO_PRECIP_PROB from: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if zeroPcpTmp.shape[0] != 30 or zeroPcpTmp.shape[1] != 60:
+                ConfigOptions.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
+                                       " not of shape [30,60]."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+        # Subset the global CFSv2 grids. We will only be running the bias correction on the subset that corresponds
+        # to the region over conus that also corresponds to what's in the parameter files. Once bias correction is
+        # complete, then we will regrid the files to the NWM domain and place them into the final local slabs.
+        # This is a bit out of sync with the FE as it's written due to the fact that usually the forcings are
+        # are regridded FIRST, then interpolated, then bias correction takes place. Keeping this consistent
+        # with current NWM operations.
+        cfsGlobalSub1 = input_forcings.global_input_forcings1[force_num, 30:78, 224:331]
+        cfsGlobalSub2 = input_forcings.global_input_forcings2[force_num, 30:78, 224:331]
+
+        # Read in the grid correspondance file.
+        grid_corr_param_path = input_forcings.paramDir + "/NLDAS_Climo/nldas_param_cfsv2_subset_grid_correspondence.nc"
+        if not os.path.isfile(grid_corr_param_path):
+            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            idGridCorr = Dataset(grid_corr_param_path, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open parameter file: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            grid_lon = idGridCorr.variables['grid_lon'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract grid_lon from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            grid_lat = idGridCorr.variables['grid_lat'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract grid_lat from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            grid_s_lon = idGridCorr.variables['start_lon'][0]
+        except:
+            ConfigOptions.errMsg = "Unable to extract start_lon from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            grid_e_lon = idGridCorr.variables['end_lon'][0]
+        except:
+            ConfigOptions.errMsg = "Unable to extract end_lon from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            grid_s_lat = idGridCorr.variables['start_lat'][0]
+        except:
+            ConfigOptions.errMsg = "Unable to extract start_lat from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            grid_e_lat = idGridCorr.variables['end_lat'][0]
+        except:
+            ConfigOptions.errMsg = "Unable to extract end_lat from: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
+        cfs_param_path1 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
+            input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
+            '_dist_params.nc'
+        cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
+                          input_forcings.fcst_date2.strftime('%m%d') + "_" + input_forcings.fcst_date2.strftime('%H') + \
+                          '_dist_params.nc'
+
+        if not os.path.isfile(cfs_param_path1):
+            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if not os.path.isfile(cfs_param_path2):
+            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Open the files and ensure they contain the correct information.
+        try:
+            idCfsParam1 = Dataset(cfs_param_path1, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            idCfsParam2 = Dataset(cfs_param_path2, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+
+
+
+
+
+        # Close the parameter files.
+        try:
+            idNldasParam.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            idGridCorr.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + grid_corr_param_path
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            idCfsParam1.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            idCfsParam2.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
     else:
         idNldasParam = None
-    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    # Reset variables for memory efficiency
-    idNldasParam = None
+    errMod.check_program_status(ConfigOptions, MpiConfig)
