@@ -150,13 +150,9 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    # Open the necessary parameter grids, which are on the global CFSv2 grid, then scatter them out
+    # to the various processors.
     if MpiConfig.rank == 0:
-        # We will be doing the bias correction on rank 0. These grids are coarse enough
-        # that it should take a relatively small amount of time to run the calculations.
-        # Once bias correction on the global CFSv2 grids has taken place (where NLDAS params exist),
-        # THEN CFSv2 data will be interpolated and regridded to the final NWM grid.
-        # First determine the expected input NLDAS2 parameteric NetCDF file
-        # that contains parameters for this specific output hour.
         nldas_param_file = input_forcings.paramDir + "/NLDAS_Climo/nldas2_" + \
                            ConfigOptions.current_output_date.strftime('%m%d%H') + \
                            "_dist_params.nc"
@@ -182,13 +178,13 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             ConfigOptions.errMsg = "Expected to find lon_0 dimension in: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
-        if idNldasParam.dimensions['lat_0'].size != 30:
-            ConfigOptions.errMsg = "Expected lat_0 size is 30 - found size of: " + \
+        if idNldasParam.dimensions['lat_0'].size != 190:
+            ConfigOptions.errMsg = "Expected lat_0 size is 190 - found size of: " + \
                                    str(idNldasParam.dimensions['lat_0'].size) + " in: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
-        if idNldasParam.dimensions['lon_0'].size != 60:
-            ConfigOptions.errMsg = "Expected lon_0 size is 60 - found size of: " + \
+        if idNldasParam.dimensions['lon_0'].size != 384:
+            ConfigOptions.errMsg = "Expected lon_0 size is 384 - found size of: " + \
                                    str(idNldasParam.dimensions['lon_0'].size) + " in: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
@@ -210,7 +206,6 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
 
-        # Read in the NLDAS parameter grids.
         try:
             nldas_param_1 = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
         except:
@@ -224,32 +219,14 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
-        if nldas_param_1.shape[0] != 30 or nldas_param_1.shape[1] != 60:
+        if nldas_param_1.shape[0] != 190 or nldas_param_1.shape[1] != 384:
             ConfigOptions.errMsg = "Parameter variable: " + nldasParam1Vars[force_num] + " from: " + \
-                                   nldas_param_file + " not of shape [30,60]."
+                                   nldas_param_file + " not of shape [190,384]."
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
-        if nldas_param_2.shape[0] != 30 or nldas_param_2.shape[1] != 60:
+        if nldas_param_2.shape[0] != 190 or nldas_param_2.shape[1] != 384:
             ConfigOptions.errMsg = "Parameter variable: " + nldasParam2Vars[force_num] + " from: " + \
-                                   nldas_param_file + " not of shape [30,60]."
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Run masking
-        nldas_param_1[np.where(nldas_param_1 > 500000.0)] = ConfigOptions.globalNdv
-        nldas_param_1[np.where(nldas_param_1 > 500000.0)] = ConfigOptions.globalNdv
-
-
-        try:
-            nldas_lat = idNldasParam.variables['lat_0'][:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract lat_0 from: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            nldas_lon = idNldasParam.variables['lon_0'][:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract lon_0 from: " + nldas_param_file
+                                   nldas_param_file + " not of shape [190,384]."
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
@@ -261,83 +238,30 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 ConfigOptions.errMsg = "Unable to extract ZERO_PRECIP_PROB from: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
-            if nldas_zero_pcp.shape[0] != 30 or nldas_zero_pcp.shape[1] != 60:
+            if nldas_zero_pcp.shape[0] != 190 or nldas_zero_pcp.shape[1] != 384:
                 ConfigOptions.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
-                                       " not of shape [30,60]."
+                                       " not of shape [190,384]."
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
 
-            # Run masking
-            nldas_zero_pcp[np.where(nldas_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+        #cfs_data = input_forcings.global_input_forcings1[force_num, ystart:yend, xstart:xend]
+        #cfs_data = input_forcings.global_input_forcings2[force_num, ystart:yend, xstart:xend]
+    else:
+        nldas_param_1 = None
+        nldas_param_2 = None
+        nldas_zero_pcp = None
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        # Subset the global CFSv2 grids. We will only be running the bias correction on the subset that corresponds
-        # to the region over conus that also corresponds to what's in the parameter files. Once bias correction is
-        # complete, then we will regrid the files to the NWM domain and place them into the final local slabs.
-        # This is a bit out of sync with the FE as it's written due to the fact that usually the forcings are
-        # are regridded FIRST, then interpolated, then bias correction takes place. Keeping this consistent
-        # with current NWM operations.
-        xstart = 224
-        xend = 331
-        ystart = 30
-        yend = 78
-        cfs_data = input_forcings.global_input_forcings1[force_num, ystart:yend, xstart:xend]
-        cfs_data = input_forcings.global_input_forcings2[force_num, ystart:yend, xstart:xend]
-        nlat = cfs_data.shape[0]
-        nlon = cfs_data.shape[1]
+    # Scatter NLDAS parameters
+    nldas_param_1_sub = MpiConfig.scatter_array(input_forcings, nldas_param_1, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    nldas_param_2_sub = MpiConfig.scatter_array(input_forcings, nldas_param_2, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    if force_num == 3:
+        nldas_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, nldas_zero_pcp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        # Read in the grid correspondance file.
-        grid_corr_param_path = input_forcings.paramDir + "/NLDAS_Climo/nldas_param_cfsv2_subset_grid_correspondence.nc"
-        if not os.path.isfile(grid_corr_param_path):
-            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            idGridCorr = Dataset(grid_corr_param_path, 'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open parameter file: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            grid_lon = idGridCorr.variables['grid_lon'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract grid_lon from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            grid_lat = idGridCorr.variables['grid_lat'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract grid_lat from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            grid_s_lon = idGridCorr.variables['start_lon'][0]
-        except:
-            ConfigOptions.errMsg = "Unable to extract start_lon from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            grid_e_lon = idGridCorr.variables['end_lon'][0]
-        except:
-            ConfigOptions.errMsg = "Unable to extract end_lon from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            grid_s_lat = idGridCorr.variables['start_lat'][0]
-        except:
-            ConfigOptions.errMsg = "Unable to extract start_lat from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            grid_e_lat = idGridCorr.variables['end_lat'][0]
-        except:
-            ConfigOptions.errMsg = "Unable to extract end_lat from: " + grid_corr_param_path
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
+    if MpiConfig.rank == 0:
         # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
         cfs_param_path1 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
             input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
@@ -444,28 +368,6 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
-        # Subset the CFS parameters.
-        cfs_param_1 = param_1[ystart:yend, xstart:xend]
-        cfs_param_2 = param_2[ystart:yend, xstart:xend]
-        cfs_lat = lat_0[ystart:yend]
-        cfs_lon = lon_0[xstart:xend]
-        prev_cfs_param_1 = prev_param_1[ystart:yend, xstart:xend]
-        prev_cfs_param_2 = prev_param_2[ystart:yend, xstart:xend]
-
-        # Set variables to None to free up memory
-        param_1 = None
-        param_2 = None
-        prev_param_1 = None
-        prev_param_2 = None
-        lat_0 = None
-        lon_0 = None
-
-        # Ensure we have consistent masking of parameter values.
-        cfs_param_1[np.where(cfs_param_1 > 500000.0)] = ConfigOptions.globalNdv
-        cfs_param_2[np.where(cfs_param_2 > 500000.0)] = ConfigOptions.globalNdv
-        prev_cfs_param_1[np.where(prev_cfs_param_1 > 500000.0)] = ConfigOptions.globalNdv
-        prev_cfs_param_2[np.where(prev_cfs_param_2 > 500000.0)] = ConfigOptions.globalNdv
-
         # Read in the zero precip prob grids if we are bias correcting precipitation.
         if force_num == 3:
             try:
@@ -480,37 +382,45 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path1
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
+            if zero_pcp.shape[0] != 190 and zero_pcp.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if prev_zero_pcp.shape[0] != 190 and prev_zero_pcp.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
-            # Subset zero precip parameters
-            cfs_zero_pcp = zero_pcp[ystart:yend, xstart:xend]
-            prev_cfs_zero_pcp = prev_zero_pcp[ystart:yend, xstart:xend]
+    else:
+        param_1 = None
+        param_2 = None
+        prev_param_1 = None
+        prev_param_2 = None
+        zero_pcp = None
+        prev_zero_pcp = None
+    errMod.check_program_status(MpiConfig, ConfigOptions)
 
-            # Run masking
-            cfs_zero_pcp[np.where(cfs_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
-            prev_cfs_zero_pcp[np.where(prev_cfs_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
-            cfs_param_1[np.where(cfs_param_1 == 0.0)] = ConfigOptions.globalNdv
-            cfs_param_2[np.where(cfs_param_2 == 0.0)] = ConfigOptions.globalNdv
-            prev_cfs_param_1[np.where(prev_cfs_param_1 == 0.0)] = ConfigOptions.globalNdv
-            prev_cfs_param_2[np.where(prev_cfs_param_2 == 0.0)] = ConfigOptions.globalNdv
+    # Scatter CFS parameters
+    cfs_param_1_sub = MpiConfig.scatter_array(input_forcings, param_1, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    cfs_param_2_sub = MpiConfig.scatter_array(input_forcings, param_2, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    cfs_prev_param_1_sub = MpiConfig.scatter_array(input_forcings, prev_param_1, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    cfs_prev_param_2_sub = MpiConfig.scatter_array(input_forcings, prev_param_2, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+    if force_num == 3:
+        cfs_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, zero_pcp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+        cfs_prev_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, prev_zero_pcp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-            # Free up memory
-            zero_pcp = None
-            prev_zero_pcp = None
-
-
-
-
+    if MpiConfig.rank == 0:
         # Close the parameter files.
         try:
             idNldasParam.close()
         except:
             ConfigOptions.errMsg = "Unable to close parameter file: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            idGridCorr.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + grid_corr_param_path
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
         try:
@@ -531,5 +441,4 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         idCfsParam1 = None
         idCfsParam2 = None
         idGridCorr = None
-
     errMod.check_program_status(ConfigOptions, MpiConfig)
