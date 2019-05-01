@@ -7,6 +7,7 @@ from core import  errMod
 import os
 from netCDF4 import Dataset
 import numpy as np
+import math
 
 def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -510,7 +511,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # 7.) Reset variables for memory efficiency and exit the routine.
 
     # Establish local arrays of data.
-    cfs_data = np.empty([input_forcings.nx_local, input_forcings.ny_local], np.float64)
+    cfs_data = np.empty([input_forcings.ny_local, input_forcings.nx_local], np.float64)
 
     # Establish parameters of the CDF matching.
     vals = np.arange(valRange1[force_num], valRange2[force_num], valStep[force_num])
@@ -518,6 +519,64 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # Process each of the pixel cells for this local processor on the CFS grid.
     for x_local in range(0,input_forcings.nx_local):
         for y_local in range(0,input_forcings.ny_local):
-            cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, x_local, y_local]
-            cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, x_local, y_local]
+            cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, y_local, x_local]
+            cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, y_local, x_local]
+
+            # Check for any missing parameter values. If any missing values exist,
+            # set this flag to False. Further down, if it's False, we will simply
+            # set the local CFS adjusted value to the interpolated value.
+            correctFlag = True
+            if cfs_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_prev_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_prev_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if nldas_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if nldas_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if force_num == 3:
+                if cfs_prev_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
+                if cfs_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
+                if nldas_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
+
+            # Interpolate the two CFS values (and parameters) in time.
+            dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
+            hrFromPrevious = dtFromPrevious.total_seconds()/3600.0
+            interpFactor1 = float(1 - (hrFromPrevious / 6.0))
+            interpFactor2 = float(hrFromPrevious / 6.0)
+
+            # Since this is only for CFSv2 6-hour data, we will assume 6-hour intervals.
+            # This is already checked at the beginning of this routine for the product name.
+            cfs_param_1_interp = cfs_prev_param_1_sub[y_local, x_local] * interpFactor1 + \
+                                 cfs_param_1_sub[y_local, x_local] * interpFactor2
+            cfs_param_2_interp = cfs_prev_param_2_sub[y_local, x_local] * interpFactor1 + \
+                                 cfs_param_2_sub[y_local, x_local] * interpFactor2
+            cfs_interp_fcst = cfs_prev_tmp * interpFactor1 + cfs_next_tmp * interpFactor2
+
+            pts = (vals - cfs_param_1_interp) / cfs_param_2_interp
+            spacing = (vals[2] - vals[1]) / cfs_param_2_interp
+            cfs_pdf = (np.exp(-0.5 * (pts ^ 2)) / math.sqrt(2 * 3.141592)) * spacing
+            cfs_cdf = np.cumsum(cfs_pdf)
+
+            nldas_nearest_1 = nldas_param_1_sub[y_local, x_local]
+            nldas_nearest_2 = nldas_param_2_sub[y_local, x_local]
+
+            pts = (vals - nldas_nearest_1) / nldas_nearest_2
+            spacing = (vals[2] - vals[1]) / nldas_nearest_2
+            nldas_pdf = (np.exp(-0.5 * (pts ^ 2)) / math.sqrt(2 * 3.141592)) * spacing
+            nldas_cdf = np.cumsum(nldas_pdf)
+
+            # compute adjusted value now using the CFSv2 forecast value and the two CDFs
+            # find index in vals array
+
+
+            # Reset variables for memory purposes.
+            pts = None
 
