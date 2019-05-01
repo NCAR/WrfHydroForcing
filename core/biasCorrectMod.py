@@ -144,6 +144,37 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         6: 'pressfc',
         7: 'dswsfc'
     }
+    # Specify the min/max ranges on CDF/PDF values for each variable
+    valRange1 = {
+        0: -50.0,
+        1: -50.0,
+        2: 1.0,
+        3: 0.01,
+        4: 200.0,
+        5: 0.01,
+        6: 50000.0,
+        7: 0.0
+    }
+    valRange2 = {
+        0: 50.0,
+        1: 50.0,
+        2: 800.0,
+        3: 100.0,
+        4: 330.0,
+        5: 40.0,
+        6: 1100000.0,
+        7: 1000.0
+    }
+    valStep = {
+        0: 0.1,
+        1: 0.1,
+        2: 0.19975,
+        3: 0.049995,
+        4: 0.1,
+        5: 3.9999,
+        6: 350.0,
+        7: 10.0
+    }
     # Check to ensure we are running with CFSv2 here....
     if input_forcings.productName != "CFSv2_6Hr_Global_GRIB2":
         ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + input_forcings.productName
@@ -481,7 +512,12 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # Establish local arrays of data.
     cfs_data = np.empty([input_forcings.nx_local, input_forcings.ny_local], np.float64)
 
+    # Establish parameters of the CDF matching.
+    vals = np.arange(valRange1[force_num], valRange2[force_num], valStep[force_num])
+
     # Process each of the pixel cells for this local processor on the CFS grid.
     for x_local in range(0,input_forcings.nx_local):
         for y_local in range(0,input_forcings.ny_local):
-            cfs_prev_tmp = input_forcings.global_input_forcings1[x_local,y_local]
+            cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, x_local, y_local]
+            cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, x_local, y_local]
+
