@@ -230,6 +230,14 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
+        # Extract the fill value
+        try:
+            fillTmp = idNldasParam.variables[nldasParam1Vars[force_num]]._FillValue
+        except:
+            ConfigOptions.errMsg = "Unable to extract Fill_Value from: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
         # Read in the zero precip prob grids if we are bias correcting precipitation.
         if force_num == 3:
             try:
@@ -244,13 +252,20 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
 
-        #cfs_data = input_forcings.global_input_forcings1[force_num, ystart:yend, xstart:xend]
-        #cfs_data = input_forcings.global_input_forcings2[force_num, ystart:yend, xstart:xend]
+        # Set missing values accordingly.
+        nldas_param_1[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
+        nldas_param_2[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
+        if force_num == 3:
+            nldas_zero_pcp[np.where(nldas_zero_pcp == fillTmp)] = ConfigOptions.globalNdv
+
     else:
         nldas_param_1 = None
         nldas_param_2 = None
         nldas_zero_pcp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Reset the temporary fill value
+    fillTmp = None
 
     # Scatter NLDAS parameters
     nldas_param_1_sub = MpiConfig.scatter_array(input_forcings, nldas_param_1, ConfigOptions)
@@ -391,6 +406,16 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
 
+        # Reset any missing values. Because the fill values for these files are all over the map, we
+        # will just do a gross check here. For the most part, there shouldn't be missing values.
+        param_1[np.where(param_1 > 500000.0)] = ConfigOptions.globalNdv
+        param_2[np.where(param_2 > 500000.0)] = ConfigOptions.globalNdv
+        prev_param_1[np.where(prev_param_1 > 500000.0)] = ConfigOptions.globalNdv
+        prev_param_2[np.where(prev_param_2 > 500000.0)] = ConfigOptions.globalNdv
+        if force_num == 3:
+            zero_pcp[np.where(zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+            prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+
     else:
         param_1 = None
         param_2 = None
@@ -442,3 +467,21 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         idCfsParam2 = None
         idGridCorr = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Now.... Loop through the local CFSv2 grid cells and perform the following steps:
+    # 1.) Interpolate the six-hour values to the current output timestep.
+    # 2.) Calculate the CFSv2 cdf/pdf
+    # 3.) Calculate the NLDAS cdf/pdf
+    # 4.) Adjust CFSv2 values based on the method of pdf matching.
+    # 5.) Regrid the CFSv2 values to the WRF-Hydro domain using the pre-calculated ESMF
+    #     regridding object.
+    # 6.) Place the data into the final output arrays for further processing (downscaling).
+    # 7.) Reset variables for memory efficiency and exit the routine.
+
+    # Establish local arrays of data.
+    cfs_data = np.empty([input_forcings.nx_local, input_forcings.ny_local], np.float64)
+
+    # Process each of the pixel cells for this local processor on the CFS grid.
+    for x_local in range(0,input_forcings.nx_local):
+        for y_local in range(0,input_forcings.ny_local):
+            cfs_prev_tmp = input_forcings.global_input_forcings1[x_local,y_local]

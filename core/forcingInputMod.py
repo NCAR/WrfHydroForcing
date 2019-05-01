@@ -65,8 +65,8 @@ class input_forcings:
         # Only used for CFSv2 bias correction
         # as bias correction needs to take
         # place prior to regridding.
-        self.global_input_forcings1 = None
-        self.global_input_forcings2 = None
+        self.coarse_input_forcings1 = None
+        self.coarse_input_forcings2 = None
         # --------------------------------
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None

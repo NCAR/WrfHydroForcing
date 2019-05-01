@@ -543,36 +543,39 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        if MpiConfig.rank == 0:
-            # Assign global CFSv2 data to the input forcing object.. IF..... we are running the
-            # bias correction. These grids are interpolated in a separate routine, AFTER bias
-            # correction has taken place.
-            if ConfigOptions.runCfsNldasBiasCorrect:
-                if not input_forcings.global_input_forcings1 and not input_forcings.global_input_forcings2 and \
-                        ConfigOptions.current_output_step == 1:
-                    # We need to create NumPy arrays to hold the CFSv2 global data.
-                    input_forcings.global_input_forcings2 = np.empty([8, varTmp.shape[0], varTmp.shape[1]], np.float32)
-                    input_forcings.global_input_forcings1 = np.empty([8, varTmp.shape[0], varTmp.shape[1]], np.float32)
-                try:
-                    input_forcings.global_input_forcings2[input_forcings.input_map_output[forceCount],:,:] = varTmp
-                except:
-                    ConfigOptions.errMsg = "Unable to place global CFSv2 input variable: " + \
-                                           input_forcings.netcdf_var_names[forceCount] + \
-                                           " into local numpy array."
-                if ConfigOptions.current_output_step == 1:
-                    input_forcings.global_input_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
-                        input_forcings.global_input_forcings2[input_forcings.input_map_output[forceCount], :, :]
-            else:
-                input_forcings.global_input_forcings2 = None
-                input_forcings.global_input_forcings1 = None
+        # Scatter the global CFSv2 data to the local processors.
+        varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Assign local CFSv2 data to the input forcing object.. IF..... we are running the
+        # bias correction. These grids are interpolated in a separate routine, AFTER bias
+        # correction has taken place.
+        if ConfigOptions.runCfsNldasBiasCorrect:
+            if not input_forcings.coarse_input_forcings1 and not input_forcings.coarse_input_forcings2 and \
+                    ConfigOptions.current_output_step == 1:
+                # We need to create NumPy arrays to hold the CFSv2 global data.
+                input_forcings.coarse_input_forcings2 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
+                                                                 np.float64)
+                input_forcings.coarse_input_forcings1 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
+                                                                 np.float64)
+            try:
+                input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount],:,:] = varSubTmp
+            except:
+                ConfigOptions.errMsg = "Unable to place local CFSv2 input variable: " + \
+                                        input_forcings.netcdf_var_names[forceCount] + \
+                                        " into local numpy array."
+                pass
+            if ConfigOptions.current_output_step == 1:
+                input_forcings.coarse_input_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                    input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        else:
+            input_forcings.coarse_input_forcings2 = None
+            input_forcings.coarse_input_forcings1 = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Only regrid the current files if we did not specify the NLDAS2 NWM bias correction, which needs to take place
         # first before any regridding can take place. That takes place in the bias-correction routine.
         if not ConfigOptions.runCfsNldasBiasCorrect:
-            varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-            errMod.check_program_status(ConfigOptions, MpiConfig)
-
             try:
                 input_forcings.esmf_field_in.data[:,:] = varSubTmp
             except:
