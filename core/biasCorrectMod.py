@@ -6,6 +6,7 @@ options.
 from core import  errMod
 import os
 from netCDF4 import Dataset
+import numpy as np
 
 def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -143,20 +144,6 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         6: 'pressfc',
         7: 'dswsfc'
     }
-
-    # Since this is NWM-specific, ensure we are actually running the NWM.
-    if GeoMetaWrfHydro.nx_global != 4608:
-        ConfigOptions.errMsg = "This is a Conus NWM-Specific bias-correction routine. Expected 4608 columns " \
-                               "in the modeling domain but found: " + str(GeoMetaWrfHydro.nx_global)
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    if GeoMetaWrfHydro.ny_global != 3840:
-        ConfigOptions.errMsg = "This is a Conus NWM-Specific bias-correction routine. Expected 3840 rows " \
-                               "in the modeling domain but found: " + str(GeoMetaWrfHydro.ny_global)
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
     # Check to ensure we are running with CFSv2 here....
     if input_forcings.productName != "CFSv2_6Hr_Global_GRIB2":
         ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + input_forcings.productName
@@ -217,49 +204,71 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
-        if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
-            ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        if force_num == 3:
+            if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
+                ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
         # Read in the NLDAS parameter grids.
         try:
-            nldasParam1Tmp = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
+            nldas_param_1 = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
         except:
             ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + " from: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
         try:
-            nldasParam2Tmp = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
+            nldas_param_2 = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
         except:
             ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + " from: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
-        if nldasParam1Tmp.shape[0] != 30 or nldasParam1Tmp.shape[1] != 60:
+        if nldas_param_1.shape[0] != 30 or nldas_param_1.shape[1] != 60:
             ConfigOptions.errMsg = "Parameter variable: " + nldasParam1Vars[force_num] + " from: " + \
                                    nldas_param_file + " not of shape [30,60]."
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
-        if nldasParam2Tmp.shape[0] != 30 or nldasParam2Tmp.shape[1] != 60:
+        if nldas_param_2.shape[0] != 30 or nldas_param_2.shape[1] != 60:
             ConfigOptions.errMsg = "Parameter variable: " + nldasParam2Vars[force_num] + " from: " + \
                                    nldas_param_file + " not of shape [30,60]."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Run masking
+        nldas_param_1[np.where(nldas_param_1 > 500000.0)] = ConfigOptions.globalNdv
+        nldas_param_1[np.where(nldas_param_1 > 500000.0)] = ConfigOptions.globalNdv
+
+
+        try:
+            nldas_lat = idNldasParam.variables['lat_0'][:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract lat_0 from: " + nldas_param_file
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            nldas_lon = idNldasParam.variables['lon_0'][:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract lon_0 from: " + nldas_param_file
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
         # Read in the zero precip prob grids if we are bias correcting precipitation.
         if force_num == 3:
             try:
-                zeroPcpTmp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
+                nldas_zero_pcp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
             except:
                 ConfigOptions.errMsg = "Unable to extract ZERO_PRECIP_PROB from: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
-            if zeroPcpTmp.shape[0] != 30 or zeroPcpTmp.shape[1] != 60:
+            if nldas_zero_pcp.shape[0] != 30 or nldas_zero_pcp.shape[1] != 60:
                 ConfigOptions.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
                                        " not of shape [30,60]."
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
+
+            # Run masking
+            nldas_zero_pcp[np.where(nldas_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
 
         # Subset the global CFSv2 grids. We will only be running the bias correction on the subset that corresponds
         # to the region over conus that also corresponds to what's in the parameter files. Once bias correction is
@@ -267,8 +276,14 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         # This is a bit out of sync with the FE as it's written due to the fact that usually the forcings are
         # are regridded FIRST, then interpolated, then bias correction takes place. Keeping this consistent
         # with current NWM operations.
-        cfsGlobalSub1 = input_forcings.global_input_forcings1[force_num, 30:78, 224:331]
-        cfsGlobalSub2 = input_forcings.global_input_forcings2[force_num, 30:78, 224:331]
+        xstart = 224
+        xend = 331
+        ystart = 30
+        yend = 78
+        cfs_data = input_forcings.global_input_forcings1[force_num, ystart:yend, xstart:xend]
+        cfs_data = input_forcings.global_input_forcings2[force_num, ystart:yend, xstart:xend]
+        nlat = cfs_data.shape[0]
+        nlon = cfs_data.shape[1]
 
         # Read in the grid correspondance file.
         grid_corr_param_path = input_forcings.paramDir + "/NLDAS_Climo/nldas_param_cfsv2_subset_grid_correspondence.nc"
@@ -354,7 +369,133 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             errMod.log_critical(ConfigOptions, MpiConfig)
             pass
 
+        if 'DISTRIBUTION_PARAM_1' not in idCfsParam1.variables.keys():
+            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if 'DISTRIBUTION_PARAM_2' not in idCfsParam1.variables.keys():
+            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
 
+        if 'DISTRIBUTION_PARAM_1' not in idCfsParam2.variables.keys():
+            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if 'DISTRIBUTION_PARAM_2' not in idCfsParam2.variables.keys():
+            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            param_1 = idCfsParam2.variables['DISTRIBUTION_PARAM_1'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            param_2 = idCfsParam2.variables['DISTRIBUTION_PARAM_2'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            lat_0 = idCfsParam2.variables['lat_0'][:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract lat_0 from: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            lon_0 = idCfsParam2.variables['lon_0'][:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract lon_0 from: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        try:
+            prev_param_1 = idCfsParam1.variables['DISTRIBUTION_PARAM_1'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        try:
+            prev_param_2 = idCfsParam1.variables['DISTRIBUTION_PARAM_2'][:,:]
+        except:
+            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if param_1.shape[0] != 190 and param_1.shape[1] != 384:
+            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if param_2.shape[0] != 190 and param_2.shape[1] != 384:
+            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if prev_param_1.shape[0] != 190 and prev_param_1.shape[1] != 384:
+            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        if prev_param_2.shape[0] != 190 and prev_param_2.shape[1] != 384:
+            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path1
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        # Subset the CFS parameters.
+        cfs_param_1 = param_1[ystart:yend, xstart:xend]
+        cfs_param_2 = param_2[ystart:yend, xstart:xend]
+        cfs_lat = lat_0[ystart:yend]
+        cfs_lon = lon_0[xstart:xend]
+        prev_cfs_param_1 = prev_param_1[ystart:yend, xstart:xend]
+        prev_cfs_param_2 = prev_param_2[ystart:yend, xstart:xend]
+
+        # Set variables to None to free up memory
+        param_1 = None
+        param_2 = None
+        prev_param_1 = None
+        prev_param_2 = None
+        lat_0 = None
+        lon_0 = None
+
+        # Ensure we have consistent masking of parameter values.
+        cfs_param_1[np.where(cfs_param_1 > 500000.0)] = ConfigOptions.globalNdv
+        cfs_param_2[np.where(cfs_param_2 > 500000.0)] = ConfigOptions.globalNdv
+        prev_cfs_param_1[np.where(prev_cfs_param_1 > 500000.0)] = ConfigOptions.globalNdv
+        prev_cfs_param_2[np.where(prev_cfs_param_2 > 500000.0)] = ConfigOptions.globalNdv
+
+        # Read in the zero precip prob grids if we are bias correcting precipitation.
+        if force_num == 3:
+            try:
+                zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+            except:
+                ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                prev_zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+            except:
+                ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Subset zero precip parameters
+            cfs_zero_pcp = zero_pcp[ystart:yend, xstart:xend]
+            prev_cfs_zero_pcp = prev_zero_pcp[ystart:yend, xstart:xend]
+
+            # Run masking
+            cfs_zero_pcp[np.where(cfs_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+            prev_cfs_zero_pcp[np.where(prev_cfs_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+            cfs_param_1[np.where(cfs_param_1 == 0.0)] = ConfigOptions.globalNdv
+            cfs_param_2[np.where(cfs_param_2 == 0.0)] = ConfigOptions.globalNdv
+            prev_cfs_param_1[np.where(prev_cfs_param_1 == 0.0)] = ConfigOptions.globalNdv
+            prev_cfs_param_2[np.where(prev_cfs_param_2 == 0.0)] = ConfigOptions.globalNdv
+
+            # Free up memory
+            zero_pcp = None
+            prev_zero_pcp = None
 
 
 
@@ -387,5 +528,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
     else:
         idNldasParam = None
+        idCfsParam1 = None
+        idCfsParam2 = None
+        idGridCorr = None
 
     errMod.check_program_status(ConfigOptions, MpiConfig)
