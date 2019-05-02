@@ -699,8 +699,40 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                                 # and default back to cfsv2 forecast value
                                 if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
                                     cfs_data[y_local, x_local] = cfs_interp_fcst
-
-
             else:
                 # No adjustment for this CFS pixel cell as we have missing parameter values.
                 cfs_data[y_local, x_local] = cfs_interp_fcst
+
+    # Regrid the local CFS slap to the output array
+    try:
+        input_forcings.esmf_field_in.data[:, :] = cfs_data
+    except:
+        ConfigOptions.errMsg = "Unable to place CFSv2 forcing data into temporary ESMF field."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                 input_forcings.esmf_field_out)
+    except:
+        ConfigOptions.errMsg = "Unable to regrid CFSv2 variable: " + input_forcings.netcdf_var_names[force_num]
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Set any pixel cells outside the input domain to the global missing value.
+    try:
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+            ConfigOptions.globalNdv
+    except:
+        ConfigOptions.errMsg = "Unable to run mask calculation on CFSv2 variable: " + \
+                               input_forcings.netcdf_var_names[force_num]
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = \
+            input_forcings.esmf_field_out.data
+    except:
+        ConfigOptions.errMsg = "Unable to extract ESMF field data for CFSv2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
