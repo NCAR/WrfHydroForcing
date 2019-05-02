@@ -7,6 +7,8 @@ import math
 import time
 import numpy as np
 from core import errMod
+from netCDF4 import Dataset
+import os
 
 def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -19,10 +21,11 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary mapping to temperature downscaling.
     downscale_temperature = {
         0: no_downscale,
-        1: simple_lapse
-        #2: param_lapse
+        1: simple_lapse,
+        2: param_lapse
     }
     downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to pressure downscaling.
     downscale_pressure = {
@@ -30,6 +33,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: pressure_down_classic
     }
     downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to shortwave radiation downscaling
     downscale_sw = {
@@ -37,6 +41,7 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: ncar_topo_adj
     }
     downscale_sw[input_forcings.swDowscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to specific humidity downscaling
     downscale_q2 = {
@@ -44,14 +49,16 @@ def run_downscaling(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: q2_down_classic
     }
     downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary mapping to precipitation downscaling.
     downscale_precip = {
         0: no_downscale,
-        1: no_downscale
+        1: nwm_monthly_PRISM_downscale
         #1: precip_mtn_mapper
     }
     downscale_precip[input_forcings.precipDownscaleOpt](input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def no_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -105,6 +112,143 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Reset for memory efficiency
     indNdv = None
+
+def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
+    """
+    Function that applies a apriori lapse rate adjustment to modeled
+    2-meter temperature by taking the difference of the native
+    input elevation and the WRF-hydro elevation. It's assumed this lapse
+    rate grid has already been regridded to the final output WRF-Hydro
+    grid.
+    :param inpute_forcings:
+    :param ConfigOptions:
+    :param GeoMetaWrfHydro:
+    :return:
+    """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Applying aprior lapse rate grid to temperature downscaling"
+        errMod.log_msg(ConfigOptions,MpiConfig)
+
+    # Calculate the elevation difference.
+    elevDiff = input_forcings.height - GeoMetaWrfHydro.height
+
+    if not input_forcings.lapseGrid:
+        # We have not read in our lapse rate file. Read it in, do extensive checks,
+        # scatter the lapse rate grid out to individual processors, then apply the
+        # lapse rate to the 2-meter temperature grid.
+        if MpiConfig.rank == 0:
+            # First ensure we have a parameter directory
+            if input_forcings.paramDir == "NONE":
+                ConfigOptions.errMsg = "User has specified spatial temperature lapse rate " \
+                                       "downscaling while no downscaling parameter directory " \
+                                       "exists."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Compose the path to the lapse rate grid file.
+            lapsePath = input_forcings.paramDir + "/lapse_param.nc"
+            if not os.path.isfile(lapsePath):
+                ConfigOptions.errMsg = "Expected lapse rate parameter file: " + \
+                                       lapsePath + " does not exist."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the lapse rate file. Check for the expected variable, along with
+            # the dimension size to make sure everything matches up.
+            try:
+                idTmp = Dataset(lapsePath,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if not 'lapse' in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Expected 'lapse' variable not located in parameter " \
+                                       "file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                lapseTmp = idTmp.variables['lapse'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extracte 'lapse' variable from parameter: " \
+                                       "file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Check dimensions to ensure they match up to the output grid.
+            if lapseTmp.shape[0] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
+                                       "rate from parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if lapseTmp.shape[1] != GeoMetaWrfHydro.ny_global:
+                ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
+                                       "rate from parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Perform a quick search to ensure we don't have radical values.
+            indTmp = np.where(lapseTmp < 0.0)
+            if len(indTmp[0]) > 0:
+                ConfigOptions.errMsg = "Found missing values in the lapse rate grid from " \
+                                       "parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            indTmp = np.where(lapseTmp > 100.0)
+            if len(indTmp[0]) > 0:
+                ConfigOptions.errMsg = "Found excessively high values in the lapse rate grid from " \
+                                       "parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Close the parameter lapse rate file.
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + lapsePath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            lapseTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the lapse rate grid to the other processors.
+        input_forcings.lapseGrid = MpiConfig.scatter_array(GeoMetaWrfHydro,lapseTmp,ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
+    temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
+    try:
+        indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform NDV search on input " + \
+                               input_forcings.productName + " regridded forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+    try:
+        indValid = np.where(temperature_grid_tmp != ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform search for valid values on input " + \
+                               input_forcings.productName + " regridded temperature forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+    try:
+        temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
+                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff)
+    except:
+        ConfigOptions.errMsg = "Unable to apply spatial lapse rate values to input " + \
+                               input_forcings.productName + " regridded temperature forcings."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+        return
+
+    input_forcings.final_forcings[4,:,:] = temperature_grid_tmp
+    input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
+
+    # Reset for memory efficiency
+    indTmp = None
+    indNdv = None
+    indValid = None
+    elevDiff = None
+    temperature_grid_tmp = None
 
 def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -171,7 +315,7 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # First calculate relative humidity given original surface pressure and 2-meter
     # temperature
     try:
-        relHum = rel_hum(input_forcings,ConfigOptions,MpiConfig)
+        relHum = rel_hum(input_forcings,ConfigOptions)
     except:
         ConfigOptions.errMsg = "Unable to perform topographic downscaling of incoming " \
                                "specific humidity to relative humidity"
@@ -190,6 +334,204 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
     q2Tmp = None
     indNdv = None
+
+def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
+    """
+    NCAR/OWP function for downscaling precipitation using monthly PRISM climatology in a
+    mountain-mapper like fashion.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param GeoMetaWrfHydro:
+    :return:
+    """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing NWM Monthly PRISM Mountain Mapper " \
+                                  "Downscaling of Precipitation"
+        errMod.log_msg(ConfigOptions,MpiConfig)
+        print(ConfigOptions.statusMsg)
+
+    # Establish whether or not we need to read in new PRISM monthly climatology:
+    # 1.) This is the first output timestep, and no grids have been initialized.
+    # 2.) We have switched months from the last timestep. In this case, we need
+    #     to re-initialize the grids for the current month.
+    initializeFlag = False
+    if input_forcings.nwmPRISM_denGrid is None and input_forcings.nwmPRISM_numGrid is None:
+        # We are on situation 1 - This is the first output step.
+        initializeFlag = True
+        print('WE NEED TO READ IN PRISM GRIDS')
+    if ConfigOptions.current_output_date.month != ConfigOptions.prev_output_date.month:
+        # We are on situation #2 - The month has changed so we need to reinitialize the
+        # PRISM grids.
+        initializeFlag = True
+        print('MONTH CHANGE.... NEED TO READ IN NEW PRISM GRIDS.')
+
+    if initializeFlag == True:
+        # First reset the local PRISM grids to be safe.
+        input_forcings.nwmPRISM_numGrid = None
+        input_forcings.nwmPRISM_denGrid = None
+
+        # Compose paths to the expected files.
+        numeratorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
+                        ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Numer.nc'
+        denominatorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
+                          ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Denom.nc'
+        print(numeratorPath)
+        print(denominatorPath)
+
+        # Make sure files exist.
+        if not os.path.isfile(numeratorPath):
+            ConfigOptions.errMsg = "Expected parameter file: " + numeratorPath + " for mountain mapper downscaling " \
+                                                                                 "of precipitation not found."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if not os.path.isfile(denominatorPath):
+            ConfigOptions.errMsg = "Expected parameter file: " + denominatorPath + " for mountain mapper downscaling " \
+                                                                                   "of precipitation not found."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if MpiConfig.rank == 0:
+            # Open the NetCDF parameter files. Check to make sure expected dimension sizes are in place, along with
+            # variable names, etc.
+            try:
+                idNum = Dataset(numeratorPath,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                idDenom = Dataset(denominatorPath,'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                pass
+
+            # Check to make sure expected names, dimension sizes are present.
+            if 'x' not in idNum.variables.keys():
+                ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if 'x' not in idDenom.variables.keys():
+                ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            if 'y' not in idNum.variables.keys():
+                ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if 'y' not in idDenom.variables.keys():
+                ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            if 'Data' not in idNum.variables.keys():
+                ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if 'Data' not in idDenom.variables.keys():
+                ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            if idNum.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
+                ConfigOptions.errMsg = "Input Y dimension for: " + numeratorPath + " does not match the output WRF-Hydro " \
+                                                                                   " Y dimension size."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if idDenom.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
+                ConfigOptions.errMsg = "Input Y dimension for: " + denominatorPath + " does not match the output WRF-Hydro " \
+                                                                                 " Y dimension size."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            if idNum.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "Input X dimension for: " + numeratorPath + " does not match the output WRF-Hydro " \
+                                                                               " X dimension size."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            if idDenom.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "Input X dimension for: " + denominatorPath + " does not match the output WRF-Hydro " \
+                                                                                 " X dimension size."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Read in the PRISM grid on the output grid. Then scatter the array out to the processors.
+            try:
+                numDataTmp = idNum.variables['Data'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                denDataTmp = idDenom.variables['Data'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Close the parameter files.
+            try:
+                idNum.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + numeratorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+            try:
+                idDenom.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + denominatorPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            numDataTmp = None
+            denDataTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the array out to the local processors
+        input_forcings.nwmPRISM_numGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, numDataTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        input_forcings.nwmPRISM_denGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, denDataTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Create temporary grids from the local slabs of params/precip forcings.
+    localRainRate = input_forcings.final_forcings[5,:,:]
+    numLocal = input_forcings.nwmPRISM_numGrid[:,:]
+    denLocal = input_forcings.nwmPRISM_denGrid[:,:]
+
+    # Establish index of where we have valid data.
+    try:
+        indValid = np.where((localRainRate > 0.0) & (denLocal > 0.0) & (numLocal > 0.0))
+    except:
+        ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
+                               "param grid in mountain mapper downscaling"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        localRainRate[indValid] = localRainRate[indValid] * numLocal[indValid]
+    except:
+        ConfigOptions.errMsg = "Unable to multiply precip by numerator in mountain mapper downscaling"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        localRainRate[indValid] = localRainRate[indValid] / denLocal[indValid]
+    except:
+        ConfigOptions.errMsg = "Unable to divide precip by denominator in mountain mapper downscaling"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    input_forcings.final_forcings[5, :, :] = localRainRate
+
+    # Reset variables for memory efficiency
+    idDenom = None
+    idNum = None
+    localRainRate = None
+    numLocal = None
+    denLocal = None
 
 def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
