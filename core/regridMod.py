@@ -392,18 +392,21 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
     if input_forcings.regridComplete:
+        # Check to see if we are running NWM-custom interpolation/bias
+        # correction on incoming CFSv2 data. Because of the nature, we
+        # need to regrid bias-corrected data every hour.
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "No need to read in new CFSv2 data at this time."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         return
 
-    if MpiConfig.rank == 0:
-        print("REGRID STATUS = " + str(input_forcings.regridComplete))
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = ConfigOptions.scratch_dir + "/" + \
         "CFSv2_TMP.nc"
     input_forcings.tmpFileHeight = ConfigOptions.scratch_dir + "/" + \
                                    "CFSv2_TMP_HEIGHT.nc"
-
-    MpiConfig.comm.barrier()
+    errMod.check_program_status(ConfigOptions,MpiConfig)
 
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
@@ -415,9 +418,10 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             try:
                 os.remove(input_forcings.tmpFile)
             except:
-                errMod.err_out(ConfigOptions)
-
-    MpiConfig.comm.barrier()
+                ConfigOptions.errMsg = "Unable to remove previous temporary file: " \
+                                       " " + input_forcings.tmpFile
+                errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     forceCount = 0
     for forceTmp in input_forcings.grib_vars:
@@ -429,51 +433,83 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         idTmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                  ConfigOptions, MpiConfig, input_forcings.netcdf_var_names[forceCount])
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         calcRegridFlag = check_regrid_status(idTmp, forceCount, input_forcings,
                                              ConfigOptions, MpiConfig, wrfHydroGeoMeta)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         if calcRegridFlag:
             if MpiConfig.rank == 0:
-                print('CALCULATING WEIGHTS')
+                ConfigOptions.statusMsg = "Calculate CFSv2 regridding weights."
+                errMod.log_msg(ConfigOptions, MpiConfig)
+
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             # Read in the RAP height field, which is used for downscaling purposes.
             if MpiConfig.rank == 0:
-                print("READING IN CFSv2 HEIGHT FIELD")
+                ConfigOptions.statusMsg = "Reading in CFSv2 elevation data."
+                errMod.log_msg(ConfigOptions, MpiConfig)
+
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
                 "\":(HGT):(surface):\" " + \
                 " -netcdf " + input_forcings.tmpFileHeight
             idTmpHeight = ioMod.open_grib2(input_forcings.file_in2,input_forcings.tmpFileHeight,
                                            cmd,ConfigOptions,MpiConfig,'HGT_surface')
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                try:
+                    varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract HGT_surface from file:" \
+                                           " " + input_forcings.file_in2
+                    errMod.log_critical(ConfigOptions, MpiConfig)
             else:
                 varTmp = None
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             varSubTmp = MpiConfig.scatter_array(input_forcings,varTmp,ConfigOptions)
-            MpiConfig.comm.barrier()
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-            input_forcings.esmf_field_in.data[:,:] = varSubTmp
-            MpiConfig.comm.barrier()
+            try:
+                input_forcings.esmf_field_in.data[:,:] = varSubTmp
+            except:
+                ConfigOptions.errMsg = "Unable to place CFSv2 elevation data into the ESMF field object."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             if MpiConfig.rank == 0:
-                print("REGRIDDING CFSv2 HEIGHT FIELD")
-            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                     input_forcings.esmf_field_out)
-            # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-                ConfigOptions.globalNdv
-            MpiConfig.comm.barrier()
+                ConfigOptions.statusMsg = "Regridding CFSv2 elevation data to the WRF-Hydro domain."
+                errMod.log_msg(ConfigOptions, MpiConfig)
 
-            input_forcings.height[:,:] = input_forcings.esmf_field_out.data
-            MpiConfig.comm.barrier()
+            try:
+                input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                         input_forcings.esmf_field_out)
+            except:
+                ConfigOptions.errMsg = "Unable to regrid CFSv2 elevation data to the WRF-Hydro domain."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
+            # Set any pixel cells outside the input domain to the global missing value.
+            try:
+                input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                    ConfigOptions.globalNdv
+            except:
+                ConfigOptions.errMsg = "Unable to run mask calculation on CFSv2 elevtation data."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
+
+            try:
+                input_forcings.height[:,:] = input_forcings.esmf_field_out.data
+            except:
+                ConfigOptions.errMsg = "Unable to extract CFSv2 regridded elevation data from ESMF field."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
             # Close the temporary NetCDF file and remove it.
             if MpiConfig.rank == 0:
@@ -481,47 +517,104 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                     idTmpHeight.close()
                 except:
                     ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    raise Exception()
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
+            if MpiConfig.rank == 0:
                 try:
                     os.remove(input_forcings.tmpFileHeight)
                 except:
                     ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    raise Exception()
-
-        MpiConfig.comm.barrier()
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
-            varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+            if not ConfigOptions.runCfsNldasBiasCorrect:
+                ConfigOptions.statusMsg = "Regridding CFSv2 variable: " + input_forcings.netcdf_var_names[forceCount]
+                errMod.log_msg(ConfigOptions, MpiConfig)
+            try:
+                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
+                                       " from file: " + input_forcings.tmpFile
+                errMod.log_critical(ConfigOptions, MpiConfig)
         else:
             varTmp = None
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
+        # Scatter the global CFSv2 data to the local processors.
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.esmf_field_in.data[:,:] = varSubTmp
-        MpiConfig.comm.barrier()
+        # Assign local CFSv2 data to the input forcing object.. IF..... we are running the
+        # bias correction. These grids are interpolated in a separate routine, AFTER bias
+        # correction has taken place.
+        if ConfigOptions.runCfsNldasBiasCorrect:
+            if not input_forcings.coarse_input_forcings1 and not input_forcings.coarse_input_forcings2 and \
+                    ConfigOptions.current_output_step == 1:
+                # We need to create NumPy arrays to hold the CFSv2 global data.
+                input_forcings.coarse_input_forcings2 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
+                                                                 np.float64)
+                input_forcings.coarse_input_forcings1 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
+                                                                 np.float64)
+            try:
+                input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount],:,:] = varSubTmp
+            except:
+                ConfigOptions.errMsg = "Unable to place local CFSv2 input variable: " + \
+                                        input_forcings.netcdf_var_names[forceCount] + \
+                                        " into local numpy array."
+                pass
+            if ConfigOptions.current_output_step == 1:
+                input_forcings.coarse_input_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                    input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount], :, :]
+        else:
+            input_forcings.coarse_input_forcings2 = None
+            input_forcings.coarse_input_forcings1 = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                 input_forcings.esmf_field_out)
-        # Set any pixel cells outside the input domain to the global missing value.
-        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-            ConfigOptions.globalNdv
-        MpiConfig.comm.barrier()
+        # Only regrid the current files if we did not specify the NLDAS2 NWM bias correction, which needs to take place
+        # first before any regridding can take place. That takes place in the bias-correction routine.
+        if not ConfigOptions.runCfsNldasBiasCorrect:
+            try:
+                input_forcings.esmf_field_in.data[:,:] = varSubTmp
+            except:
+                ConfigOptions.errMsg = "Unable to place CFSv2 forcing data into temporary ESMF field."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
-            input_forcings.esmf_field_out.data
-        MpiConfig.comm.barrier()
+            try:
+                input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                         input_forcings.esmf_field_out)
+            except:
+                ConfigOptions.errMsg = "Unable to regrid CFSv2 variable: " + input_forcings.netcdf_var_names[forceCount]
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        # If we are on the first timestep, set the previous regridded field to be
-        # the latest as there are no states for time 0.
-        if ConfigOptions.current_output_step == 1:
-            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
-                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
-        MpiConfig.comm.barrier()
+            # Set any pixel cells outside the input domain to the global missing value.
+            try:
+                input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                    ConfigOptions.globalNdv
+            except:
+                ConfigOptions.errMsg = "Unable to run mask calculation on CFSv2 variable: " + \
+                                       input_forcings.netcdf_var_names[forceCount]
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
+            try:
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount],:,:] = \
+                    input_forcings.esmf_field_out.data
+            except:
+                ConfigOptions.errMsg = "Unable to extract ESMF field data for CFSv2."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
+            # If we are on the first timestep, set the previous regridded field to be
+            # the latest as there are no states for time 0.
+            if ConfigOptions.current_output_step == 1:
+                input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                    input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -529,12 +622,16 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 idTmp.close()
             except:
                 ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        if MpiConfig.rank == 0:
             try:
                 os.remove(input_forcings.tmpFile)
             except:
                 ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                errMod.err_out()
+                errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         forceCount = forceCount + 1
 
