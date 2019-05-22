@@ -74,54 +74,63 @@ class OutputObj:
                 idOut = Dataset(self.outPath,'w')
             except:
                 ConfigOptions.errMsg = "Unable to create output file: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
             # Create dimensions.
             try:
                 idOut.createDimension("time",1)
             except:
                 ConfigOptions.errMsg = "Unable to create time dimension in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
             try:
                 idOut.createDimension("y",geoMetaWrfHydro.ny_global)
             except:
                 ConfigOptions.errMsg = "Unable to create y dimension in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
             try:
                 idOut.createDimension("x",geoMetaWrfHydro.nx_global)
             except:
                 ConfigOptions.errMsg = "Unable to create x dimension in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
             try:
                 idOut.createDimension("reference_time",1)
             except:
                 ConfigOptions.errMsg = "Unable to create reference_time dimension in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
             # Set global attributes
             try:
                 idOut.model_output_valid_time = self.outDate.strftime("%Y-%m-%d_%H:%M:00")
             except:
                 ConfigOptions.errMsg = "Unable to set the model_output_valid_time attribute in :" + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
             try:
                 idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
             except:
                 ConfigOptions.errMsg = "Unable to set the model_initialization_time global attribute in: " + \
                     self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
             # Create variables.
             try:
                 idOut.createVariable('time','i4',('time'))
             except:
                 ConfigOptions.errMsg = "Unable to create time variable in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
             try:
                 idOut.createVariable('reference_time','i4',('reference_time'))
             except:
                 ConfigOptions.errMsg = "Unable to create reference_time variable in: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
             # Create geospatial metadata coordinate variables if data was read in from an optional
             # spatial metadata file.
@@ -131,48 +140,54 @@ class OutputObj:
                     idOut.createVariable('x','f8',('x'))
                 except:
                     ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables['x'].setncatts(geoMetaWrfHydro.x_coord_atts)
                 except:
                     ConfigOptions.errMsg = "Unable to establish x coordinate attributes in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
-
-                # Place coordinate data into the output variable.
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables['x'][:] = geoMetaWrfHydro.x_coords
                 except:
                     ConfigOptions.errMsg = "Unable to place x coordinate values into output variable " \
                                            "for output file: " + self.outPath
-                    return
-                try:
-                    idOut.variables['y'][:] = geoMetaWrfHydro.x_coords
-                except:
-                    ConfigOptions.errMsg = "Unable to place y coordinate values into output variable " \
-                                           "for output file: " + self.outPath
-                    return
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
 
                 try:
                     idOut.createVariable('y','f8',('y'))
                 except:
                     ConfigOptions.errMsg = "Unable to create y variable in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables['y'].setncatts(geoMetaWrfHydro.y_coord_atts)
                 except:
                     ConfigOptions.errMsg = "Unable to establish y coordinate attributes in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
+                try:
+                    idOut.variables['y'][:] = geoMetaWrfHydro.y_coords
+                except:
+                    ConfigOptions.errMsg = "Unable to place y coordinate values into output variable " \
+                                           "for output file: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
 
                 try:
                     idOut.createVariable('crs','S1')
                 except:
                     ConfigOptions.errMsg = "Unable to create crs in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables['crs'].setncatts(geoMetaWrfHydro.crs_atts)
                 except:
                     ConfigOptions.errMsg = "Unable to establish crs attributes in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
 
             # Loop through and create each variable, along with expected attributes.
             for varTmp in output_variable_attribute_dict:
@@ -180,19 +195,22 @@ class OutputObj:
                     idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                 except:
                     ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables[varTmp].cell_methods = output_variable_attribute_dict[varTmp][4]
                 except:
                     ConfigOptions.errMsg = "Unable to create cell_methods attribute for: " + varTmp + \
                         " in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables[varTmp].remap = regrid_att
                 except:
                     ConfigOptions.errMsg = "Unable to create remap attribute for: " + varTmp + \
                         " in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 # Place geospatial metadata attributes in if we have them.
                 if ConfigOptions.spatial_meta is not None:
                     try:
@@ -200,40 +218,48 @@ class OutputObj:
                     except:
                         ConfigOptions.errMsg = "Unable to create grid_mapping attribute for: " + varTmp + " in: " + \
                             self.outPath
-                        errMod.err_out(ConfigOptions)
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        pass
                     if 'esri_pe_string' in geoMetaWrfHydro.crs_atts.keys():
                         try:
                             idOut.variables[varTmp].esri_pe_string = geoMetaWrfHydro.crs_atts['esri_pe_string']
                         except:
                             ConfigOptions.errMsg = "Unable to create esri_pe_string attribute for: " + varTmp + \
                                 " in: " + self.outPath
-                            errMod.err_out(ConfigOptions)
+                            errMod.log_critical(ConfigOptions, MpiConfig)
+                            pass
                     if 'proj4' in geoMetaWrfHydro.spatial_global_atts.keys():
                         try:
                             idOut.variables[varTmp].proj4 = geoMetaWrfHydro.spatial_global_atts['proj4']
                         except:
                             ConfigOptions.errMsg = "Unable to create proj4 attribute for: " + varTmp + \
                                 " in: " + self.outPath
-                            errMod.err_out(ConfigOptions)
+                            errMod.log_critical(ConfigOptions, MpiConfig)
+                            pass
 
                 try:
                     idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][1]
                 except:
                     ConfigOptions.errMsg = "Unable to create units attribute for: " + varTmp + " in: " + \
                         self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp][2]
                 except:
                     ConfigOptions.errMsg = "Unable to create standard_name attribute for: " + varTmp + \
                         " in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp][3]
                 except:
                     ConfigOptions.errMsg = "Unable to create long_name attribute for: " + varTmp + \
                         " in: " + self.outPath
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
+
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Now loop through each variable, collect the data (call on each processor), assemble into the final
         # output grid, and place into the output file (if on processor 0).
@@ -243,24 +269,29 @@ class OutputObj:
                 final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
             except:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                continue
             MpiConfig.comm.barrier()
             if MpiConfig.rank == 0:
                 try:
                     dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
                 except:
                     ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 try:
                     idOut.variables[varTmp][0,:,:] = dataOutTmp
                 except:
                     ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
-                    errMod.err_out(ConfigOptions)
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    pass
                 # Reset temporary data objects to keep memory usage down.
                 dataOutTmp = None
 
             # Reset temporary data objects to keep memory usage down.
             final = None
+
+            errMod.check_program_status(ConfigOptions, MpiConfig)
 
         if MpiConfig.rank == 0:
             # Close the NetCDF file
@@ -268,10 +299,10 @@ class OutputObj:
                 idOut.close()
             except:
                 ConfigOptions.errMsg = "Unable to close output file: " + self.outPath
-                errMod.err_out(ConfigOptions)
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
 
-        # Ensure all processors sync back up here before proceeding forward with the main calling program.
-        MpiConfig.comm.barrier()
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                inputVar):
@@ -297,46 +328,54 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                 NetCdfFileOut
             errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
+            idTmp = None
+            pass
         # Ensure file exists.
         if not os.path.isfile(NetCdfFileOut):
             ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
-                " not found."
+                " not found. It's possible the GRIB2 variable was not found."
             errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
+            idTmp = None
+            pass
 
         # Open the NetCDF file.
         try:
             idTmp = Dataset(NetCdfFileOut,'r')
         except:
             ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                NetCdfFileOut
+                                    NetCdfFileOut
             errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
+            idTmp = None
+            pass
 
-        # Check for expected lat/lon variables.
-        if 'latitude' not in idTmp.variables.keys():
-            ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                GribFileIn
-            errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
-        if 'longitude' not in idTmp.variables.keys():
-            ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                GribFileIn
-            errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
+        if idTmp is not None:
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                                       GribFileIn
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                idTmp = None
+                pass
+        if idTmp is not None:
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                       GribFileIn
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                idTmp = None
+                pass
 
-        # Loop through all the expected variables.
-        if inputVar not in idTmp.variables.keys():
-            ConfigOptions.errMsg = "Unable to locate expected variable: " + \
-                inputVar + " in: " + NetCdfFileOut
-            errMod.log_critical(ConfigOptions,MpiConfig)
-            return None
+        if idTmp is not None:
+            # Loop through all the expected variables.
+            if inputVar not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate expected variable: " + \
+                                       inputVar + " in: " + NetCdfFileOut
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                idTmp = None
+                pass
 
     else:
         idTmp = None
 
-    MpiConfig.comm.barrier()
     # Return the NetCDF file handle back to the user.
     return idTmp
 
@@ -351,39 +390,45 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     """
     # Open the NetCDF file on the master processor and read in data.
     if MpiConfig.rank == 0:
-        if MpiConfig.rank == 0:
-            # Ensure file exists.
-            if not os.path.isfile(NetCdfFileIn):
-                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
-                                       " not found."
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                return None
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileIn):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
+                                    " not found."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
 
-            # Open the NetCDF file.
-            try:
-                idTmp = Dataset(NetCdfFileIn, 'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                                       NetCdfFileIn
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                return None
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileIn, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                    NetCdfFileIn
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
 
+        if idTmp is not None:
             # Check for expected lat/lon variables.
             if 'latitude' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                       NetCdfFileIn
+                                        NetCdfFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
-                return None
+                idTmp = None
+                pass
+        if idTmp is not None:
             if 'longitude' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                                       NetCdfFileIn
+                                        NetCdfFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
-                return None
-        else:
-            idTmp = None
+                idTmp = None
+                pass
+    else:
+        idTmp = None
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-        # Return the NetCDF file handle back to the user.
-        return idTmp
+    # Return the NetCDF file handle back to the user.
+    return idTmp
 
 def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     """
@@ -402,7 +447,7 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
                     shutil.copyfileobj(fTmpGz, fTmp)
         except:
             ConfigOptions.errMsg = "Unable to unzip: " + GzFileIn
-            raise
+            raise Exception()
 
         if not os.path.isfile(FileOut):
             ConfigOptions.errMsg = "Unable to locate expected unzipped file: " + \
