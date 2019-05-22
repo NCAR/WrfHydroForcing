@@ -874,13 +874,13 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
         ConfigOptions.statusMsg = "Previous MRMS supplemental " \
                                   "file: " + tmpFile1
         errMod.log_msg(ConfigOptions,MpiConfg)
-        ConfigOptions.statusMsg = "Previous MRMS supplemental " \
+        ConfigOptions.statusMsg = "Next MRMS supplemental " \
                                   "file: " + tmpFile2
         errMod.log_msg(ConfigOptions, MpiConfg)
         ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
                                   "file: " + tmpRqiFile1
         errMod.log_msg(ConfigOptions, MpiConfg)
-        ConfigOptions.statusMsg = "Previous MRMS RQI supplemental " \
+        ConfigOptions.statusMsg = "Next MRMS RQI supplemental " \
                                   "file: " + tmpRqiFile2
         errMod.log_msg(ConfigOptions, MpiConfg)
     errMod.check_program_status(ConfigOptions,MpiConfg)
