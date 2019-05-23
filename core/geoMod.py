@@ -340,6 +340,9 @@ class GeoMetaWrfHydro:
                 except:
                     ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
                     raise Exception
+                # Check to see if the Y coordinates are North-South. If so, flip them.
+                if self.y_coords[1] < self.y_coords[0]:
+                    self.y_coords[:] = np.flip(self.y_coords[:])
 
             if len(idTmp.variables['x'].shape) == 2:
                 try:
@@ -352,6 +355,9 @@ class GeoMetaWrfHydro:
                 except:
                     ConfigOptions.errMsg = "Unable to extract y coordinate values from: " + ConfigOptions.spatial_meta
                     raise Exception
+                # Check to see if the Y coordinates are North-South. If so, flip them.
+                if self.y_coords[1,0] > self.y_coords[0,0]:
+                    self.y_coords[:,:] = np.flipud(self.y_coords[:,:])
 
 
             # Close the geospatial metadata file.
