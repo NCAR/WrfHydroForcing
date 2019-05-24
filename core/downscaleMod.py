@@ -510,6 +510,14 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    # Convert precipitation rate, which is mm/s to mm, which is needed to run the PRISM downscaling.
+    try:
+        localRainRate[indValid] = localRainRate[indValid]*3600.0
+    except:
+        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm/s to mm."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
     try:
         localRainRate[indValid] = localRainRate[indValid] * numLocal[indValid]
     except:
@@ -521,6 +529,14 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         localRainRate[indValid] = localRainRate[indValid] / denLocal[indValid]
     except:
         ConfigOptions.errMsg = "Unable to divide precip by denominator in mountain mapper downscaling"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Convert local precip back to a rate (mm/s)
+    try:
+        localRainRate[indValid] = localRainRate[indValid]/3600.0
+    except:
+        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm to mm/s."
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
