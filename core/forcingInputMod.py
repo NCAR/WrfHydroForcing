@@ -88,6 +88,7 @@ class input_forcings:
         self.tmpFileHeight = None
         self.psfcTmp = None
         self.t2dTmp = None
+        self.rstFlag = 0
 
     def define_product(self):
         """
