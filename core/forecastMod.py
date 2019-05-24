@@ -141,6 +141,23 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+                    # If we are restarting a forecast cycle, re-calculate the neighboring files, and regrid the
+                    # next set of forcings as the previous step just regridded the previous forcing.
+                    if inputForcingMod[forceKey].rstFlag == 1:
+                        # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
+                        inputForcingMod[forceKey].regridded_forcings1[:, :, :] = \
+                            inputForcingMod[forceKey].regridded_forcings2[:, :, :]
+
+                        # Re-calculate the neighbor files.
+                        inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
+                        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+                        # Regrid the forcings for the end of the window.
+                        inputForcingMod[forceKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
+                        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+                        inputForcingMod[forceKey].rstFlag = 0
+
                     # Run temporal interpolation on the grids.
                     inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
                     errMod.check_program_status(ConfigOptions, MpiConfig)
