@@ -4,6 +4,7 @@ from core import errMod
 import datetime
 import math
 import os
+import numpy as np
 
 def calculate_lookback_window(ConfigOptions):
     """
@@ -428,7 +429,7 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not input_forcings.regridded_forcings1:
+            if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
                     errMod.log_msg(ConfigOptions, MpiConfg)
