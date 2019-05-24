@@ -319,6 +319,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     if MpiConfig.rank == 0:
         # Check to see if output file already exists. If so, delete it and
         # override.
+        ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
+        errMod.log_msg(ConfigOptions, MpiConfig)
         if os.path.isfile(NetCdfFileOut):
             ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
             errMod.log_warning(ConfigOptions,MpiConfig)

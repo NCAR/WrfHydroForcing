@@ -132,7 +132,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
-    if not input_forcings.lapseGrid:
+    if not np.any(input_forcings.lapseGrid):
         # We have not read in our lapse rate file. Read it in, do extensive checks,
         # scatter the lapse rate grid out to individual processors, then apply the
         # lapse rate to the 2-meter temperature grid.
@@ -175,12 +175,12 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
                 pass
 
             # Check dimensions to ensure they match up to the output grid.
-            if lapseTmp.shape[0] != GeoMetaWrfHydro.nx_global:
+            if lapseTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
                                        "rate from parameter file: " + lapsePath
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
-            if lapseTmp.shape[1] != GeoMetaWrfHydro.ny_global:
+            if lapseTmp.shape[0] != GeoMetaWrfHydro.ny_global:
                 ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
                                        "rate from parameter file: " + lapsePath
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -233,7 +233,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         return
     try:
         temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
-                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff)
+                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff[indValid])
     except:
         ConfigOptions.errMsg = "Unable to apply spatial lapse rate values to input " + \
                                input_forcings.productName + " regridded temperature forcings."
@@ -497,7 +497,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create temporary grids from the local slabs of params/precip forcings.
-    localRainRate = input_forcings.final_forcings[5,:,:]
+    localRainRate = input_forcings.final_forcings[3,:,:]
     numLocal = input_forcings.nwmPRISM_numGrid[:,:]
     denLocal = input_forcings.nwmPRISM_denGrid[:,:]
 
@@ -507,6 +507,14 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     except:
         ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
                                "param grid in mountain mapper downscaling"
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Convert precipitation rate, which is mm/s to mm, which is needed to run the PRISM downscaling.
+    try:
+        localRainRate[indValid] = localRainRate[indValid]*3600.0
+    except:
+        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm/s to mm."
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -524,7 +532,15 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    input_forcings.final_forcings[5, :, :] = localRainRate
+    # Convert local precip back to a rate (mm/s)
+    try:
+        localRainRate[indValid] = localRainRate[indValid]/3600.0
+    except:
+        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm to mm/s."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    input_forcings.final_forcings[3, :, :] = localRainRate
 
     # Reset variables for memory efficiency
     idDenom = None

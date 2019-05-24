@@ -4,6 +4,7 @@ from core import errMod
 import datetime
 import math
 import os
+import numpy as np
 
 def calculate_lookback_window(ConfigOptions):
     """
@@ -424,12 +425,29 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in1 = tmpFile1
+            input_forcings.file_in2 = tmpFile2
         else:
-            # The GFS window has shifted. Reset fields 2 to
-            # be fields 1.
-            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
-        input_forcings.file_in1 = tmpFile1
-        input_forcings.file_in2 = tmpFile2
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            if not np.any(input_forcings.regridded_forcings1):
+                if MpiConfg.rank == 0:
+                    ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
+                    errMod.log_msg(ConfigOptions, MpiConfg)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in2 = tmpFile1
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+            else:
+                # The GFS window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
@@ -542,11 +560,26 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
-            # The GFS window has shifted. Reset fields 2 to
-            # be fields 1.
-            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
-        input_forcings.file_in1 = tmpFile1
-        input_forcings.file_in2 = tmpFile2
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            if not input_forcings.regridded_forcings1:
+                if MpiConfg.rank == 0:
+                    ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
+                    errMod.log_msg(ConfigOptions, MpiConfg)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in2 = tmpFile1
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+            else:
+                # The NAM nest window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
@@ -683,14 +716,29 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
         else:
-            # The CFS window has shifted. Reset fields 2 to
-            # be fields 1.
-            input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
-            if ConfigOptions.runCfsNldasBiasCorrect:
-                # Reset our global CFSv2 grids.
-                input_forcings.global_input_forcings1[:, :, :] = input_forcings.global_input_forcings2[:, :, :]
-        input_forcings.file_in1 = tmpFile1
-        input_forcings.file_in2 = tmpFile2
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            if not input_forcings.regridded_forcings1:
+                if MpiConfg.rank == 0:
+                    ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
+                    errMod.log_msg(ConfigOptions, MpiConfg)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in2 = tmpFile1
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+            else:
+                # The CFS window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                input_forcings.file_in1 = tmpFile1
+                input_forcings.file_in2 = tmpFile2
+                if ConfigOptions.runCfsNldasBiasCorrect:
+                    # Reset our global CFSv2 grids.
+                    input_forcings.global_input_forcings1[:, :, :] = input_forcings.global_input_forcings2[:, :, :]
         input_forcings.regridComplete = False
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
@@ -788,16 +836,26 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
-        if ConfigOptions.current_output_step == 1:
-            print('We are on the first output timestep.')
+        # Check to see if we are restarting from a previously failed instance. In this case,
+        # We are not on the first timestep, but no previous forcings have been processed.
+        # We need to process the previous input timestep for temporal interpolation purposes.
+        if not input_forcings.regridded_forcings1:
+            if MpiConfg.rank == 0:
+                ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
+                errMod.log_msg(ConfigOptions, MpiConfg)
+            input_forcings.rstFlag = 1
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in2 = tmpFile1
+            input_forcings.file_in1 = tmpFile1
+            input_forcings.fcst_date2 = input_forcings.fcst_date1
+            input_forcings.fcst_hour2 = input_forcings.fcst_hour1
         else:
-            # The forecast window has shifted. Reset fields 2 to
+            # The custom window has shifted. Reset fields 2 to
             # be fields 1.
             input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
-        input_forcings.file_in1 = tmpFile1
-        input_forcings.file_in2 = tmpFile2
+            input_forcings.file_in1 = tmpFile1
+            input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
 
 def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
