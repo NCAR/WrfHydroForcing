@@ -425,6 +425,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in1 = tmpFile1
+            input_forcings.file_in2 = tmpFile2
         else:
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
