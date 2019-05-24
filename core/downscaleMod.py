@@ -497,7 +497,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create temporary grids from the local slabs of params/precip forcings.
-    localRainRate = input_forcings.final_forcings[5,:,:]
+    localRainRate = input_forcings.final_forcings[3,:,:]
     numLocal = input_forcings.nwmPRISM_numGrid[:,:]
     denLocal = input_forcings.nwmPRISM_denGrid[:,:]
 
@@ -540,7 +540,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    input_forcings.final_forcings[5, :, :] = localRainRate
+    input_forcings.final_forcings[3, :, :] = localRainRate
 
     # Reset variables for memory efficiency
     idDenom = None
