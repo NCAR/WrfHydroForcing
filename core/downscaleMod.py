@@ -175,12 +175,12 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
                 pass
 
             # Check dimensions to ensure they match up to the output grid.
-            if lapseTmp.shape[0] != GeoMetaWrfHydro.nx_global:
+            if lapseTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
                                        "rate from parameter file: " + lapsePath
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
-            if lapseTmp.shape[1] != GeoMetaWrfHydro.ny_global:
+            if lapseTmp.shape[0] != GeoMetaWrfHydro.ny_global:
                 ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
                                        "rate from parameter file: " + lapsePath
                 errMod.log_critical(ConfigOptions, MpiConfig)
