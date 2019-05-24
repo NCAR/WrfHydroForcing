@@ -132,7 +132,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
-    if not input_forcings.lapseGrid:
+    if not np.any(input_forcings.lapseGrid):
         # We have not read in our lapse rate file. Read it in, do extensive checks,
         # scatter the lapse rate grid out to individual processors, then apply the
         # lapse rate to the 2-meter temperature grid.
@@ -233,7 +233,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         return
     try:
         temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
-                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff)
+                                         ((input_forcings.lapseGrid[indValid]/1000.0) * elevDiff[indValid])
     except:
         ConfigOptions.errMsg = "Unable to apply spatial lapse rate values to input " + \
                                input_forcings.productName + " regridded temperature forcings."
