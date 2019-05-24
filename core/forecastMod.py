@@ -145,7 +145,8 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     # next set of forcings as the previous step just regridded the previous forcing.
                     if inputForcingMod[forceKey].rstFlag == 1:
                         # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
-                        inputForcingMod[forceKey].input_forcings1 = inputForcingMod[forceKey].input_forcings2
+                        inputForcingMod[forceKey].regridded_forcings1[:, :, :] = \
+                            inputForcingMod[forceKey].regridded_forcings2[:, :, :]
 
                         # Re-calculate the neighbor files.
                         inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
