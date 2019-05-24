@@ -156,7 +156,7 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                         inputForcingMod[forceKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-                        inputForcingMod[forceKey] = 0
+                        inputForcingMod[forceKey].rstFlag = 0
 
                     # Run temporal interpolation on the grids.
                     inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
