@@ -185,7 +185,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
     # Check to ensure we are running with CFSv2 here....
     if input_forcings.productName != "CFSv2_6Hr_Global_GRIB2":
-        ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + input_forcings.productName
+        ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + \
+                               input_forcings.productName
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -197,7 +198,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                                ConfigOptions.current_output_date.strftime('%m%d%H') + \
                                "_dist_params.nc"
             if not os.path.isfile(nldas_param_file):
-                ConfigOptions.errMsg = "Unable to locate necessary bias correction parameter file: " + nldas_param_file
+                ConfigOptions.errMsg = "Unable to locate necessary bias correction parameter file: " + \
+                                       nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
@@ -242,20 +244,23 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
             if force_num == 3:
                 if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
-                    ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
+                    ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + \
+                                           nldas_param_file
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
             try:
                 nldas_param_1 = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
             except:
-                ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + " from: " + nldas_param_file
+                ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + \
+                                       " from: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
             try:
                 nldas_param_2 = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
             except:
-                ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + " from: " + nldas_param_file
+                ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + \
+                                       " from: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
@@ -298,6 +303,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             if force_num == 3:
                 nldas_zero_pcp[np.where(nldas_zero_pcp == fillTmp)] = ConfigOptions.globalNdv
 
+            break
     else:
         nldas_param_1 = None
         nldas_param_2 = None
@@ -319,11 +325,13 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     if MpiConfig.rank == 0:
         while (True):
             # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
-            cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + cfsParamPathVars[force_num] + "_" + \
-                input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
-            '   _dist_params.nc'
+            cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + \
+                              cfsParamPathVars[force_num] + "_" + \
+                              input_forcings.fcst_date1.strftime('%m%d') + "_" + \
+                              input_forcings.fcst_date1.strftime('%H') + '   _dist_params.nc'
             cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
-                              input_forcings.fcst_date2.strftime('%m%d') + "_" + input_forcings.fcst_date2.strftime('%H') + \
+                              input_forcings.fcst_date2.strftime('%m%d') + "_" + \
+                              input_forcings.fcst_date2.strftime('%H') + \
                               '_dist_params.nc'
 
             if not os.path.isfile(cfs_param_path1):
@@ -457,6 +465,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 zero_pcp[np.where(zero_pcp > 500000.0)] = ConfigOptions.globalNdv
                 prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
 
+            break
     else:
         param_1 = None
         param_2 = None
@@ -482,26 +491,27 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
-        # Close the parameter files.
-        try:
-            idNldasParam.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            idCfsParam1.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            idCfsParam2.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
+        while (True):
+            # Close the parameter files.
+            try:
+                idNldasParam.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                idCfsParam1.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                idCfsParam2.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     else:
         idNldasParam = None
         idCfsParam1 = None
