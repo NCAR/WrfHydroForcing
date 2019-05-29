@@ -75,7 +75,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to precipitation bias correction.
     bias_correct_precip = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                              ConfigOptions, MpiConfig, 3)
