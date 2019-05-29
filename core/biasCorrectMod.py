@@ -26,7 +26,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                               ConfigOptions, MpiConfig, 4)
+                                                               ConfigOptions, MpiConfig, 0)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
 
@@ -36,7 +36,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_humidity[input_forcings.q2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                            ConfigOptions, MpiConfig, 5)
+                                                            ConfigOptions, MpiConfig, 1)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to surface pressure bias correction.
@@ -45,7 +45,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_pressure[input_forcings.psfcBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                             ConfigOptions, MpiConfig, 6)
+                                                             ConfigOptions, MpiConfig, 7)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to incoming shortwave radiation correction.
@@ -54,7 +54,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                     ConfigOptions, MpiConfig, 7)
+                                                     ConfigOptions, MpiConfig, 5)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to incoming longwave radiation correction.
@@ -63,7 +63,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                     ConfigOptions, MpiConfig, 2)
+                                                     ConfigOptions, MpiConfig, 6)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to wind bias correction.
@@ -73,11 +73,11 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                         ConfigOptions, MpiConfig, 0)
+                                                         ConfigOptions, MpiConfig, 2)
     errMod.check_program_status(ConfigOptions, MpiConfig)
     # Run for V-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                         ConfigOptions, MpiConfig, 1)
+                                                         ConfigOptions, MpiConfig, 3)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Dictionary for mapping to precipitation bias correction.
@@ -86,7 +86,7 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
-                                                             ConfigOptions, MpiConfig, 3)
+                                                             ConfigOptions, MpiConfig, 4)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Assign the temperature/pressure grids to temporary placeholders here.
@@ -125,65 +125,65 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     """
     # Create a dictionary that maps forcing numbers to the expected NetCDF variable names, etc.
     nldasParam1Vars = {
-        0: 'UGRD10M_PARAM_1',
-        1: 'VGRD10M_PARAM_1',
-        2: 'LW_PARAM_1',
-        3: 'PRATE_PARAM_1',
-        4: 'T2M_PARAM_1',
-        5: 'Q2M_PARAM_1',
-        6: 'PSFC_PARAM_1',
-        7: 'SW_PARAM_1'
+        2: 'UGRD10M_PARAM_1',
+        3: 'VGRD10M_PARAM_1',
+        6: 'LW_PARAM_1',
+        4: 'PRATE_PARAM_1',
+        0: 'T2M_PARAM_1',
+        1: 'Q2M_PARAM_1',
+        7: 'PSFC_PARAM_1',
+        5: 'SW_PARAM_1'
     }
     nldasParam2Vars = {
-        0: 'UGRD10M_PARAM_2',
-        1: 'VGRD10M_PARAM_2',
-        2: 'LW_PARAM_2',
-        3: 'PRATE_PARAM_2',
-        4: 'T2M_PARAM_2',
-        5: 'Q2M_PARAM_2',
-        6: 'PSFC_PARAM_2',
-        7: 'SW_PARAM_2'
+        2: 'UGRD10M_PARAM_2',
+        3: 'VGRD10M_PARAM_2',
+        6: 'LW_PARAM_2',
+        4: 'PRATE_PARAM_2',
+        0: 'T2M_PARAM_2',
+        1: 'Q2M_PARAM_2',
+        7: 'PSFC_PARAM_2',
+        5: 'SW_PARAM_2'
     }
     cfsParamPathVars = {
-        0: 'ugrd',
-        1: 'vgrd',
-        2: 'dlwsfc',
-        3: 'prate',
-        4: 'tmp2m',
-        5: 'q2m',
-        6: 'pressfc',
-        7: 'dswsfc'
+        2: 'ugrd',
+        3: 'vgrd',
+        6: 'dlwsfc',
+        4: 'prate',
+        0: 'tmp2m',
+        1: 'q2m',
+        7: 'pressfc',
+        5: 'dswsfc'
     }
     # Specify the min/max ranges on CDF/PDF values for each variable
     valRange1 = {
-        0: -50.0,
-        1: -50.0,
-        2: 1.0,
-        3: 0.01,
-        4: 200.0,
-        5: 0.01,
-        6: 50000.0,
-        7: 0.0
+        2: -50.0,
+        3: -50.0,
+        6: 1.0,
+        4: 0.01,
+        0: 200.0,
+        1: 0.01,
+        7: 50000.0,
+        5: 0.0
     }
     valRange2 = {
-        0: 50.0,
-        1: 50.0,
-        2: 800.0,
-        3: 100.0,
-        4: 330.0,
-        5: 40.0,
-        6: 1100000.0,
-        7: 1000.0
+        2: 50.0,
+        3: 50.0,
+        6: 800.0,
+        4: 100.0,
+        0: 330.0,
+        1: 40.0,
+        7: 1100000.0,
+        5: 1000.0
     }
     valStep = {
+        2: 0.1,
+        3: 0.1,
+        6: 0.19975,
+        4: 0.049995,
         0: 0.1,
-        1: 0.1,
-        2: 0.19975,
-        3: 0.049995,
-        4: 0.1,
-        5: 3.9999,
-        6: 350.0,
-        7: 10.0
+        1: 3.9999,
+        7: 350.0,
+        5: 10.0
     }
     if MpiConfig.rank == 0:
         ConfigOptions.statusMsg = "Running NLDAS-CFSv2 CDF/PDF bias correction."
@@ -248,7 +248,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
-            if force_num == 3:
+            if force_num == 4:
                 if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
                     ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + \
                                            nldas_param_file
@@ -306,7 +306,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             # Set missing values accordingly.
             nldas_param_1[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
             nldas_param_2[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
-            if force_num == 3:
+            if force_num == 4:
                 nldas_zero_pcp[np.where(nldas_zero_pcp == fillTmp)] = ConfigOptions.globalNdv
 
             break
@@ -324,7 +324,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     errMod.check_program_status(ConfigOptions, MpiConfig)
     nldas_param_2_sub = MpiConfig.scatter_array(input_forcings, nldas_param_2, ConfigOptions)
     errMod.check_program_status(ConfigOptions, MpiConfig)
-    if force_num == 3:
+    if force_num == 4:
         nldas_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, nldas_zero_pcp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -443,7 +443,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             ConfigOptions.statusMsg = "Reading in zero precip probs."
             errMod.log_msg(ConfigOptions, MpiConfig)
             # Read in the zero precip prob grids if we are bias correcting precipitation.
-            if force_num == 3:
+            if force_num == 4:
                 try:
                     zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
                 except:
@@ -471,7 +471,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             param_2[np.where(param_2 > 500000.0)] = ConfigOptions.globalNdv
             prev_param_1[np.where(prev_param_1 > 500000.0)] = ConfigOptions.globalNdv
             prev_param_2[np.where(prev_param_2 > 500000.0)] = ConfigOptions.globalNdv
-            if force_num == 3:
+            if force_num == 4:
                 zero_pcp[np.where(zero_pcp > 500000.0)] = ConfigOptions.globalNdv
                 prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
 
@@ -497,7 +497,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     errMod.check_program_status(ConfigOptions, MpiConfig)
     cfs_prev_param_2_sub = MpiConfig.scatter_array(input_forcings, prev_param_2, ConfigOptions)
     errMod.check_program_status(ConfigOptions, MpiConfig)
-    if force_num == 3:
+    if force_num == 4:
         cfs_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, zero_pcp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
         cfs_prev_zero_pcp_sub = MpiConfig.scatter_array(input_forcings, prev_zero_pcp, ConfigOptions)
@@ -559,8 +559,10 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # Process each of the pixel cells for this local processor on the CFS grid.
     for x_local in range(0,input_forcings.nx_local):
         for y_local in range(0,input_forcings.ny_local):
-            cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, y_local, x_local]
-            cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, y_local, x_local]
+            cfs_prev_tmp = input_forcings.coarse_input_forcings1[input_forcings.input_map_output[force_num],
+                                                                 y_local, x_local]
+            cfs_next_tmp = input_forcings.coarse_input_forcings2[input_forcings.input_map_output[force_num],
+                                                                 y_local, x_local]
 
             # Check for any missing parameter values. If any missing values exist,
             # set this flag to False. Further down, if it's False, we will simply
@@ -578,7 +580,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 correctFlag = False
             if nldas_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
                 correctFlag = False
-            if force_num == 3:
+            if force_num == 4:
                 if cfs_prev_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
                     correctFlag = False
                 if cfs_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
@@ -603,7 +605,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             nldas_nearest_2 = nldas_param_2_sub[y_local, x_local]
 
     #        if correctFlag:
-    #            if force_num != 3 and force_num != 7 and force_num != 5:
+    #            if force_num != 4 and force_num != 5 and force_num != 1:
     #                # Not incoming shortwave or precip or specific humidity
     #                pts = (vals - cfs_param_1_interp) / cfs_param_2_interp
     #                spacing = (vals[2] - vals[1]) / cfs_param_2_interp
@@ -628,7 +630,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                     # Adjust the CFS data
     #                cfs_data[y_local, x_local] = vals[cfs_nldas_ind]
 
-    #            if force_num == 7:
+    #            if force_num == 5:
     #                # Incoming shortwave radiation flux.
     #                # find nearest nldas grid point and then calculate nldas cdf
     #                nldas_nearest_1 = nldas_param_1_sub[y_local, x_local]
@@ -638,7 +640,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     #                    cfs_data[y_local, x_local] = cfs_interp_fcst * factor
     #                else:
     #                    cfs_data[y_local, x_local] = 0.0
-    #            if force_num == 5:
+    #            if force_num == 1:
     #                # Specific humidity
     #                spacing = vals[2]-vals[1]
     #                cfs_interp_forecast = cfs_interp_forecast * 1000.0 # units are now g/kg
@@ -658,7 +660,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
     #                # Adjust the CFS data
     #                cfs_data[y_local, x_local] = vals[cfs_nldas_ind]/1000.0 # convert back to kg/kg
-    #            if force_num == 3:
+    #            if force_num == 4:
     #                # Precipitation
     #                # precipitation is estimated using a weibull distribution
     #                # valid values range from 3e-6 mm/s (0.01 mm/hr) up to 100 mm/hr
