@@ -179,8 +179,10 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         6: 350.0,
         7: 10.0
     }
-    print('PERFORMING CFSV2 PCP NLDAS BIAS CORRECTION.')
-    sys.exit(1)
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Running NLDAS-CFSv2 CDF/PDF bias correction."
+        errMod.log_msg(ConfigOptions, MpiConfig)
+
     # Check to ensure we are running with CFSv2 here....
     if input_forcings.productName != "CFSv2_6Hr_Global_GRIB2":
         ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + input_forcings.productName
