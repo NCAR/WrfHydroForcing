@@ -187,9 +187,9 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
                 pass
 
             # Perform a quick search to ensure we don't have radical values.
-            indTmp = np.where(lapseTmp < 0.0)
+            indTmp = np.where(lapseTmp < -10.0)
             if len(indTmp[0]) > 0:
-                ConfigOptions.errMsg = "Found missing values in the lapse rate grid from " \
+                ConfigOptions.errMsg = "Found anomolous negative values in the lapse rate grid from " \
                                        "parameter file: " + lapsePath
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 pass
