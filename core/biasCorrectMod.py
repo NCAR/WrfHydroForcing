@@ -538,12 +538,18 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # 6.) Place the data into the final output arrays for further processing (downscaling).
     # 7.) Reset variables for memory efficiency and exit the routine.
 
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Creating local CFS CDF arrays."
+        errMod.log_msg(ConfigOptions, MpiConfig)
     # Establish local arrays of data.
     cfs_data = np.empty([input_forcings.ny_local, input_forcings.nx_local], np.float64)
 
     # Establish parameters of the CDF matching.
     vals = np.arange(valRange1[force_num], valRange2[force_num], valStep[force_num])
 
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Looping over local arrays to calculate bias corrections."
+        errMod.log_msg(ConfigOptions, MpiConfig)
     # Process each of the pixel cells for this local processor on the CFS grid.
     for x_local in range(0,input_forcings.nx_local):
         for y_local in range(0,input_forcings.ny_local):
