@@ -1935,6 +1935,16 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
+    # to have a size of at least 2.
+    if input_forcings.nx_local < 2 or input_forcings.ny_local < 2:
+        ConfigOptions.errMsg = "You have either specified too many cores for coarse input forcings, or " \
+                               " your input forcing grid is too small to process. Must have x/y dimension " \
+                               "size of 2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+
     if MpiConfig.rank == 0:
         # Process lat/lon values from the GFS grid.
         if len(idTmp.variables['latitude'].shape) == 3:
