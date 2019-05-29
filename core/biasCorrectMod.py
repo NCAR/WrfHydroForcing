@@ -31,7 +31,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to humidity bias correction.
     bias_correct_humidity = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_humidity[input_forcings.q2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                             ConfigOptions, MpiConfig, 5)
@@ -39,7 +40,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to surface pressure bias correction.
     bias_correct_pressure = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_pressure[input_forcings.psfcBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                              ConfigOptions, MpiConfig, 6)
@@ -47,7 +49,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to incoming shortwave radiation correction.
     bias_correct_sw = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                      ConfigOptions, MpiConfig, 7)
@@ -55,7 +58,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to incoming longwave radiation correction.
     bias_correct_lw = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                      ConfigOptions, MpiConfig, 2)
@@ -63,7 +67,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Dictionary for mapping to wind bias correction.
     bias_correct_wind = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
