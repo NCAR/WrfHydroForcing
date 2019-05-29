@@ -462,7 +462,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         prev_param_2 = None
         zero_pcp = None
         prev_zero_pcp = None
-    errMod.check_program_status(MpiConfig, ConfigOptions)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Scatter CFS parameters
     cfs_param_1_sub = MpiConfig.scatter_array(input_forcings, param_1, ConfigOptions)
