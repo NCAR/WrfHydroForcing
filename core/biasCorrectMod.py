@@ -22,7 +22,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
     # Dictionary for mapping to temperature bias correction.
     bias_correct_temperature = {
-        0: no_bias_correct
+        0: no_bias_correct,
+        1: cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                                ConfigOptions, MpiConfig, 4)
