@@ -731,6 +731,12 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
                     input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
             errMod.check_program_status(ConfigOptions, MpiConfig)
+        else:
+            # Set regridded arrays to dummy values as they are regridded later in the bias correction routine.
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                ConfigOptions.globalNdv
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :] = \
+                ConfigOptions.globalNdv
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
