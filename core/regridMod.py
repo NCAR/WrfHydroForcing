@@ -1938,9 +1938,9 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
     # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
     # to have a size of at least 2.
     if input_forcings.nx_local < 2 or input_forcings.ny_local < 2:
-        ConfigOptions.errMsg = "You have either specified too many cores for coarse input forcings, or " \
-                               " your input forcing grid is too small to process. Must have x/y dimension " \
-                               "size of 2."
+        ConfigOptions.errMsg = "You have either specified too many cores for: " + input_forcings.productName + \
+                               ", or  your input forcing grid is too small to process. Local grid must " \
+                               "have x/y dimension size of 2."
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -2109,6 +2109,15 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
                                "file: " + tmpFile
         errMod.err_out(ConfigOptions)
     MpiConfig.comm.barrier()
+
+    # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
+    # to have a size of at least 2.
+    if supplemental_precip.nx_local < 2 or supplemental_precip.ny_local < 2:
+        ConfigOptions.errMsg = "You have either specified too many cores for: " + supplemental_precip.productName + \
+                               ", or  your input forcing grid is too small to process. Local grid " \
+                               "must have x/y dimension size of 2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
         # Process lat/lon values from the GFS grid.

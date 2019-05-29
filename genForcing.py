@@ -70,6 +70,14 @@ def main():
             errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
     errMod.check_program_status(jobMeta, mpiMeta)
 
+    # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
+    # to have a size of at least 2.
+    if WrfHydroGeoMeta.nx_local < 2 or WrfHydroGeoMeta.ny_local < 2:
+        jobMeta.errMsg = "You have specified too many cores for your WRF-Hydro grid. " \
+                         "Local grid Must have x/y dimension size of 2."
+        errMod.err_out_screen_para(jobMeta.errMsg,mpiMeta)
+    errMod.check_program_status(jobMeta, mpiMeta)
+
     # Initialize our output object, which includes local slabs from the output grid.
     try:
         OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
