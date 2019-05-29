@@ -733,14 +733,14 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                 input_forcings.fcst_date2 = input_forcings.fcst_date1
                 input_forcings.fcst_hour2 = input_forcings.fcst_hour1
             else:
-                # The GFS window has shifted. Reset fields 2 to
+                # The CFS window has shifted. Reset fields 2 to
                 # be fields 1.
                 input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
                 input_forcings.file_in1 = tmpFile1
                 input_forcings.file_in2 = tmpFile2
                 if ConfigOptions.runCfsNldasBiasCorrect:
                     # Reset our global CFSv2 grids.
-                    input_forcings.global_input_forcings1[:, :, :] = input_forcings.global_input_forcings2[:, :, :]
+                    input_forcings.coarse_input_forcings1[:, :, :] = input_forcings.coarse_input_forcings2[:, :, :]
         input_forcings.regridComplete = False
     errMod.check_program_status(ConfigOptions, MpiConfg)
 

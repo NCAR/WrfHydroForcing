@@ -44,9 +44,10 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
     # If we are running CFSv2 with bias correction, bypass as temporal interpolation is done
     # internally (NWM-only).
     if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
-        ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
-        errMod.log_msg(ConfigOptions, MpiConfig)
-        return
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step.
@@ -105,9 +106,10 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     # If we are running CFSv2 with bias correction, bypass as temporal interpolation is done
     # internally (NWM-only).
     if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
-        ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
-        errMod.log_msg(ConfigOptions, MpiConfig)
-        return
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step. Use this to calculate a fraction
