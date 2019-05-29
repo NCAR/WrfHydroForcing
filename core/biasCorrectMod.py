@@ -339,7 +339,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
             if not os.path.isfile(cfs_param_path2):
-                ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
+                ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path2
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
