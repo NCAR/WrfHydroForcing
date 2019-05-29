@@ -824,25 +824,25 @@ class ConfigOptions:
         # Putting a constraint here that CFSv2-NLDAS bias correction (NWM only) is chosen, it must be turned on
         # for ALL variables.
         if self.runCfsNldasBiasCorrect:
-            if self.precipBiasCorrectOpt != 1:
+            if min(self.precipBiasCorrectOpt) != 1 and max(self.precipBiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'Precipitation under this configuration.')
-            if self.lwBiasCorrectOpt != 1:
+            if min(self.lwBiasCorrectOpt) != 1 and max(self.lwBiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'long-wave radiation under this configuration.')
-            if self.swBiasCorrectOpt != 1:
+            if min(self.swBiasCorrectOpt) != 1 and max(self.swBiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'short-wave radiation under this configuration.')
-            if self.t2BiasCorrectOpt != 1:
+            if min(self.t2BiasCorrectOpt) != 1 and max(self.t2BiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'surface temperature under this configuration.')
-            if self.windBiasCorrect != 1:
+            if min(self.windBiasCorrect) != 1 and max(self.windBiasCorrect) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'wind forcings under this configuration.')
-            if self.q2BiasCorrectOpt != 1:
+            if min(self.q2BiasCorrectOpt) != 1 and max(self.q2BiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'specific humidity under this configuration.')
-            if self.psfcBiasCorrectOpt != 1:
+            if min(self.psfcBiasCorrectOpt) != 1 and max(self.psfcBiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'surface pressure under this configuration.')
 
