@@ -137,76 +137,79 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         # scatter the lapse rate grid out to individual processors, then apply the
         # lapse rate to the 2-meter temperature grid.
         if MpiConfig.rank == 0:
-            # First ensure we have a parameter directory
-            if input_forcings.paramDir == "NONE":
-                ConfigOptions.errMsg = "User has specified spatial temperature lapse rate " \
-                                       "downscaling while no downscaling parameter directory " \
-                                       "exists."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                # First ensure we have a parameter directory
+                if input_forcings.paramDir == "NONE":
+                    ConfigOptions.errMsg = "User has specified spatial temperature lapse rate " \
+                                           "downscaling while no downscaling parameter directory " \
+                                           "exists."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Compose the path to the lapse rate grid file.
-            lapsePath = input_forcings.paramDir + "/lapse_param.nc"
-            if not os.path.isfile(lapsePath):
-                ConfigOptions.errMsg = "Expected lapse rate parameter file: " + \
-                                       lapsePath + " does not exist."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Compose the path to the lapse rate grid file.
+                lapsePath = input_forcings.paramDir + "/lapse_param.nc"
+                if not os.path.isfile(lapsePath):
+                    ConfigOptions.errMsg = "Expected lapse rate parameter file: " + \
+                                           lapsePath + " does not exist."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Open the lapse rate file. Check for the expected variable, along with
-            # the dimension size to make sure everything matches up.
-            try:
-                idTmp = Dataset(lapsePath,'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if not 'lapse' in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Expected 'lapse' variable not located in parameter " \
-                                       "file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                lapseTmp = idTmp.variables['lapse'][:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extracte 'lapse' variable from parameter: " \
-                                       "file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Open the lapse rate file. Check for the expected variable, along with
+                # the dimension size to make sure everything matches up.
+                try:
+                    idTmp = Dataset(lapsePath,'r')
+                except:
+                    ConfigOptions.errMsg = "Unable to open parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if not 'lapse' in idTmp.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'lapse' variable not located in parameter " \
+                                           "file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    lapseTmp = idTmp.variables['lapse'][:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extracte 'lapse' variable from parameter: " \
+                                           "file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Check dimensions to ensure they match up to the output grid.
-            if lapseTmp.shape[1] != GeoMetaWrfHydro.nx_global:
-                ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
-                                       "rate from parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if lapseTmp.shape[0] != GeoMetaWrfHydro.ny_global:
-                ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
-                                       "rate from parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Check dimensions to ensure they match up to the output grid.
+                if lapseTmp.shape[1] != GeoMetaWrfHydro.nx_global:
+                    ConfigOptions.errMsg = "X-Dimension size mismatch between output grid and lapse " \
+                                           "rate from parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if lapseTmp.shape[0] != GeoMetaWrfHydro.ny_global:
+                    ConfigOptions.errMsg = "Y-Dimension size mismatch between output grid and lapse " \
+                                           "rate from parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Perform a quick search to ensure we don't have radical values.
-            indTmp = np.where(lapseTmp < -10.0)
-            if len(indTmp[0]) > 0:
-                ConfigOptions.errMsg = "Found anomolous negative values in the lapse rate grid from " \
-                                       "parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            indTmp = np.where(lapseTmp > 100.0)
-            if len(indTmp[0]) > 0:
-                ConfigOptions.errMsg = "Found excessively high values in the lapse rate grid from " \
-                                       "parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Perform a quick search to ensure we don't have radical values.
+                indTmp = np.where(lapseTmp < -10.0)
+                if len(indTmp[0]) > 0:
+                    ConfigOptions.errMsg = "Found anomolous negative values in the lapse rate grid from " \
+                                           "parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                indTmp = np.where(lapseTmp > 100.0)
+                if len(indTmp[0]) > 0:
+                    ConfigOptions.errMsg = "Found excessively high values in the lapse rate grid from " \
+                                           "parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Close the parameter lapse rate file.
-            try:
-                idTmp.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close parameter file: " + lapsePath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Close the parameter lapse rate file.
+                try:
+                    idTmp.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close parameter file: " + lapsePath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                break
         else:
             lapseTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -366,127 +369,130 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         print('MONTH CHANGE.... NEED TO READ IN NEW PRISM GRIDS.')
 
     if initializeFlag == True:
-        # First reset the local PRISM grids to be safe.
-        input_forcings.nwmPRISM_numGrid = None
-        input_forcings.nwmPRISM_denGrid = None
+        while (True):
+            # First reset the local PRISM grids to be safe.
+            input_forcings.nwmPRISM_numGrid = None
+            input_forcings.nwmPRISM_denGrid = None
 
-        # Compose paths to the expected files.
-        numeratorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
-                        ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Numer.nc'
-        denominatorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
-                          ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Denom.nc'
-        print(numeratorPath)
-        print(denominatorPath)
+            # Compose paths to the expected files.
+            numeratorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
+                            ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Numer.nc'
+            denominatorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
+                              ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Denom.nc'
+            print(numeratorPath)
+            print(denominatorPath)
 
-        # Make sure files exist.
-        if not os.path.isfile(numeratorPath):
-            ConfigOptions.errMsg = "Expected parameter file: " + numeratorPath + " for mountain mapper downscaling " \
-                                                                                 "of precipitation not found."
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+            # Make sure files exist.
+            if not os.path.isfile(numeratorPath):
+                ConfigOptions.errMsg = "Expected parameter file: " + numeratorPath + \
+                                       " for mountain mapper downscaling of precipitation not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
 
-        if not os.path.isfile(denominatorPath):
-            ConfigOptions.errMsg = "Expected parameter file: " + denominatorPath + " for mountain mapper downscaling " \
-                                                                                   "of precipitation not found."
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+            if not os.path.isfile(denominatorPath):
+                ConfigOptions.errMsg = "Expected parameter file: " + denominatorPath + \
+                                       " for mountain mapper downscaling of precipitation not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
 
-        if MpiConfig.rank == 0:
-            # Open the NetCDF parameter files. Check to make sure expected dimension sizes are in place, along with
-            # variable names, etc.
-            try:
-                idNum = Dataset(numeratorPath,'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                idDenom = Dataset(denominatorPath,'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                pass
+            if MpiConfig.rank == 0:
+                # Open the NetCDF parameter files. Check to make sure expected dimension
+                # sizes are in place, along with variable names, etc.
+                try:
+                    idNum = Dataset(numeratorPath,'r')
+                except:
+                    ConfigOptions.errMsg = "Unable to open parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idDenom = Dataset(denominatorPath,'r')
+                except:
+                    ConfigOptions.errMsg = "Unable to open parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions,MpiConfig)
+                    break
 
-            # Check to make sure expected names, dimension sizes are present.
-            if 'x' not in idNum.variables.keys():
-                ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if 'x' not in idDenom.variables.keys():
-                ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Check to make sure expected names, dimension sizes are present.
+                if 'x' not in idNum.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if 'x' not in idDenom.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'x' variable not found in parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            if 'y' not in idNum.variables.keys():
-                ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if 'y' not in idDenom.variables.keys():
-                ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                if 'y' not in idNum.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if 'y' not in idDenom.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'y' variable not found in parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            if 'Data' not in idNum.variables.keys():
-                ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if 'Data' not in idDenom.variables.keys():
-                ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                if 'Data' not in idNum.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if 'Data' not in idDenom.variables.keys():
+                    ConfigOptions.errMsg = "Expected 'Data' variable not found in parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            if idNum.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
-                ConfigOptions.errMsg = "Input Y dimension for: " + numeratorPath + " does not match the output WRF-Hydro " \
-                                                                                   " Y dimension size."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if idDenom.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
-                ConfigOptions.errMsg = "Input Y dimension for: " + denominatorPath + " does not match the output WRF-Hydro " \
-                                                                                 " Y dimension size."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                if idNum.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
+                    ConfigOptions.errMsg = "Input Y dimension for: " + numeratorPath + \
+                                           " does not match the output WRF-Hydro Y dimension size."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if idDenom.variables['Data'].shape[0] != GeoMetaWrfHydro.ny_global:
+                    ConfigOptions.errMsg = "Input Y dimension for: " + denominatorPath + \
+                                           " does not match the output WRF-Hydro Y dimension size."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            if idNum.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
-                ConfigOptions.errMsg = "Input X dimension for: " + numeratorPath + " does not match the output WRF-Hydro " \
-                                                                               " X dimension size."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if idDenom.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
-                ConfigOptions.errMsg = "Input X dimension for: " + denominatorPath + " does not match the output WRF-Hydro " \
-                                                                                 " X dimension size."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                if idNum.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
+                    ConfigOptions.errMsg = "Input X dimension for: " + numeratorPath + \
+                                           " does not match the output WRF-Hydro X dimension size."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if idDenom.variables['Data'].shape[1] != GeoMetaWrfHydro.nx_global:
+                    ConfigOptions.errMsg = "Input X dimension for: " + denominatorPath + \
+                                           " does not match the output WRF-Hydro X dimension size."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Read in the PRISM grid on the output grid. Then scatter the array out to the processors.
-            try:
-                numDataTmp = idNum.variables['Data'][:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                denDataTmp = idDenom.variables['Data'][:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                # Read in the PRISM grid on the output grid. Then scatter the array out to the processors.
+                try:
+                    numDataTmp = idNum.variables['Data'][:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    denDataTmp = idDenom.variables['Data'][:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract 'Data' from parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
 
-            # Close the parameter files.
-            try:
-                idNum.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close parameter file: " + numeratorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                idDenom.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close parameter file: " + denominatorPath
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-        else:
-            numDataTmp = None
-            denDataTmp = None
+                # Close the parameter files.
+                try:
+                    idNum.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close parameter file: " + numeratorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idDenom.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close parameter file: " + denominatorPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            else:
+                numDataTmp = None
+                denDataTmp = None
+
+            break
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Scatter the array out to the local processors
