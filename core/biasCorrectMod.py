@@ -291,7 +291,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 break
 
             # Read in the zero precip prob grids if we are bias correcting precipitation.
-            if force_num == 3:
+            if force_num == 4:
                 try:
                     nldas_zero_pcp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
                 except:
