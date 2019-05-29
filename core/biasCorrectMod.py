@@ -186,7 +186,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         5: 10.0
     }
     if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = "Running NLDAS-CFSv2 CDF/PDF bias correction."
+        ConfigOptions.statusMsg = "Running NLDAS-CFSv2 CDF/PDF bias correction on variable: " + \
+                                  input_forcings.netcdf_var_names[force_num]
         errMod.log_msg(ConfigOptions, MpiConfig)
 
     # Check to ensure we are running with CFSv2 here....
