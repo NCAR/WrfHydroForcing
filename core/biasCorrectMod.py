@@ -192,110 +192,111 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     # Open the necessary parameter grids, which are on the global CFSv2 grid, then scatter them out
     # to the various processors.
     if MpiConfig.rank == 0:
-        nldas_param_file = input_forcings.paramDir + "/NLDAS_Climo/nldas2_" + \
-                           ConfigOptions.current_output_date.strftime('%m%d%H') + \
-                           "_dist_params.nc"
-        if not os.path.isfile(nldas_param_file):
-            ConfigOptions.errMsg = "Unable to locate necessary bias correction parameter file: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Open the NetCDF file.
-        try:
-            idNldasParam = Dataset(nldas_param_file, 'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open parameter file: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Ensure dimensions/variables are as expected.
-        if 'lat_0' not in idNldasParam.dimensions.keys():
-            ConfigOptions.errMsg = "Expected to find lat_0 dimension in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if 'lon_0' not in idNldasParam.dimensions.keys():
-            ConfigOptions.errMsg = "Expected to find lon_0 dimension in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if idNldasParam.dimensions['lat_0'].size != 190:
-            ConfigOptions.errMsg = "Expected lat_0 size is 190 - found size of: " + \
-                                   str(idNldasParam.dimensions['lat_0'].size) + " in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if idNldasParam.dimensions['lon_0'].size != 384:
-            ConfigOptions.errMsg = "Expected lon_0 size is 384 - found size of: " + \
-                                   str(idNldasParam.dimensions['lon_0'].size) + " in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if nldasParam1Vars[force_num] not in idNldasParam.variables.keys():
-            ConfigOptions.errMsg = "Expected variable: " + nldasParam1Vars[force_num] + " not found " + \
-                                   "in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if nldasParam2Vars[force_num] not in idNldasParam.variables.keys():
-            ConfigOptions.errMsg = "Expected variable: " + nldasParam2Vars[force_num] + " not found " + \
-                                   "in: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if force_num == 3:
-            if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
-                ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
+        while (True):
+            nldas_param_file = input_forcings.paramDir + "/NLDAS_Climo/nldas2_" + \
+                               ConfigOptions.current_output_date.strftime('%m%d%H') + \
+                               "_dist_params.nc"
+            if not os.path.isfile(nldas_param_file):
+                ConfigOptions.errMsg = "Unable to locate necessary bias correction parameter file: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                break
 
-        try:
-            nldas_param_1 = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + " from: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            nldas_param_2 = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + " from: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if nldas_param_1.shape[0] != 190 or nldas_param_1.shape[1] != 384:
-            ConfigOptions.errMsg = "Parameter variable: " + nldasParam1Vars[force_num] + " from: " + \
-                                   nldas_param_file + " not of shape [190,384]."
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if nldas_param_2.shape[0] != 190 or nldas_param_2.shape[1] != 384:
-            ConfigOptions.errMsg = "Parameter variable: " + nldasParam2Vars[force_num] + " from: " + \
-                                   nldas_param_file + " not of shape [190,384]."
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Extract the fill value
-        try:
-            fillTmp = idNldasParam.variables[nldasParam1Vars[force_num]]._FillValue
-        except:
-            ConfigOptions.errMsg = "Unable to extract Fill_Value from: " + nldas_param_file
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Read in the zero precip prob grids if we are bias correcting precipitation.
-        if force_num == 3:
+            # Open the NetCDF file.
             try:
-                nldas_zero_pcp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
+                idNldasParam = Dataset(nldas_param_file, 'r')
             except:
-                ConfigOptions.errMsg = "Unable to extract ZERO_PRECIP_PROB from: " + nldas_param_file
+                ConfigOptions.errMsg = "Unable to open parameter file: " + nldas_param_file
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if nldas_zero_pcp.shape[0] != 190 or nldas_zero_pcp.shape[1] != 384:
-                ConfigOptions.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
-                                       " not of shape [190,384]."
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                break
 
-        # Set missing values accordingly.
-        nldas_param_1[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
-        nldas_param_2[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
-        if force_num == 3:
-            nldas_zero_pcp[np.where(nldas_zero_pcp == fillTmp)] = ConfigOptions.globalNdv
+            # Ensure dimensions/variables are as expected.
+            if 'lat_0' not in idNldasParam.dimensions.keys():
+                ConfigOptions.errMsg = "Expected to find lat_0 dimension in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if 'lon_0' not in idNldasParam.dimensions.keys():
+                ConfigOptions.errMsg = "Expected to find lon_0 dimension in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if idNldasParam.dimensions['lat_0'].size != 190:
+                ConfigOptions.errMsg = "Expected lat_0 size is 190 - found size of: " + \
+                                       str(idNldasParam.dimensions['lat_0'].size) + " in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if idNldasParam.dimensions['lon_0'].size != 384:
+                ConfigOptions.errMsg = "Expected lon_0 size is 384 - found size of: " + \
+                                       str(idNldasParam.dimensions['lon_0'].size) + " in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if nldasParam1Vars[force_num] not in idNldasParam.variables.keys():
+                ConfigOptions.errMsg = "Expected variable: " + nldasParam1Vars[force_num] + " not found " + \
+                                       "in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if nldasParam2Vars[force_num] not in idNldasParam.variables.keys():
+                ConfigOptions.errMsg = "Expected variable: " + nldasParam2Vars[force_num] + " not found " + \
+                                       "in: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if force_num == 3:
+                if 'ZERO_PRECIP_PROB' not in idNldasParam.variables.keys():
+                    ConfigOptions.errMsg = "Expected variable: ZERO_PRECIP_PROB not found in: " + nldas_param_file
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+            try:
+                nldas_param_1 = idNldasParam.variables[nldasParam1Vars[force_num]][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract: " + nldasParam1Vars[force_num] + " from: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                nldas_param_2 = idNldasParam.variables[nldasParam2Vars[force_num]][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract: " + nldasParam2Vars[force_num] + " from: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if nldas_param_1.shape[0] != 190 or nldas_param_1.shape[1] != 384:
+                ConfigOptions.errMsg = "Parameter variable: " + nldasParam1Vars[force_num] + " from: " + \
+                                       nldas_param_file + " not of shape [190,384]."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if nldas_param_2.shape[0] != 190 or nldas_param_2.shape[1] != 384:
+                ConfigOptions.errMsg = "Parameter variable: " + nldasParam2Vars[force_num] + " from: " + \
+                                       nldas_param_file + " not of shape [190,384]."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            # Extract the fill value
+            try:
+                fillTmp = idNldasParam.variables[nldasParam1Vars[force_num]]._FillValue
+            except:
+                ConfigOptions.errMsg = "Unable to extract Fill_Value from: " + nldas_param_file
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            # Read in the zero precip prob grids if we are bias correcting precipitation.
+            if force_num == 3:
+                try:
+                    nldas_zero_pcp = idNldasParam.variables['ZERO_PRECIP_PROB'][:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract ZERO_PRECIP_PROB from: " + nldas_param_file
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if nldas_zero_pcp.shape[0] != 190 or nldas_zero_pcp.shape[1] != 384:
+                    ConfigOptions.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
+                                           " not of shape [190,384]."
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+            # Set missing values accordingly.
+            nldas_param_1[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
+            nldas_param_2[np.where(nldas_param_1 == fillTmp)] = ConfigOptions.globalNdv
+            if force_num == 3:
+                nldas_zero_pcp[np.where(nldas_zero_pcp == fillTmp)] = ConfigOptions.globalNdv
 
     else:
         nldas_param_1 = None
@@ -316,144 +317,145 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
-        # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
-        cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + cfsParamPathVars[force_num] + "_" + \
-            input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
-            '_dist_params.nc'
-        cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
-                          input_forcings.fcst_date2.strftime('%m%d') + "_" + input_forcings.fcst_date2.strftime('%H') + \
-                          '_dist_params.nc'
+        while (True):
+            # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
+            cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + cfsParamPathVars[force_num] + "_" + \
+                input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
+            '   _dist_params.nc'
+            cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
+                              input_forcings.fcst_date2.strftime('%m%d') + "_" + input_forcings.fcst_date2.strftime('%H') + \
+                              '_dist_params.nc'
 
-        if not os.path.isfile(cfs_param_path1):
-            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if not os.path.isfile(cfs_param_path2):
-            ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+            if not os.path.isfile(cfs_param_path1):
+                ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if not os.path.isfile(cfs_param_path2):
+                ConfigOptions.errMsg = "Unable to locate necessary parameter file: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
 
-        # Open the files and ensure they contain the correct information.
-        try:
-            idCfsParam1 = Dataset(cfs_param_path1, 'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            idCfsParam2 = Dataset(cfs_param_path2, 'r')
-        except:
-            ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if 'DISTRIBUTION_PARAM_1' not in idCfsParam1.variables.keys():
-            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if 'DISTRIBUTION_PARAM_2' not in idCfsParam1.variables.keys():
-            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if 'DISTRIBUTION_PARAM_1' not in idCfsParam2.variables.keys():
-            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if 'DISTRIBUTION_PARAM_2' not in idCfsParam2.variables.keys():
-            ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            param_1 = idCfsParam2.variables['DISTRIBUTION_PARAM_1'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            param_2 = idCfsParam2.variables['DISTRIBUTION_PARAM_2'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            lat_0 = idCfsParam2.variables['lat_0'][:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract lat_0 from: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            lon_0 = idCfsParam2.variables['lon_0'][:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract lon_0 from: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        try:
-            prev_param_1 = idCfsParam1.variables['DISTRIBUTION_PARAM_1'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            prev_param_2 = idCfsParam1.variables['DISTRIBUTION_PARAM_2'][:,:]
-        except:
-            ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if param_1.shape[0] != 190 and param_1.shape[1] != 384:
-            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if param_2.shape[0] != 190 and param_2.shape[1] != 384:
-            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        if prev_param_1.shape[0] != 190 and prev_param_1.shape[1] != 384:
-            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        if prev_param_2.shape[0] != 190 and prev_param_2.shape[1] != 384:
-            ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path1
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-        # Read in the zero precip prob grids if we are bias correcting precipitation.
-        if force_num == 3:
+            # Open the files and ensure they contain the correct information.
             try:
-                zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+                idCfsParam1 = Dataset(cfs_param_path1, 'r')
             except:
-                ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path2
+                ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path1
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                break
             try:
-                prev_zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+                idCfsParam2 = Dataset(cfs_param_path2, 'r')
             except:
-                ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path1
+                ConfigOptions.errMsg = "Unable to open parameter file: " + cfs_param_path2
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if zero_pcp.shape[0] != 190 and zero_pcp.shape[1] != 384:
-                ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path2
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            if prev_zero_pcp.shape[0] != 190 and prev_zero_pcp.shape[1] != 384:
-                ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path1
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                break
 
-        # Reset any missing values. Because the fill values for these files are all over the map, we
-        # will just do a gross check here. For the most part, there shouldn't be missing values.
-        param_1[np.where(param_1 > 500000.0)] = ConfigOptions.globalNdv
-        param_2[np.where(param_2 > 500000.0)] = ConfigOptions.globalNdv
-        prev_param_1[np.where(prev_param_1 > 500000.0)] = ConfigOptions.globalNdv
-        prev_param_2[np.where(prev_param_2 > 500000.0)] = ConfigOptions.globalNdv
-        if force_num == 3:
-            zero_pcp[np.where(zero_pcp > 500000.0)] = ConfigOptions.globalNdv
-            prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+            if 'DISTRIBUTION_PARAM_1' not in idCfsParam1.variables.keys():
+                ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if 'DISTRIBUTION_PARAM_2' not in idCfsParam1.variables.keys():
+                ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if 'DISTRIBUTION_PARAM_1' not in idCfsParam2.variables.keys():
+                ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if 'DISTRIBUTION_PARAM_2' not in idCfsParam2.variables.keys():
+                ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            try:
+                param_1 = idCfsParam2.variables['DISTRIBUTION_PARAM_1'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                param_2 = idCfsParam2.variables['DISTRIBUTION_PARAM_2'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            try:
+                lat_0 = idCfsParam2.variables['lat_0'][:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract lat_0 from: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                lon_0 = idCfsParam2.variables['lon_0'][:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract lon_0 from: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            try:
+                prev_param_1 = idCfsParam1.variables['DISTRIBUTION_PARAM_1'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_1 from: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                prev_param_2 = idCfsParam1.variables['DISTRIBUTION_PARAM_2'][:,:]
+            except:
+                ConfigOptions.errMsg = "Unable to extract DISTRIBUTION_PARAM_2 from: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if param_1.shape[0] != 190 and param_1.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if param_2.shape[0] != 190 and param_2.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            if prev_param_1.shape[0] != 190 and prev_param_1.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            if prev_param_2.shape[0] != 190 and prev_param_2.shape[1] != 384:
+                ConfigOptions.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path1
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+
+            # Read in the zero precip prob grids if we are bias correcting precipitation.
+            if force_num == 3:
+                try:
+                    zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+                except:
+                    ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path2
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    prev_zero_pcp = idCfsParam2.variables['ZERO_PRECIP_PROB'][:, :]
+                except:
+                    ConfigOptions.errMsg = "Unable to locate ZERO_PRECIP_PROB in: " + cfs_param_path1
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if zero_pcp.shape[0] != 190 and zero_pcp.shape[1] != 384:
+                    ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path2
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                if prev_zero_pcp.shape[0] != 190 and prev_zero_pcp.shape[1] != 384:
+                    ConfigOptions.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path1
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+            # Reset any missing values. Because the fill values for these files are all over the map, we
+            # will just do a gross check here. For the most part, there shouldn't be missing values.
+            param_1[np.where(param_1 > 500000.0)] = ConfigOptions.globalNdv
+            param_2[np.where(param_2 > 500000.0)] = ConfigOptions.globalNdv
+            prev_param_1[np.where(prev_param_1 > 500000.0)] = ConfigOptions.globalNdv
+            prev_param_2[np.where(prev_param_2 > 500000.0)] = ConfigOptions.globalNdv
+            if force_num == 3:
+                zero_pcp[np.where(zero_pcp > 500000.0)] = ConfigOptions.globalNdv
+                prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = ConfigOptions.globalNdv
 
     else:
         param_1 = None
