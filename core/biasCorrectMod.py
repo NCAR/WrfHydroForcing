@@ -9,6 +9,7 @@ from netCDF4 import Dataset
 import numpy as np
 import math
 import random
+import sys
 
 def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
@@ -178,6 +179,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         6: 350.0,
         7: 10.0
     }
+    print('PERFORMING CFSV2 PCP NLDAS BIAS CORRECTION.')
+    sys.exit(1)
     # Check to ensure we are running with CFSv2 here....
     if input_forcings.productName != "CFSv2_6Hr_Global_GRIB2":
         ConfigOptions.errMsg = "Attempting to run CFSv2-NLDAS bias correction on: " + input_forcings.productName

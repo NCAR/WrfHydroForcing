@@ -638,7 +638,8 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # bias correction. These grids are interpolated in a separate routine, AFTER bias
         # correction has taken place.
         if ConfigOptions.runCfsNldasBiasCorrect:
-            if not input_forcings.coarse_input_forcings1 and not input_forcings.coarse_input_forcings2 and \
+            if not np.any(input_forcings.coarse_input_forcings1) and not \
+                    np.any(input_forcings.coarse_input_forcings2) and \
                     ConfigOptions.current_output_step == 1:
                 # We need to create NumPy arrays to hold the CFSv2 global data.
                 input_forcings.coarse_input_forcings2 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
