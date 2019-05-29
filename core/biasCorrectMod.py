@@ -357,6 +357,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
+            ConfigOptions.statusMsg = "Checking CFS parameter files."
+            errMod.log_msg(ConfigOptions, MpiConfig)
             if 'DISTRIBUTION_PARAM_1' not in idCfsParam1.variables.keys():
                 ConfigOptions.errMsg = "Expected DISTRIBUTION_PARAM_1 variable not found in: " + cfs_param_path1
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -432,6 +434,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 break
 
+            ConfigOptions.statusMsg = "Reading in zero precip probs."
+            errMod.log_msg(ConfigOptions, MpiConfig)
             # Read in the zero precip prob grids if we are bias correcting precipitation.
             if force_num == 3:
                 try:
@@ -475,6 +479,9 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         prev_zero_pcp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Scattering CFS parameter grids"
+        errMod.log_msg(ConfigOptions, MpiConfig)
     # Scatter CFS parameters
     cfs_param_1_sub = MpiConfig.scatter_array(input_forcings, param_1, ConfigOptions)
     errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -491,6 +498,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Closing CFS bias correction parameter files."
+        errMod.log_msg(ConfigOptions, MpiConfig)
         while (True):
             # Close the parameter files.
             try:
