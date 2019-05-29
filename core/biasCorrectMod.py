@@ -551,50 +551,50 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
         ConfigOptions.statusMsg = "Looping over local arrays to calculate bias corrections."
         errMod.log_msg(ConfigOptions, MpiConfig)
     # Process each of the pixel cells for this local processor on the CFS grid.
-    #for x_local in range(0,input_forcings.nx_local):
-    #    for y_local in range(0,input_forcings.ny_local):
-    #        cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, y_local, x_local]
-    #        cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, y_local, x_local]
+    for x_local in range(0,input_forcings.nx_local):
+        for y_local in range(0,input_forcings.ny_local):
+            cfs_prev_tmp = input_forcings.coarse_input_forcings1[force_num, y_local, x_local]
+            cfs_next_tmp = input_forcings.coarse_input_forcings2[force_num, y_local, x_local]
 
             # Check for any missing parameter values. If any missing values exist,
             # set this flag to False. Further down, if it's False, we will simply
             # set the local CFS adjusted value to the interpolated value.
-    #        correctFlag = True
-    #        if cfs_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if cfs_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if cfs_prev_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if cfs_prev_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if nldas_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if nldas_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #            correctFlag = False
-    #        if force_num == 3:
-    #            if cfs_prev_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #                correctFlag = False
-    #            if cfs_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #                correctFlag = False
-    #            if nldas_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
-    #                correctFlag = False
+            correctFlag = True
+            if cfs_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_prev_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if cfs_prev_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if nldas_param_1_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if nldas_param_2_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                correctFlag = False
+            if force_num == 3:
+                if cfs_prev_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
+                if cfs_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
+                if nldas_zero_pcp_sub[y_local,x_local] == ConfigOptions.globalNdv:
+                    correctFlag = False
 
             # Interpolate the two CFS values (and parameters) in time.
-    #        dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
-    #        hrFromPrevious = dtFromPrevious.total_seconds()/3600.0
-    #        interpFactor1 = float(1 - (hrFromPrevious / 6.0))
-    #        interpFactor2 = float(hrFromPrevious / 6.0)
+            dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
+            hrFromPrevious = dtFromPrevious.total_seconds()/3600.0
+            interpFactor1 = float(1 - (hrFromPrevious / 6.0))
+            interpFactor2 = float(hrFromPrevious / 6.0)
 
             # Since this is only for CFSv2 6-hour data, we will assume 6-hour intervals.
             # This is already checked at the beginning of this routine for the product name.
-    #        cfs_param_1_interp = cfs_prev_param_1_sub[y_local, x_local] * interpFactor1 + \
-    #                             cfs_param_1_sub[y_local, x_local] * interpFactor2
-    #        cfs_param_2_interp = cfs_prev_param_2_sub[y_local, x_local] * interpFactor1 + \
-    #                             cfs_param_2_sub[y_local, x_local] * interpFactor2
-    #        cfs_interp_fcst = cfs_prev_tmp * interpFactor1 + cfs_next_tmp * interpFactor2
-    #        nldas_nearest_1 = nldas_param_1_sub[y_local, x_local]
-    #        nldas_nearest_2 = nldas_param_2_sub[y_local, x_local]
+            cfs_param_1_interp = cfs_prev_param_1_sub[y_local, x_local] * interpFactor1 + \
+                                 cfs_param_1_sub[y_local, x_local] * interpFactor2
+            cfs_param_2_interp = cfs_prev_param_2_sub[y_local, x_local] * interpFactor1 + \
+                                 cfs_param_2_sub[y_local, x_local] * interpFactor2
+            cfs_interp_fcst = cfs_prev_tmp * interpFactor1 + cfs_next_tmp * interpFactor2
+            nldas_nearest_1 = nldas_param_1_sub[y_local, x_local]
+            nldas_nearest_2 = nldas_param_2_sub[y_local, x_local]
 
     #        if correctFlag:
     #            if force_num != 3 and force_num != 7 and force_num != 5:
@@ -733,39 +733,39 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
     #                            if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
     #                                cfs_data[y_local, x_local] = cfs_interp_fcst
     #        else:
-    #            # No adjustment for this CFS pixel cell as we have missing parameter values.
-    #            cfs_data[y_local, x_local] = cfs_interp_fcst
+            # No adjustment for this CFS pixel cell as we have missing parameter values.
+            cfs_data[y_local, x_local] = cfs_interp_fcst
 
     # Regrid the local CFS slap to the output array
-    #try:
-    #    input_forcings.esmf_field_in.data[:, :] = cfs_data
-    #except:
-    #    ConfigOptions.errMsg = "Unable to place CFSv2 forcing data into temporary ESMF field."
-    #    errMod.log_critical(ConfigOptions, MpiConfig)
-    #errMod.check_program_status(ConfigOptions, MpiConfig)
+    try:
+        input_forcings.esmf_field_in.data[:, :] = cfs_data
+    except:
+        ConfigOptions.errMsg = "Unable to place CFSv2 forcing data into temporary ESMF field."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    #try:
-    #    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-    #                                                             input_forcings.esmf_field_out)
-    #except:
-    #    ConfigOptions.errMsg = "Unable to regrid CFSv2 variable: " + input_forcings.netcdf_var_names[force_num]
-    #    errMod.log_critical(ConfigOptions, MpiConfig)
-    #errMod.check_program_status(ConfigOptions, MpiConfig)
+    try:
+        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                 input_forcings.esmf_field_out)
+    except:
+        ConfigOptions.errMsg = "Unable to regrid CFSv2 variable: " + input_forcings.netcdf_var_names[force_num]
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    ## Set any pixel cells outside the input domain to the global missing value.
-    #try:
-    #    input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-    #        ConfigOptions.globalNdv
-    #except:
-    #    ConfigOptions.errMsg = "Unable to run mask calculation on CFSv2 variable: " + \
-    #                           input_forcings.netcdf_var_names[force_num]
-    #    errMod.log_critical(ConfigOptions, MpiConfig)
-    #errMod.check_program_status(ConfigOptions, MpiConfig)
+    # Set any pixel cells outside the input domain to the global missing value.
+    try:
+        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+            ConfigOptions.globalNdv
+    except:
+        ConfigOptions.errMsg = "Unable to run mask calculation on CFSv2 variable: " + \
+                               input_forcings.netcdf_var_names[force_num]
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    #try:
-    #    input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = \
-    #        input_forcings.esmf_field_out.data
-    #except:
-    #    ConfigOptions.errMsg = "Unable to extract ESMF field data for CFSv2."
-    #    errMod.log_critical(ConfigOptions, MpiConfig)
-    #errMod.check_program_status(ConfigOptions, MpiConfig)
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = \
+            input_forcings.esmf_field_out.data
+    except:
+        ConfigOptions.errMsg = "Unable to extract ESMF field data for CFSv2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
