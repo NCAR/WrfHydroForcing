@@ -317,7 +317,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
     if MpiConfig.rank == 0:
         # Read in the CFSv2 parameter files, based on the previous CFSv2 dates
-        cfs_param_path1 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
+        cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + cfsParamPathVars[force_num] + "_" + \
             input_forcings.fcst_date1.strftime('%m%d') + "_" + input_forcings.fcst_date1.strftime('%H') + \
             '_dist_params.nc'
         cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
