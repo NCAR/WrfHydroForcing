@@ -328,7 +328,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             cfs_param_path1 = input_forcings.paramDir + "/CFSv2_Climo/cfs_" + \
                               cfsParamPathVars[force_num] + "_" + \
                               input_forcings.fcst_date1.strftime('%m%d') + "_" + \
-                              input_forcings.fcst_date1.strftime('%H') + '   _dist_params.nc'
+                              input_forcings.fcst_date1.strftime('%H') + '_dist_params.nc'
             cfs_param_path2 = input_forcings.paramDir + "/cfs_" + cfsParamPathVars[force_num] + "_" + \
                               input_forcings.fcst_date2.strftime('%m%d') + "_" + \
                               input_forcings.fcst_date2.strftime('%H') + \
