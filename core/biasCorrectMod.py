@@ -729,21 +729,21 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                                 new_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
                                 cfs_data[y_local, x_local] = vals[new_nldas_ind] / 3600.0
 
-    #                            # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
-    #                            # if it is, this indicated nldas2 distribution is unrealistic
-    #                            # and default back to cfsv2 forecast value
-    #                            if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
-    #                                cfs_data[y_local, x_local] = cfs_interp_fcst
-    #                        else:
-    #                            cfs_data[y_local, x_local] = vals[cfs_nldas_ind] / 3600.0  # convert back to mm/s
-    #                            # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
-    #                            # if it is, this indicated nldas2 distribution is unrealistic
-    #                            # and default back to cfsv2 forecast value
-    #                            if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
-    #                                cfs_data[y_local, x_local] = cfs_interp_fcst
-    #        else:
-            # No adjustment for this CFS pixel cell as we have missing parameter values.
-            cfs_data[y_local, x_local] = cfs_interp_fcst
+                                # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
+                                # if it is, this indicated nldas2 distribution is unrealistic
+                                # and default back to cfsv2 forecast value
+                                if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
+                                    cfs_data[y_local, x_local] = cfs_interp_fcst
+                            else:
+                                cfs_data[y_local, x_local] = vals[cfs_nldas_ind] / 3600.0  # convert back to mm/s
+                                # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
+                                # if it is, this indicated nldas2 distribution is unrealistic
+                                # and default back to cfsv2 forecast value
+                                if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
+                                    cfs_data[y_local, x_local] = cfs_interp_fcst
+            else:
+                # No adjustment for this CFS pixel cell as we have missing parameter values.
+                cfs_data[y_local, x_local] = cfs_interp_fcst
 
     # Regrid the local CFS slap to the output array
     try:
