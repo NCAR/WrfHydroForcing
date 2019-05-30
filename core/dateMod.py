@@ -715,11 +715,13 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             print('We are on the first output timestep.')
             input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
             input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in1 = tmpFile1
+            input_forcings.file_in2 = tmpFile2
         else:
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not input_forcings.regridded_forcings1:
+            if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + input_forcings.productName
                     errMod.log_msg(ConfigOptions, MpiConfg)
@@ -738,7 +740,7 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                 input_forcings.file_in2 = tmpFile2
                 if ConfigOptions.runCfsNldasBiasCorrect:
                     # Reset our global CFSv2 grids.
-                    input_forcings.global_input_forcings1[:, :, :] = input_forcings.global_input_forcings2[:, :, :]
+                    input_forcings.coarse_input_forcings1[:, :, :] = input_forcings.coarse_input_forcings2[:, :, :]
         input_forcings.regridComplete = False
     errMod.check_program_status(ConfigOptions, MpiConfg)
 

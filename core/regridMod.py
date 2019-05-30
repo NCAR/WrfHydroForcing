@@ -39,17 +39,19 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
     if MpiConfig.rank == 0:
-        if os.path.isfile(input_forcings.tmpFile):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove temporary file: " + \
-                                       input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                pass
+        while (True):
+            if os.path.isfile(input_forcings.tmpFile):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          input_forcings.tmpFile + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove temporary file: " + \
+                                           input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions,MpiConfig)
+                    break
+            break
     errMod.check_program_status(ConfigOptions,MpiConfig)
 
     forceCount = 0
@@ -92,11 +94,14 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                try:
-                    varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
-                except:
-                    ConfigOptions.errMsg = "Unable to extract HRRR elevation from: " + input_forcings.tmpFileHeight
-                    pass
+                while (True):
+                    try:
+                        varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                    except:
+                        ConfigOptions.errMsg = "Unable to extract HRRR elevation from: " + \
+                                               input_forcings.tmpFileHeight
+                        break
+                    break
             else:
                 varTmp = None
             errMod.check_program_status(ConfigOptions,MpiConfig)
@@ -155,15 +160,18 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "Processing input HRRR variable: " + input_forcings.netcdf_var_names[forceCount]
-            errMod.log_msg(ConfigOptions,MpiConfig)
-            try:
-                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
-                                       " from: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                ConfigOptions.statusMsg = "Processing input HRRR variable: " + \
+                                          input_forcings.netcdf_var_names[forceCount]
+                errMod.log_msg(ConfigOptions,MpiConfig)
+                try:
+                    varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
+                                           " from: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         else:
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -260,16 +268,18 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
     if MpiConfig.rank == 0:
-        if os.path.isfile(input_forcings.tmpFile):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+        while (True):
+            if os.path.isfile(input_forcings.tmpFile):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          input_forcings.tmpFile + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            break
     errMod.check_program_status(ConfigOptions,MpiConfig)
 
     forceCount = 0
@@ -311,12 +321,14 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                try:
-                    varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
-                except:
-                    ConfigOptions.errMsg = "Unable to extract HGT_surface from : " + idTmpHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                while (True):
+                    try:
+                        varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                    except:
+                        ConfigOptions.errMsg = "Unable to extract HGT_surface from : " + idTmpHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    break
             else:
                 varTmp = None
             errMod.check_program_status(ConfigOptions,MpiConfig)
@@ -360,31 +372,35 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Close the temporary NetCDF file and remove it.
             if MpiConfig.rank == 0:
-                try:
-                    idTmpHeight.close()
-                except:
-                    ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                while (True):
+                    try:
+                        idTmpHeight.close()
+                    except:
+                        ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
 
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                    try:
+                        os.remove(input_forcings.tmpFileHeight)
+                    except:
+                        ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    break
             errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
-            try:
-                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
-                                       " from: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
+                try:
+                    varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
+                                           " from: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         else:
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -444,18 +460,20 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
-            try:
-                idTmp.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                try:
+                    idTmp.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         forceCount = forceCount + 1
@@ -492,17 +510,19 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
     if MpiConfig.rank == 0:
-        if os.path.isfile(input_forcings.tmpFile):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      input_forcings.tmpFile + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove previous temporary file: " \
-                                       " " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+        while (True):
+            if os.path.isfile(input_forcings.tmpFile):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          input_forcings.tmpFile + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove previous temporary file: " \
+                                           " " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     forceCount = 0
@@ -547,13 +567,15 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                try:
-                    varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
-                except:
-                    ConfigOptions.errMsg = "Unable to extract HGT_surface from file:" \
-                                           " " + input_forcings.file_in2
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                while (True):
+                    try:
+                        varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                    except:
+                        ConfigOptions.errMsg = "Unable to extract HGT_surface from file:" \
+                                               " " + input_forcings.file_in2
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    break
             else:
                 varTmp = None
             errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -616,16 +638,19 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            if not ConfigOptions.runCfsNldasBiasCorrect:
-                ConfigOptions.statusMsg = "Regridding CFSv2 variable: " + input_forcings.netcdf_var_names[forceCount]
-                errMod.log_msg(ConfigOptions, MpiConfig)
-            try:
-                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
-                                       " from file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                if not ConfigOptions.runCfsNldasBiasCorrect:
+                    ConfigOptions.statusMsg = "Regridding CFSv2 variable: " + \
+                                              input_forcings.netcdf_var_names[forceCount]
+                    errMod.log_msg(ConfigOptions, MpiConfig)
+                try:
+                    varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
+                                           " from file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         else:
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -638,20 +663,24 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # bias correction. These grids are interpolated in a separate routine, AFTER bias
         # correction has taken place.
         if ConfigOptions.runCfsNldasBiasCorrect:
-            if not input_forcings.coarse_input_forcings1 and not input_forcings.coarse_input_forcings2 and \
+            if not np.any(input_forcings.coarse_input_forcings1) and not \
+                    np.any(input_forcings.coarse_input_forcings2) and \
                     ConfigOptions.current_output_step == 1:
                 # We need to create NumPy arrays to hold the CFSv2 global data.
                 input_forcings.coarse_input_forcings2 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
                                                                  np.float64)
                 input_forcings.coarse_input_forcings1 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
                                                                  np.float64)
-            try:
-                input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount],:,:] = varSubTmp
-            except:
-                ConfigOptions.errMsg = "Unable to place local CFSv2 input variable: " + \
-                                        input_forcings.netcdf_var_names[forceCount] + \
-                                        " into local numpy array."
-                pass
+            while (True):
+                try:
+                    input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount],:,:] = varSubTmp
+                except:
+                    ConfigOptions.errMsg = "Unable to place local CFSv2 input variable: " + \
+                                            input_forcings.netcdf_var_names[forceCount] + \
+                                            " into local numpy array."
+                    break
+                break
+
             if ConfigOptions.current_output_step == 1:
                 input_forcings.coarse_input_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
                     input_forcings.coarse_input_forcings2[input_forcings.input_map_output[forceCount], :, :]
@@ -702,6 +731,12 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
                 input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
                     input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :]
             errMod.check_program_status(ConfigOptions, MpiConfig)
+        else:
+            # Set regridded arrays to dummy values as they are regridded later in the bias correction routine.
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[forceCount], :, :] = \
+                ConfigOptions.globalNdv
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[forceCount], :, :] = \
+                ConfigOptions.globalNdv
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
@@ -874,12 +909,14 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
             ConfigOptions.statusMsg = "Found old temporary file: " + \
                 input_forcings.tmpFile + " - Removing....."
             errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # We will process each variable at a time. Unfortunately, wgrib2 makes it a bit
@@ -948,12 +985,15 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Regrid the height variable.
             if MpiConfig.rank == 0:
-                try:
-                    varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
-                except:
-                    ConfigOptions.errMsg = "Unable to extract GFS elevation from: " + input_forcings.tmpFileHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                while (True):
+                    try:
+                        varTmp = idTmpHeight.variables['HGT_surface'][0,:,:]
+                    except:
+                        ConfigOptions.errMsg = "Unable to extract GFS elevation from: " + \
+                                               input_forcings.tmpFileHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    break
             else:
                 varTmp = None
             errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -997,30 +1037,34 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
             # Close the temporary NetCDF file and remove it.
             if MpiConfig.rank == 0:
-                try:
-                    idTmpHeight.close()
-                except:
-                    ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                while (True):
+                    try:
+                        idTmpHeight.close()
+                    except:
+                        ConfigOptions.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
 
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    pass
+                    try:
+                        os.remove(input_forcings.tmpFileHeight)
+                    except:
+                        ConfigOptions.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    break
             errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            try:
-                varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
-            except:
-                ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
-                                       " from: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                try:
+                    varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
+                except:
+                    ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[forceCount] + \
+                                           " from: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         else:
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -1073,18 +1117,20 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
 
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
-            try:
-                idTmp.close()
-            except:
-                ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-            try:
-                os.remove(input_forcings.tmpFile)
-            except:
-                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+            while (True):
+                try:
+                    idTmp.close()
+                except:
+                    ConfigOptions.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    os.remove(input_forcings.tmpFile)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         forceCount = forceCount + 1
@@ -1348,46 +1394,48 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # These files shouldn't exist. If they do, remove them.
     if MpiConfig.rank == 0:
-        if os.path.isfile(mrms_tmp_grib2):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      mrms_tmp_grib2 + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(mrms_tmp_grib2)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-        if os.path.isfile(mrms_tmp_nc):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      mrms_tmp_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(mrms_tmp_nc)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-        if os.path.isfile(mrms_tmp_rqi_grib2):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      mrms_tmp_rqi_grib2 + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(mrms_tmp_rqi_grib2)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
-        if os.path.isfile(mrms_tmp_rqi_nc):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      mrms_tmp_rqi_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(mrms_tmp_rqi_nc)
-            except:
-                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+        while (True):
+            if os.path.isfile(mrms_tmp_grib2):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          mrms_tmp_grib2 + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(mrms_tmp_grib2)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            if os.path.isfile(mrms_tmp_nc):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          mrms_tmp_nc + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(mrms_tmp_nc)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            if os.path.isfile(mrms_tmp_rqi_grib2):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          mrms_tmp_rqi_grib2 + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(mrms_tmp_rqi_grib2)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            if os.path.isfile(mrms_tmp_rqi_nc):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          mrms_tmp_rqi_nc + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(mrms_tmp_rqi_nc)
+                except:
+                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # If the input paths have been set to None, this means input is missing. We will
@@ -1427,17 +1475,19 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # Remove temporary GRIB2 files
     if MpiConfig.rank == 0:
-        try:
-            os.remove(mrms_tmp_grib2)
-        except:
-            ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_grib2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            os.remove(mrms_tmp_rqi_grib2)
-        except:
-            ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_rqi_grib2
-            errMod.log_critical(ConfigOptions, MpiConfig)
+        while (True):
+            try:
+                os.remove(mrms_tmp_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                os.remove(mrms_tmp_rqi_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_rqi_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Check to see if we need to calculate regridding weights.
@@ -1455,13 +1505,15 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # Regrid the RQI grid.
     if MpiConfig.rank == 0:
-        try:
-            varTmp = idMrmsRqi.variables[supplemental_precip.rqi_netcdf_var_names[0]][0, :, :]
-        except:
-            ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.rqi_netcdf_var_names[0] + \
-                                   " from: " + mrms_tmp_rqi_grib2
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        while (True):
+            try:
+                varTmp = idMrmsRqi.variables[supplemental_precip.rqi_netcdf_var_names[0]][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.rqi_netcdf_var_names[0] + \
+                                       " from: " + mrms_tmp_rqi_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     else:
         varTmp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -1501,31 +1553,35 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # Close the temporary NetCDF file and remove it.
     if MpiConfig.rank == 0:
-        try:
-            idMrmsRqi.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_rqi_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            os.remove(mrms_tmp_rqi_nc)
-        except:
-            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_rqi_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        while (True):
+            try:
+                idMrmsRqi.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_rqi_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                os.remove(mrms_tmp_rqi_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_rqi_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Regrid the input variables.
     if MpiConfig.rank == 0:
         ConfigOptions.statusMsg = "Regridding: " + supplemental_precip.netcdf_var_names[0]
         errMod.log_msg(ConfigOptions, MpiConfig)
-        try:
-            varTmp = idMrms.variables[supplemental_precip.netcdf_var_names[0]][0, :, :]
-        except:
-            ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.netcdf_var_names[0] + \
-                                   " from: " + mrms_tmp_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        while (True):
+            try:
+                varTmp = idMrms.variables[supplemental_precip.netcdf_var_names[0]][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.netcdf_var_names[0] + \
+                                       " from: " + mrms_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     else:
         varTmp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -1592,19 +1648,21 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # Close the temporary NetCDF file and remove it.
     if MpiConfig.rank == 0:
-        try:
-            idMrms.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        while (True):
+            try:
+                idMrms.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
 
-        try:
-            os.remove(mrms_tmp_nc)
-        except:
-            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+            try:
+                os.remove(mrms_tmp_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
@@ -1630,15 +1688,17 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     # These files shouldn't exist. If they do, remove them.
     if MpiConfig.rank == 0:
-        if os.path.isfile(arw_tmp_nc):
-            ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                      arw_tmp_nc + " - Removing....."
-            errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                os.remove(arw_tmp_nc)
-            except:
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+        while (True):
+            if os.path.isfile(arw_tmp_nc):
+                ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                          arw_tmp_nc + " - Removing....."
+                errMod.log_warning(ConfigOptions,MpiConfig)
+                try:
+                    os.remove(arw_tmp_nc)
+                except:
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # If the input paths have been set to None, this means input is missing. We will
@@ -1738,18 +1798,20 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     # Close the temporary NetCDF file and remove it.
     if MpiConfig.rank == 0:
-        try:
-            idTmp.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close NetCDF file: " + arw_tmp_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-        try:
-            os.remove(arw_tmp_nc)
-        except:
-            ConfigOptions.errMsg = "Unable to remove NetCDF file: " + arw_tmp_nc
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+        while (True):
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close NetCDF file: " + arw_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            try:
+                os.remove(arw_tmp_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove NetCDF file: " + arw_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                break
+            break
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,wrfHydroGeoMeta):
@@ -1935,6 +1997,16 @@ def calculate_weights(MpiConfig,ConfigOptions,forceCount,input_forcings,idTmp):
         errMod.log_critical(ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
+    # to have a size of at least 2.
+    if input_forcings.nx_local < 2 or input_forcings.ny_local < 2:
+        ConfigOptions.errMsg = "You have either specified too many cores for: " + input_forcings.productName + \
+                               ", or  your input forcing grid is too small to process. Local grid must " \
+                               "have x/y dimension size of 2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+
     if MpiConfig.rank == 0:
         # Process lat/lon values from the GFS grid.
         if len(idTmp.variables['latitude'].shape) == 3:
@@ -2099,6 +2171,15 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
                                "file: " + tmpFile
         errMod.err_out(ConfigOptions)
     MpiConfig.comm.barrier()
+
+    # Check to make sure we have enough dimensionality to run regridding. ESMF requires both grids
+    # to have a size of at least 2.
+    if supplemental_precip.nx_local < 2 or supplemental_precip.ny_local < 2:
+        ConfigOptions.errMsg = "You have either specified too many cores for: " + supplemental_precip.productName + \
+                               ", or  your input forcing grid is too small to process. Local grid " \
+                               "must have x/y dimension size of 2."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if MpiConfig.rank == 0:
         # Process lat/lon values from the GFS grid.
