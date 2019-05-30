@@ -605,24 +605,24 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
             nldas_nearest_1 = nldas_param_1_sub[y_local, x_local]
             nldas_nearest_2 = nldas_param_2_sub[y_local, x_local]
 
-    #        if correctFlag:
-    #            if force_num != 4 and force_num != 5 and force_num != 1:
-    #                # Not incoming shortwave or precip or specific humidity
-    #                pts = (vals - cfs_param_1_interp) / cfs_param_2_interp
-    #                spacing = (vals[2] - vals[1]) / cfs_param_2_interp
-    #                cfs_pdf = (np.exp(-0.5 * (pts ^ 2)) / math.sqrt(2 * 3.141592)) * spacing
-    #                cfs_cdf = np.cumsum(cfs_pdf)
+            if correctFlag:
+                if force_num != 4 and force_num != 5 and force_num != 1:
+                    # Not incoming shortwave or precip or specific humidity
+                    pts = (vals - cfs_param_1_interp) / cfs_param_2_interp
+                    spacing = (vals[2] - vals[1]) / cfs_param_2_interp
+                    cfs_pdf = (np.exp(-0.5 * (np.power(pts, 2))) / math.sqrt(2 * 3.141592)) * spacing
+                    cfs_cdf = np.cumsum(cfs_pdf)
 
-    #                pts = (vals - nldas_nearest_1) / nldas_nearest_2
-    #                spacing = (vals[2] - vals[1]) / nldas_nearest_2
-    #                nldas_pdf = (np.exp(-0.5 * (pts ^ 2)) / math.sqrt(2 * 3.141592)) * spacing
-    #                nldas_cdf = np.cumsum(nldas_pdf)
+                    pts = (vals - nldas_nearest_1) / nldas_nearest_2
+                    spacing = (vals[2] - vals[1]) / nldas_nearest_2
+                    nldas_pdf = (np.exp(-0.5 * (np.power(pts, 2))) / math.sqrt(2 * 3.141592)) * spacing
+                    nldas_cdf = np.cumsum(nldas_pdf)
 
                     # compute adjusted value now using the CFSv2 forecast value and the two CDFs
                     # find index in vals array
-    #                diffTmp = np.absolute(vals - cfs_interp_fcst)
-    #                cfs_ind = np.where(diffTmp == diffTmp.min())[0][0]
-    #                cfs_cdf_val = cfs_cdf[cfs_ind]
+                    diffTmp = np.absolute(vals - cfs_interp_fcst)
+                    cfs_ind = np.where(diffTmp == diffTmp.min())[0][0]
+                    cfs_cdf_val = cfs_cdf[cfs_ind]
 
                     # now whats the index of the closest cdf value in the nldas array?
     #                diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
