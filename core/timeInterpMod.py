@@ -41,6 +41,14 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If we are running CFSv2 with bias correction, bypass as temporal interpolation is done
+    # internally (NWM-only).
+    if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            return
+
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step.
     dtFromPrevious = ConfigOptions.current_output_date - input_forcings.fcst_date1
@@ -95,6 +103,14 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If we are running CFSv2 with bias correction, bypass as temporal interpolation is done
+    # internally (NWM-only).
+    if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            return
+
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step. Use this to calculate a fraction
     # of the previous forcing output to use in the final output for this step.
