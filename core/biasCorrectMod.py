@@ -24,7 +24,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary for mapping to temperature bias correction.
     bias_correct_temperature = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: ncar_tbl_correction
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                                ConfigOptions, MpiConfig, 0)
@@ -34,7 +35,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary for mapping to humidity bias correction.
     bias_correct_humidity = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: ncar_tbl_correction
     }
     bias_correct_humidity[input_forcings.q2dBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                             ConfigOptions, MpiConfig, 1)
@@ -62,7 +64,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary for mapping to incoming longwave radiation correction.
     bias_correct_lw = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: ncar_blanket_adjustment_lw
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                      ConfigOptions, MpiConfig, 6)
@@ -71,7 +74,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary for mapping to wind bias correction.
     bias_correct_wind = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: ncar_tbl_correction
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
@@ -115,6 +119,124 @@ def no_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, f
         ConfigOptions.errMsg = "Unable to set final forcings during bias correction routine."
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+def ncar_tbl_correction(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
+    """
+    Generic NCAR bias correction for forcings based on the hour of the day. A lookup table
+    is used for each different forcing variable. NOTE!!!! - This is based on HRRRv3 analysis
+    and should be used with extreme caution.
+    :param input_forcings:
+    :param GeoMetaWrfHydro:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :param force_num:
+    :return:
+    """
+    # Establish lookup tables for each forcing, for each forecast hour.
+    adj_tbl = {
+        0: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0],
+        1: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0],
+        2: [0.35, 0.18, 0.15, 0.13, 0.12, 0.11, 0.10, 0.08, 0.07, 0.06, 0.05, 0.03, 0.02, 0.01,
+            -0.01, -0.02, -0.03, -0.4, -0.05],
+        3: [0.35, 0.18, 0.15, 0.13, 0.12, 0.11, 0.10, 0.08, 0.07, 0.06, 0.05, 0.03, 0.02, 0.01,
+            -0.01, -0.02, -0.03, -0.4, -0.05]
+    }
+    # First check to make sure we are within the accepted forecast range per the above table. For now, this
+    # bias correction only applies to the first 18 forecast hours.
+    if int(input_forcings.fcst_hour2) > 18:
+        ConfigOptions.statusMsg = "Current forecast hour for: " + input_forcings.productName + \
+                                  " is greater than allowed forecast range of 18 for table lookup bias correction."
+        errMod.log_warning(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Extract local array of values to perform adjustment on.
+    try:
+        force_tmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except:
+        ConfigOptions.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_num] + \
+                               " from local forcing object for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        indValid = np.where(force_tmp != ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to perform valid search for: " + input_forcings.netcdf_var_names[force_num] + \
+                               " from local forcing object for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Apply the bias correction adjustment based on the current forecast hour.
+    try:
+        force_tmp[indValid] = force_tmp[indValid] + adj_tbl[force_num][int(input_forcings.fcst_hour2)]
+    except:
+        ConfigOptions.errMsg = "Unable to apply table bias correction for: " + \
+                               input_forcings.netcdf_var_names[force_num] + \
+                               " from local forcing object for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = force_tmp[:, :]
+    except:
+        ConfigOptions.errMsg = "Unable to place temporary LW array back into forcing object for: " + \
+                               input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Reset temporary variables to keep low memory footprint.
+    force_tmp = None
+    indValid = None
+
+def ncar_blanket_adjustment_lw(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
+    """
+    Generic NCAR bias correction for incoming longwave radiation fluxes. NOTE!!! - This is based
+    off HRRRv3 analysis and should be used with extreme caution.....
+    :param input_forcings:
+    :param GeoMetaWrfHydro:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :param force_num:
+    :return:
+    """
+    # Establish blanket adjustment to apply across the board in W/m^2
+    adj_lw = 9.0
+
+    # Perform adjustment.
+    try:
+        lwTmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except:
+        ConfigOptions.errMsg = "Unable to extract incoming LW from forcing object for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        indValid = np.where(lwTmp != ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to calculate valid index in incoming LW for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        lwTmp[indValid] = lwTmp[indValid] + adj_lw
+    except:
+        ConfigOptions.errMsg = "Unable to perform LW bias correction for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = lwTmp[:, :]
+    except:
+        ConfigOptions.errMsg = "Unable to place temporary LW array back into forcing object for: " + \
+                               input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Reset temporary variables to keep low memory footprint.
+    lwTmp = None
+    indValid = None
 
 def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
     """
@@ -174,7 +296,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     # hour and datetime information. Once a correction has taken place, we will place
     # the corrected field back into the forcing object.
     try:
-        swTmp = input_forcings.final_forcings[7,:,:]
+        swTmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num],:,:]
     except:
         ConfigOptions.errMsg = "Unable to extract incoming shortwave forcing from object for: " + \
                                input_forcings.productName
@@ -212,7 +334,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     tst = None
     ha = None
     sol_zen_ang = None
-
+    indValid = None
 
 def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
     """
