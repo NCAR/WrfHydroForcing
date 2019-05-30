@@ -685,15 +685,15 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                         # valid point, see if we need to adjust cfsv2 precip
                         nldas_cdf = 1 - np.exp(-(np.power((vals / nldas_nearest_1), nldas_nearest_2)))
 
-    #                # compute adjusted value now using the CFSv2 forecast value and the two CDFs
-    #                # find index in vals array
-    #                diffTmp = np.absolute(vals - (cfs_interp_fcst*3600.0))
-    #                cfs_ind = np.where(diffTmp == diffTmp.min())[0][0]
-    #                cfs_cdf_val = cfs_cdf[cfs_ind]
+                    # compute adjusted value now using the CFSv2 forecast value and the two CDFs
+                    # find index in vals array
+                    diffTmp = np.absolute(vals - (cfs_interp_fcst*3600.0))
+                    cfs_ind = np.where(diffTmp == diffTmp.min())[0][0]
+                    cfs_cdf_val = cfs_cdf[cfs_ind]
 
-    #                # now whats the index of the closest cdf value in the nldas array?
-    #                diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
-    #                cfs_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
+                    # now whats the index of the closest cdf value in the nldas array?
+                    diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
+                    cfs_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
 
     #                if cfs_interp_fcst == 0.0 and nldas_nearest_zero_pcp == 1.0:
     #                    # if no rain in cfsv2, no rain in bias corrected field
