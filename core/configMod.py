@@ -766,7 +766,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.swBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid SwBiasCorrection options specified in the '
                                       'configuration file.')
             if optTmp == 1:

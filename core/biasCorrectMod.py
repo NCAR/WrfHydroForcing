@@ -8,6 +8,7 @@ import os
 from netCDF4 import Dataset
 import numpy as np
 import math
+import time
 import random
 import sys
 
@@ -51,7 +52,8 @@ def run_bias_correction(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Dictionary for mapping to incoming shortwave radiation correction.
     bias_correct_sw = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: ncar_sw_hrrr_bias_correct
     }
     bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, GeoMetaWrfHydro,
                                                      ConfigOptions, MpiConfig, 5)
@@ -113,6 +115,104 @@ def no_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, f
         ConfigOptions.errMsg = "Unable to set final forcings during bias correction routine."
         errMod.log_critical(ConfigOptions, MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
+    """
+    Function to implement a bias correction to the forecast incoming shortwave radiation fluxes.
+    NOTE!!!! - This bias correction is based on in-situ analysis performed against HRRRv3
+    fields. It's high discouraged to use this for any other NWP products, or even with the HRRR
+    changes versions in the future.
+    :param input_forcings:
+    :param GeoMetaWrfHydro:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :param force_num:
+    :return:
+    """
+    # Establish constant parameters. NOTE!!! - These will change with future HRRR upgrades.
+    c1 = -0.159
+    c2 = 0.077
+
+    # Establish current datetime information, along wth solar constants.
+    fHr = input_forcings.fcst_hour2
+    d2r = math.pi/180.0
+    r2d = 180.0/math.pi
+    dCurrent = ConfigOptions.current_output_date
+    hh = float(dCurrent.hour)
+    mm = float(dCurrent.minute)
+    ss = float(dCurrent.second)
+    doy = float(time.strptime(dCurrent.strftime('%Y.%m.%d'), '%Y.%m.%d').tm_yday)
+    frac_year = 2.0*math.pi/365.0*(doy - 1.0 + (hh/24.0) + (mm/1440.0) + (ss/86400.0))
+    # eqtime is the difference in minutes between true solar time and that if solar noon was at actual noon.
+    # This difference is due to Earth's eliptical orbit around the sun.
+    eqtime = 229.18 * (0.000075 + 0.001868 * math.cos(frac_year) - 0.032077 * math.sin(frac_year) -
+                       0.014615 * math.cos(2.0*frac_year) - 0.040849 * math.sin(2.0*frac_year))
+
+    # decl is the solar declination angle in radians: how much the Earth is tilted toward or away from the sun
+    decl = 0.006918 - 0.399912 * math.cos(frac_year) + 0.070257 * math.sin(frac_year) - \
+           0.006758 * math.cos(2.0 * frac_year) + 0.000907 * math.sin(2.0 * frac_year) - \
+           0.002697 * math.cos(3.0 * frac_year) + 0.001480 * math.sin(3.0 * frac_year)
+
+    # Create temporary grids for calculating the solar zenith angle, which will be used in the bias correction.
+    # time offset in minutes from the prime meridian
+    time_offset = eqtime + 4.0 * GeoMetaWrfHydro.latitude_grid
+
+    # tst is the true solar time: the number of minutes since solar midnight
+    tst = hh*60.0 + mm + ss/60.0 + time_offset
+
+    # solar hour angle in radians: the amount the sun is off from due south
+    ha = d2r*((tst/4.0) - 180.0)
+
+    # solar zenith angle is the angle between straight up and the center of the sun's disc
+    # the cosine of the sol_zen_ang is proportional to the solar intensity
+    # (not accounting for humidity or cloud cover)
+    sol_zen_ang = r2d * math.acos(math.sin(GeoMetaWrfHydro.latitude_grid * d2r) * math.sin(decl) +
+                                  math.cos(GeoMetaWrfHydro.latitude_grid * d2r) * math.cos(decl) * math.cos(ha))
+
+    # Extract the current incoming shortwave field from the forcing object and set it to
+    # a local grid. We will perform the bias correction on this grid, based on forecast
+    # hour and datetime information. Once a correction has taken place, we will place
+    # the corrected field back into the forcing object.
+    try:
+        swTmp = input_forcings.final_forcings[7,:,:]
+    except:
+        ConfigOptions.errMsg = "Unable to extract incoming shortwave forcing from object for: " + \
+                               input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Calculate where we have valid values.
+    try:
+        indValid = np.where(swTmp != ConfigOptions.globalNdv)
+    except:
+        ConfigOptions.errMsg = "Unable to run a search for valid SW values for: " + input_forcings.productName
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Perform the bias correction.
+    try:
+        swTmp[indValid] = (c1 + (c2 * fHr)) * math.cos(sol_zen_ang[indValid]) * swTmp[indValid]
+    except:
+        ConfigOptions.errMsg = "Unable to apply NCAR HRRR bias correction to incoming shortwave radiation."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Place updated states back into the forcing object.
+    try:
+        input_forcings.final_forcings[7, :, :] = swTmp[:, :]
+    except:
+        ConfigOptions.errMsg = "Unable to place bias-corrected incoming SW radiation fluxes back into the forcing " \
+                               "object."
+        errMod.log_critical(ConfigOptions, MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Reset variables to keep memory footprints low.
+    swTmp = None
+    time_offset = None
+    tst = None
+    ha = None
+    sol_zen_ang = None
+
 
 def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
     """
