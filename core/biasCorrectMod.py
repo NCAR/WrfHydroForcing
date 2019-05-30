@@ -683,7 +683,6 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                         nldas_nearest_zero_pcp = 1.0
                     else:
                         # valid point, see if we need to adjust cfsv2 precip
-                        nldas_cdf = 1 - np.exp(-((vals / nldas_nearest_1) ^ nldas_nearest_2))
                         nldas_cdf = 1 - np.exp(-(np.power((vals / nldas_nearest_1), nldas_nearest_2)))
 
     #                # compute adjusted value now using the CFSv2 forecast value and the two CDFs
