@@ -695,39 +695,39 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                     diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
                     cfs_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
 
-    #                if cfs_interp_fcst == 0.0 and nldas_nearest_zero_pcp == 1.0:
-    #                    # if no rain in cfsv2, no rain in bias corrected field
-    #                    cfs_data[y_local, x_local] = 0.0
-    #                else:
-    #                    # else there is rain in cfs forecast, so adjust it in some manner
-    #                    pcp_pop_diff = nldas_nearest_zero_pcp - cfs_zero_pcp_interp
-    #                    if cfs_zero_pcp_interp <= nldas_nearest_zero_pcp:
-    #                        # if cfsv2 zero precip probability is less than nldas,
-    #                        # then do one adjustment
-    #                        if cfs_cdf_val <= pcp_pop_diff:
-    #                            # if cfsv2 precip cdf is still less than pop
-    #                            # difference, set precip to zero
-    #                            cfs_data[y_local, x_local] = 0.0
-    #                        else:
-    #                            # cfsv2 precip cdf > nldas zero precip probability,
-    #                            # so adjust cfsv2 to nldas2 precip
-    #                            cfs_data[y_local, x_local] = vals[cfs_nldas_ind] / 3600.0 # convert back to mm/s
+                    if cfs_interp_fcst == 0.0 and nldas_nearest_zero_pcp == 1.0:
+                        # if no rain in cfsv2, no rain in bias corrected field
+                        cfs_data[y_local, x_local] = 0.0
+                    else:
+                        # else there is rain in cfs forecast, so adjust it in some manner
+                        pcp_pop_diff = nldas_nearest_zero_pcp - cfs_zero_pcp_interp
+                        if cfs_zero_pcp_interp <= nldas_nearest_zero_pcp:
+                            # if cfsv2 zero precip probability is less than nldas,
+                            # then do one adjustment
+                            if cfs_cdf_val <= pcp_pop_diff:
+                                # if cfsv2 precip cdf is still less than pop
+                                # difference, set precip to zero
+                                cfs_data[y_local, x_local] = 0.0
+                            else:
+                                # cfsv2 precip cdf > nldas zero precip probability,
+                                # so adjust cfsv2 to nldas2 precip
+                                cfs_data[y_local, x_local] = vals[cfs_nldas_ind] / 3600.0 # convert back to mm/s
 
-    #                            # check for unreasonable corrections of cfs rainfall
-    #                            # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
-    #                            # if it is, this indicated nldas2 distribution is unrealistic
-    #                            # and default back to cfsv2 forecast value
-    #                            if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
-    #                                cfs_data[y_local, x_local] = cfs_interp_fcst
-    #                    else:
-    #                        if cfs_cdf_val <= abs(pcp_pop_diff):
-    #                            # if cfsv2 cdf value less than pop difference, need to randomly
-    #                            # generate precip, since we're in the zero portion of the nldas
-    #                            # zero precip prob still
-    #                            randn = random.uniform(0.0, abs(pcp_pop_diff))
-    #                            diffTmp = np.absolute(randn - nldas_cdf)
-    #                            new_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
-    #                            cfs_data[y_local, x_local] = vals[new_nldas_ind] / 3600.0
+                                # check for unreasonable corrections of cfs rainfall
+                                # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
+                                # if it is, this indicated nldas2 distribution is unrealistic
+                                # and default back to cfsv2 forecast value
+                                if (cfs_data[y_local, x_local] / cfs_interp_fcst) >= 3.0:
+                                    cfs_data[y_local, x_local] = cfs_interp_fcst
+                        else:
+                            if cfs_cdf_val <= abs(pcp_pop_diff):
+                                # if cfsv2 cdf value less than pop difference, need to randomly
+                                # generate precip, since we're in the zero portion of the nldas
+                                # zero precip prob still
+                                randn = random.uniform(0.0, abs(pcp_pop_diff))
+                                diffTmp = np.absolute(randn - nldas_cdf)
+                                new_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
+                                cfs_data[y_local, x_local] = vals[new_nldas_ind] / 3600.0
 
     #                            # ad-hoc setting that cfsv2 precipitation should not be corrected by more than 3x
     #                            # if it is, this indicated nldas2 distribution is unrealistic
