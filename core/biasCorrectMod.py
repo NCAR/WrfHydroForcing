@@ -644,10 +644,10 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                 if force_num == 1:
                     # Specific humidity
                     spacing = vals[2]-vals[1]
-                    cfs_interp_forecast = cfs_interp_forecast * 1000.0 # units are now g/kg
-                    cfs_cdf = 1 - np.exp(-((vals / cfs_param_1_interp) ^ cfs_param_2_interp))
+                    cfs_interp_fcst = cfs_interp_fcst * 1000.0 # units are now g/kg
+                    cfs_cdf = 1 - np.exp(-(np.power((vals / cfs_param_1_interp), cfs_param_2_interp)))
 
-                    nldas_cdf = 1 - np.exp(-((vals / nldas_nearest_1) ^ nldas_nearest_2))
+                    nldas_cdf = 1 - np.exp(-(np.power((vals / nldas_nearest_1), nldas_nearest_2)))
 
                     # compute adjusted value now using the CFSv2 forecast value and the two CDFs
                     # find index in vals array
@@ -655,12 +655,12 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
                     cfs_ind = np.where(diffTmp == diffTmp.min())[0][0]
                     cfs_cdf_val = cfs_cdf[cfs_ind]
 
-    #                # now whats the index of the closest cdf value in the nldas array?
-    #                diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
-    #                cfs_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
+                    # now whats the index of the closest cdf value in the nldas array?
+                    diffTmp = np.absolute(cfs_cdf_val - nldas_cdf)
+                    cfs_nldas_ind = np.where(diffTmp == diffTmp.min())[0][0]
 
-    #                # Adjust the CFS data
-    #                cfs_data[y_local, x_local] = vals[cfs_nldas_ind]/1000.0 # convert back to kg/kg
+                    # Adjust the CFS data
+                    cfs_data[y_local, x_local] = vals[cfs_nldas_ind]/1000.0 # convert back to kg/kg
     #            if force_num == 4:
     #                # Precipitation
     #                # precipitation is estimated using a weibull distribution
