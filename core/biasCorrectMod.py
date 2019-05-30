@@ -661,19 +661,19 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions,
 
                     # Adjust the CFS data
                     cfs_data[y_local, x_local] = vals[cfs_nldas_ind]/1000.0 # convert back to kg/kg
-    #            if force_num == 4:
-    #                # Precipitation
-    #                # precipitation is estimated using a weibull distribution
-    #                # valid values range from 3e-6 mm/s (0.01 mm/hr) up to 100 mm/hr
-    #                spacing = vals[2] - vals[1]
-    #                cfs_zero_pcp_interp = cfs_prev_zero_pcp_sub[y_local, x_local] * interpFactor1 + \
-    #                                     cfs_zero_pcp_sub[y_local, x_local] * interpFactor2
+                if force_num == 4:
+                    # Precipitation
+                    # precipitation is estimated using a weibull distribution
+                    # valid values range from 3e-6 mm/s (0.01 mm/hr) up to 100 mm/hr
+                    spacing = vals[2] - vals[1]
+                    cfs_zero_pcp_interp = cfs_prev_zero_pcp_sub[y_local, x_local] * interpFactor1 + \
+                                         cfs_zero_pcp_sub[y_local, x_local] * interpFactor2
 
-    #                cfs_cdf = 1 - np.exp(-((vals / cfs_param_1_interp) ^ cfs_param_2_interp))
-    #                cfs_cdf_scaled = ((1 - cfs_zero_pcp_interp) + cfs_cdf) / \
-    #                                 (cfs_cdf.max() + (1 - cfs_zero_pcp_interp))
+                    cfs_cdf = 1 - np.exp(-(np.power((vals / cfs_param_1_interp), cfs_param_2_interp)))
+                    cfs_cdf_scaled = ((1 - cfs_zero_pcp_interp) + cfs_cdf) / \
+                                     (cfs_cdf.max() + (1 - cfs_zero_pcp_interp))
 
-    #                nldas_nearest_zero_pcp = nldas_zero_pcp_sub[y_local, x_local]
+                    nldas_nearest_zero_pcp = nldas_zero_pcp_sub[y_local, x_local]
 
     #                if nldas_nearest_2 == 0.0:
     #                    # if second weibul parameter is zero, the
