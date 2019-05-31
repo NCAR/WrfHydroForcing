@@ -288,7 +288,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     # solar zenith angle is the angle between straight up and the center of the sun's disc
     # the cosine of the sol_zen_ang is proportional to the solar intensity
     # (not accounting for humidity or cloud cover)
-    sol_zen_ang = r2d * np.acos(np.sin(GeoMetaWrfHydro.latitude_grid * d2r) * math.sin(decl) +
+    sol_zen_ang = r2d * np.arccos(np.sin(GeoMetaWrfHydro.latitude_grid * d2r) * math.sin(decl) +
                                   np.cos(GeoMetaWrfHydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha))
 
     # Extract the current incoming shortwave field from the forcing object and set it to
