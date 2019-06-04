@@ -313,7 +313,10 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
 
     # Perform the bias correction.
     try:
-        swTmp[indValid] = (c1 + (c2 * fHr)) * np.cos(sol_zen_ang[indValid]) * swTmp[indValid]
+        # The second half of this caclulation below is the actual calculation of the incoming SW bias, which is then
+        # added (or subtracted if negative) to the original values.
+        swTmp[indValid] = swTmp[indValid] - \
+                          (c1 + (c2 * fHr)) * np.cos(sol_zen_ang[indValid] * d2r) * swTmp[indValid]
     except:
         ConfigOptions.errMsg = "Unable to apply NCAR HRRR bias correction to incoming shortwave radiation."
         errMod.log_critical(ConfigOptions, MpiConfig)
