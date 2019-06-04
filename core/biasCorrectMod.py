@@ -122,7 +122,7 @@ def no_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, f
 
 def ncar_tbl_correction(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfig, force_num):
     """
-    Generic NCAR bias correction for forcings based on the hour of the day. A lookup table
+    Generic NCAR bias correction for forcings based on the forecast hour. A lookup table
     is used for each different forcing variable. NOTE!!!! - This is based on HRRRv3 analysis
     and should be used with extreme caution.
     :param input_forcings:
