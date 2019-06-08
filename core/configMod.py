@@ -673,7 +673,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                       'configuration file.')
 
@@ -718,7 +718,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.q2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
                                       'configuration file.')
             if optTmp == 1:
@@ -742,7 +742,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.windBiasCorrect:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid WindBiasCorrection options specified in the '
                                       'configuration file.')
             if optTmp == 1:
@@ -766,7 +766,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.swBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid SwBiasCorrection options specified in the '
                                       'configuration file.')
             if optTmp == 1:
@@ -790,7 +790,7 @@ class ConfigOptions:
                                   'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.lwBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 errMod.err_out_screen('Invalid LwBiasCorrection options specified in the '
                                       'configuration file.')
             if optTmp == 1:
@@ -845,6 +845,11 @@ class ConfigOptions:
             if min(self.psfcBiasCorrectOpt) != 1 and max(self.psfcBiasCorrectOpt) != 1:
                 errMod.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                       'surface pressure under this configuration.')
+            # Make sure we don't have any other forcings activated. This can only be ran for CFSv2.
+            for optTmp in self.input_forcings:
+                if optTmp != 7:
+                    errMod.err_out_screen('CFSv2-NLDAS NWM bias correction can only be used in '
+                                          'CFSv2-only configurations')
 
         # Read in supplemental precipitation options as an array of values to map.
         try:
