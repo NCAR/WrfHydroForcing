@@ -78,37 +78,37 @@ ensNum = "01"
 ncepHTTP = "https://nomads.ncdc.noaa.gov/modeldata/cfsv2_forecast_6-hourly_9mon_flxf"
 
 for hour in range(cleanBackHours,lookBackHours,-1):
-        # Calculate current hour.
-        dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
+	# Calculate current hour.
+	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
 
-        # Go back in time and clean out any old data to conserve disk space. 
-        if dCurrent.hour != 0 and dCurrent.hour != 6 and dCurrent.hour != 12 and dCurrent.hour != 18:
-                continue # This is not a CFS cycle hour. 
-        else:
-                # Compose path to directory containing data. 
-                cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
-                              dCurrent.strftime('%H') + "/6hrly_grib_" + ensNum
+	# Go back in time and clean out any old data to conserve disk space.
+	if dCurrent.hour != 0 and dCurrent.hour != 6 and dCurrent.hour != 12 and dCurrent.hour != 18:
+		continue # This is not a CFS cycle hour.
+	else:
+		# Compose path to directory containing data.
+		cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
+					  dCurrent.strftime('%H') + "/6hrly_grib_" + ensNum
 
-                # Check to see if directory exists. If it does, remove it. 
-                if os.path.isdir(cfsCleanDir):
-                        #print("Removing old CFS data from: " + cfsCleanDir)
-                        shutil.rmtree(cfsCleanDir)
+		# Check to see if directory exists. If it does, remove it.
+		if os.path.isdir(cfsCleanDir):
+			#print("Removing old CFS data from: " + cfsCleanDir)
+			shutil.rmtree(cfsCleanDir)
 
 		# If the subdirectory is empty, remove it.
-                cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
-                              dCurrent.strftime('%H')
+		cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
+					  dCurrent.strftime('%H')
 
-                if os.path.isdir(cfsCleanDir):
-                        if len(os.listdir(cfsCleanDir)) == 0:
-                                #print("Removing empty directory: " + cfsCleanDir)
-                                shutil.rmtree(cfsCleanDir)
+		if os.path.isdir(cfsCleanDir):
+			if len(os.listdir(cfsCleanDir)) == 0:
+				#print("Removing empty directory: " + cfsCleanDir)
+				shutil.rmtree(cfsCleanDir)
 
-                cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') 
+		cfsCleanDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d')
 
-                if os.path.isdir(cfsCleanDir):
-                        if len(os.listdir(cfsCleanDir)) == 0:
-                                #print("Removing empty directory: " + cfsCleanDir)
-                                shutil.rmtree(cfsCleanDir)
+		if os.path.isdir(cfsCleanDir):
+			if len(os.listdir(cfsCleanDir)) == 0:
+				#print("Removing empty directory: " + cfsCleanDir)
+				shutil.rmtree(cfsCleanDir)
 
 # Now that cleaning is done, download files within the download window. 
 for hour in range(lookBackHours,lagBackHours,-1):
@@ -116,31 +116,31 @@ for hour in range(lookBackHours,lagBackHours,-1):
 	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
 
 	if dCurrent.hour != 0 and dCurrent.hour != 6 and dCurrent.hour != 12 and dCurrent.hour != 18:
-		continue # THis is not a GFS cycle hour. 
+		continue # THis is not a GFS cycle hour.
 	else:
 		cfsOutDir1 = outDir + "/cfs." + dCurrent.strftime('%Y%m%d')
 		if not os.path.isdir(cfsOutDir1):
 			os.mkdir(cfsOutDir1)
 
 		cfsOutDir2 = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
-			     dCurrent.strftime('%H')
+					 dCurrent.strftime('%H')
 		if not os.path.isdir(cfsOutDir2):
 			os.mkdir(cfsOutDir2)
 
 		cfsOutDir = outDir + "/cfs." + dCurrent.strftime('%Y%m%d') + "/" + \
-                    	    dCurrent.strftime('%H') + "/6hrly_grib_" + ensNum
+					dCurrent.strftime('%H') + "/6hrly_grib_" + ensNum
 
 		httpDownloadDir = ncepHTTP + "/" + dCurrent.strftime('%Y') + "/" + \
-                	          dCurrent.strftime('%Y%m') + "/" + \
-                          	  dCurrent.strftime('%Y%m%d') + "/" + \
-                          	  dCurrent.strftime('%Y%m%d%H')
+						  dCurrent.strftime('%Y%m') + "/" + \
+						  dCurrent.strftime('%Y%m%d') + "/" + \
+						  dCurrent.strftime('%Y%m%d%H')
 		if not os.path.isdir(cfsOutDir):
 			os.mkdir(cfsOutDir)
 		# Download hourly files from NCEP to hour 120.
 		for hrDownload in range(0,fcstHrsDownload,6):
 			dCurrent2 = dCurrent + datetime.timedelta(seconds=3600*hrDownload)
 			fileDownload = "flxf" + dCurrent2.strftime('%Y%m%d%H') + \
-                        	       "." + ensNum + "." + dCurrent.strftime('%Y%m%d%H') + ".grb2"
+						   "." + ensNum + "." + dCurrent.strftime('%Y%m%d%H') + ".grb2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = cfsOutDir + "/" + fileDownload
 			if not os.path.isfile(outFile):

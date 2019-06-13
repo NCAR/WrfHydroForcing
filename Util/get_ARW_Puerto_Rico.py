@@ -12,6 +12,7 @@ import http
 from http import cookiejar
 import os
 import sys
+import shutil
 import smtplib
 from email.mime.text import MIMEText
 
@@ -71,7 +72,7 @@ for hour in range(lookBackHours,lagBackHours,-1):
 	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
 
 	if dCurrent.hour != 6 and dCurrent.hour != 18:
-		continue # WRF-ARW Hawaii nest data is only available for 06/18 UTC... 
+		continue # WRF-ARW Hawaii nest data is only available for 06/18 UTC...
 	else:
 		arwOutDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d')
 		httpDownloadDir = ncepHTTP + "/hiresw." + dCurrent.strftime('%Y%m%d')
@@ -81,8 +82,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		nFcstHrs = 48
 		for hrDownload in range(1,nFcstHrs + 1):
 			fileDownload = "hiresw.t" + dCurrent.strftime('%H') + \
-	 			       "z.arw_2p5km.f" + str(hrDownload).zfill(2) + \
-				       ".pr.grib2"
+						   "z.arw_2p5km.f" + str(hrDownload).zfill(2) + \
+						   ".pr.grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = arwOutDir + "/" + fileDownload
 			if os.path.isfile(outFile):

@@ -58,7 +58,7 @@ for hour in range(cleanBackHours,cleanBackHours2,-1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
 
-        # Compose path to directory containing data. 
+	# Compose path to directory containing data.
 	hrrrCleanDir = outDir + "/hrrr." + dCurrent.strftime('%Y%m%d')
 
 	# Check to see if directory exists. If it does, remove it. 
@@ -85,7 +85,7 @@ for hour in range(lookBackHours,lagBackHours,-1):
 	for hrDownload in range(0,nFcstHrs+1):
 		httpDownloadDir = ncepHTTP + "/hrrr." + dCurrent.strftime('%Y%m%d') + "/conus"
 		fileDownload = "hrrr.t" + dCurrent.strftime('%H') + \
-			       "z.wrfsfcf" + str(hrDownload).zfill(2) + ".grib2" 
+					   "z.wrfsfcf" + str(hrDownload).zfill(2) + ".grib2"
 		url = httpDownloadDir + "/" + fileDownload
 		outFile = hrrrOutDir + "/" + fileDownload
 		if not os.path.isfile(outFile):
