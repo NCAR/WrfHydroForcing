@@ -13,6 +13,7 @@ from http import cookiejar
 import os
 import sys
 import smtplib
+import shutil
 from email.mime.text import MIMEText
 
 def errOut(msgContent,emailTitle,emailRec,lockFile):
@@ -81,8 +82,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		nFcstHrs = 48
 		for hrDownload in range(1,nFcstHrs + 1):
 			fileDownload = "hiresw.t" + dCurrent.strftime('%H') + \
-	 			       "z.arw_2p5km.f" + str(hrDownload).zfill(2) + \
-				       ".hi.grib2"
+						   "z.arw_2p5km.f" + str(hrDownload).zfill(2) + \
+						   ".hi.grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = arwOutDir + "/" + fileDownload
 			if os.path.isfile(outFile):
