@@ -95,8 +95,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		# Download hourly files from NCEP to hour 120.
 		for hrDownload in range(1,121):
 			fileDownload = "gfs.t" + dCurrent.strftime('%H') + \
-                        	       "z.sfluxgrbf" + str(hrDownload).zfill(2) + \
-				       ".grib2"
+						   "z.sfluxgrbf" + str(hrDownload).zfill(3) + \
+						   ".grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = gfsOutDir2 + "/" + fileDownload
 			if not os.path.isfile(outFile):
@@ -111,8 +111,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		# Download 3-hour files from hour 120 to hour 240.
 		for hrDownload in range(123,243,3):
 			fileDownload = "gfs.t" + dCurrent.strftime('%H') + \
-                        	       "z.sfluxgrbf" + str(hrDownload).zfill(2) + \
-                                       ".grib2"
+						   "z.sfluxgrbf" + str(hrDownload).zfill(3) + \
+						   ".grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = gfsOutDir2 + "/" + fileDownload
 			if not os.path.isfile(outFile):
@@ -127,8 +127,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		# Download 12-hour files from hour 240 to hour 384.
 		for hrDownload in range(252,396,12):
 			fileDownload = "gfs.t" + dCurrent.strftime('%H') + \
-                        	       "z.sfluxgrbf" + str(hrDownload).zfill(2) + \
-                               	       ".grib2"
+						   "z.sfluxgrbf" + str(hrDownload).zfill(3) + \
+						   ".grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = gfsOutDir2 + "/" + fileDownload
 			if not os.path.isfile(outFile):

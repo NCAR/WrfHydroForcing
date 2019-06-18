@@ -14,6 +14,7 @@ import os
 import sys
 import smtplib
 from email.mime.text import MIMEText
+import shutil
 
 def errOut(msgContent,emailTitle,emailRec,lockFile):
 	msg = MIMEText(msgContent)
@@ -73,7 +74,7 @@ for hour in range(lookBackHours,lagBackHours,-1):
 	if dCurrent.hour != 0 and dCurrent.hour != 12 and dCurrent.hour != 6 and dCurrent.hour != 18:
 		continue # NAM nest data only available every six hours. 
 	else:
-		namOutDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d')
+		namOutDir = outDir + "/nam." + dCurrent.strftime('%Y%m%d')
 		httpDownloadDir = ncepHTTP + "/nam." + dCurrent.strftime('%Y%m%d')
 		if not os.path.isdir(namOutDir):
 			os.mkdir(namOutDir)
@@ -81,8 +82,8 @@ for hour in range(lookBackHours,lagBackHours,-1):
 		nFcstHrs = 60
 		for hrDownload in range(1,nFcstHrs + 1):
 			fileDownload = "nam.t" + dCurrent.strftime('%H') + \
-	 			       "z.hawaiinest.hiresf" + str(hrDownload).zfill(2) + \
-				       ".tm00.grib2"
+						   "z.hawaiinest.hiresf" + str(hrDownload).zfill(2) + \
+						   ".tm00.grib2"
 			url = httpDownloadDir + "/" + fileDownload
 			outFile = namOutDir + "/" + fileDownload
 			if os.path.isfile(outFile):
