@@ -297,7 +297,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
                                   np.cos(GeoMetaWrfHydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha))
 
     # Check for any values greater than 90 degrees.
-    sol_zen_ang[np.where(sol_zen_ang) > 90.0] = 90.0
+    sol_zen_ang[np.where(sol_zen_ang > 90.0)] = 90.0
 
     # Extract the current incoming shortwave field from the forcing object and set it to
     # a local grid. We will perform the bias correction on this grid, based on forecast
