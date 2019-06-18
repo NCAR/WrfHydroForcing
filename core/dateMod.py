@@ -445,27 +445,27 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         tmpFile1 = input_forcings.inDir + '/gfs.' + \
             currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
             currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(prevGfsForecastHour).zfill(2) + '.grib2'
+            str(prevGfsForecastHour).zfill(3) + '.grib2'
         if MpiConfg.rank == 0:
             print(tmpFile1)
         tmpFile2 = input_forcings.inDir + '/gfs.' + \
             currentGfsCycle.strftime('%Y%m%d%H') + "/gfs.t" + \
             currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(nextGfsForecastHour).zfill(2) + '.grib2'
+            str(nextGfsForecastHour).zfill(3) + '.grib2'
     else:
         # FV3 change on June 12th, 2019
         tmpFile1 = input_forcings.inDir + '/gfs.' + \
                    currentGfsCycle.strftime('%Y%m%d') + "/" + \
                    currentGfsCycle.strftime('%H') + "/gfs.t" + \
                    currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-                   str(prevGfsForecastHour).zfill(2) + '.grib2'
+                   str(prevGfsForecastHour).zfill(3) + '.grib2'
         if MpiConfg.rank == 0:
             print(tmpFile1)
         tmpFile2 = input_forcings.inDir + '/gfs.' + \
                    currentGfsCycle.strftime('%Y%m%d') + "/" + \
                    currentGfsCycle.strftime('%H') + "/gfs.t" + \
                    currentGfsCycle.strftime('%H') + 'z.sfluxgrbf' + \
-                   str(nextGfsForecastHour).zfill(2) + '.grib2'
+                   str(nextGfsForecastHour).zfill(3) + '.grib2'
     if MpiConfg.rank == 0:
         print(tmpFile2)
         print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
