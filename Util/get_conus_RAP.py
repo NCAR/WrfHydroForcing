@@ -56,7 +56,7 @@ for hour in range(cleanBackHours,cleanBackHours2,-1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
 
-        # Compose path to directory containing data. 
+	# Compose path to directory containing data.
 	rapCleanDir = outDir + "/rap." + dCurrent.strftime('%Y%m%d')
 
 	# Check to see if directory exists. If it does, remove it. 
@@ -83,7 +83,7 @@ for hour in range(lookBackHours,lagBackHours,-1):
 	for hrDownload in range(0,nFcstHrs+1):
 		httpDownloadDir = ncepHTTP + "/rap." + dCurrent.strftime('%Y%m%d')
 		fileDownload = "rap.t" + dCurrent.strftime('%H') + \
-			       "z.awp130bgrbf" + str(hrDownload).zfill(2) + ".grib2" 
+					   "z.awp130bgrbf" + str(hrDownload).zfill(2) + ".grib2"
 		url = httpDownloadDir + "/" + fileDownload
 		outFile = rapOutDir + "/" + fileDownload
 		if not os.path.isfile(outFile):

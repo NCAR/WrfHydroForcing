@@ -48,7 +48,8 @@ tmpDir = "/glade/scratch/karsten"
 lookBackHours = 72 # How many hours to look for data.....
 cleanBackHours = 240 # Period between this time and the beginning of the lookback period to cleanout old data
 lagBackHours = 1 # Wait at least this long back before searching for files.
-dNow = datetime.datetime.utcnow()
+dNowUTC = datetime.datetime.utcnow()
+dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
 lookBackHours = 24
 ncepHTTP = "https://mrms.ncep.noaa.gov/data/2D/RadarQualityIndex"
 
@@ -65,7 +66,7 @@ for hour in range(cleanBackHours, lookBackHours, -1):
 		os.remove(fileClean)
 
 for hour in range(cleanBackHours,lookBackHours,-1):
-	dCycle = begDate + datetime.timedelta(seconds=3600*stepTmp)
+	dCycle = dNow - datetime.timedelta(seconds=3600*hour)
 	print("Current Step = " + dCycle.strftime('%Y-%m-%d %H'))
 
 	fileDownload = "MRMS_RadarQualityIndex_00.00_" + dCycle.strftime('%Y%m%d') + \
