@@ -282,7 +282,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
 
     # Create temporary grids for calculating the solar zenith angle, which will be used in the bias correction.
     # time offset in minutes from the prime meridian
-    time_offset = eqtime + 4.0 * GeoMetaWrfHydro.latitude_grid
+    time_offset = eqtime + 4.0 * GeoMetaWrfHydro.longitude_grid
 
     # tst is the true solar time: the number of minutes since solar midnight
     tst = hh*60.0 + mm + ss/60.0 + time_offset
@@ -295,6 +295,9 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     # (not accounting for humidity or cloud cover)
     sol_zen_ang = r2d * np.arccos(np.sin(GeoMetaWrfHydro.latitude_grid * d2r) * math.sin(decl) +
                                   np.cos(GeoMetaWrfHydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha))
+
+    # Check for any values greater than 90 degrees.
+    sol_zen_ang[np.where(sol_zen_ang > 90.0)] = 90.0
 
     # Extract the current incoming shortwave field from the forcing object and set it to
     # a local grid. We will perform the bias correction on this grid, based on forecast
@@ -320,7 +323,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     try:
         # The second half of this caclulation below is the actual calculation of the incoming SW bias, which is then
         # added (or subtracted if negative) to the original values.
-        swTmp[indValid] = swTmp[indValid] - \
+        swTmp[indValid] = swTmp[indValid] + \
                           (c1 + (c2 * ( (fHr - 1) / (nFcstHr - 1)))) * np.cos(sol_zen_ang[indValid] * d2r) * \
                           swTmp[indValid]
     except:
