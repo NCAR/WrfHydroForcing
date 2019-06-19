@@ -104,3 +104,5 @@ for hour in range(lookBackHours,lagBackHours,-1):
 				print("Data may not be available yet...")
 				continue
 
+# Remove the LOCK file.
+os.remove(lockFile)
