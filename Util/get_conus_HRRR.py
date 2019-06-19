@@ -43,6 +43,7 @@ def msgUser(msgContent,msgFlag):
 		print(msgContent)
 
 outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/HRRR_Conus"
+tmpDir = "/glade/scratch/karsten"
 lookBackHours = 30
 cleanBackHours = 240
 cleanBackHours2 = 72
@@ -53,6 +54,14 @@ dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
 #dtProc = endDate - begDate
 #nCycles = dtProc.days*24 + dtProc.seconds/3600.0
 ncepHTTP = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod"
+
+# Define communication of issues.
+emailAddy = 'jon.doe@youremail.com'
+errTitle = 'Error_get_Conus_HRRR'
+warningTitle = 'Warning_get_Conus_HRRR'
+
+pid = os.getpid()
+lockFile = tmpDir + "/GET_Conus_HRRR.lock"
 
 for hour in range(cleanBackHours,cleanBackHours2,-1):
 	# Calculate current hour.
