@@ -53,6 +53,14 @@ dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
 lookBackHours = 24
 ncepHTTP = "https://mrms.ncep.noaa.gov/data/2D/RadarQualityIndex"
 
+# Define communication of issues.
+emailAddy = 'jon.doe@youremail.com'
+errTitle = 'Error_get_MRMS_RQI'
+warningTitle = 'Warning_get_MRMS_RQI'
+
+pid = os.getpid()
+lockFile = tmpDir + "/GET_MRMS_RQI.lock"
+
 for hour in range(cleanBackHours, lookBackHours, -1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600 * hour)

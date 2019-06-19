@@ -43,12 +43,21 @@ def msgUser(msgContent,msgFlag):
 		print(msgContent)
 
 outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/WRF_ARW_Hawaii"
+tmpDir = "/glade/scratch/karsten"
 lookBackHours = 72 # How many hours to look for data.....
 cleanBackHours = 240 # Period between this time and the beginning of the lookback period to cleanout old data.  
 lagBackHours = 6 # Wait at least this long back before searching for files. 
 dNowUTC = datetime.datetime.utcnow()
 dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
 ncepHTTP = "https://ftp.ncep.noaa.gov/data/nccf/com/hiresw/prod"
+
+# Define communication of issues.
+emailAddy = 'jon.doe@youremail.com'
+errTitle = 'Error_get_ARW_HI'
+warningTitle = 'Warning_get_ARW_HI'
+
+pid = os.getpid()
+lockFile = tmpDir + "/GET_ARW_HI.lock"
 
 for hour in range(cleanBackHours,lookBackHours,-1):
 	# Calculate current hour.

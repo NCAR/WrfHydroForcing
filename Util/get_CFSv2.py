@@ -52,7 +52,7 @@ cleanBackHours = 720 # Period between this time and the beginning of the lookbac
 lagBackHours = 120 # Wait at least this long back before searching for files. 
 
 # Define communication of issues. 
-emailAddy = 'karsten@ucar.edu'
+emailAddy = 'jon.doe@youremail.com'
 errTitle = 'Error_get_CFSv2'
 warningTitle = 'Warning_get_CFSv2'
 

@@ -43,6 +43,7 @@ def msgUser(msgContent,msgFlag):
 		print(msgContent)
 
 outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/RAP_Conus"
+tmpDir = "/glade/scratch/karsten"
 lookBackHours = 30
 cleanBackHours = 240
 cleanBackHours2 = 72
@@ -51,6 +52,14 @@ dNowUTC = datetime.datetime.utcnow()
 dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
 
 ncepHTTP = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/rap/prod"
+
+# Define communication of issues.
+emailAddy = 'jon.doe@youremail.com'
+errTitle = 'Error_get_Conus_RAP'
+warningTitle = 'Warning_get_Conus_RAP'
+
+pid = os.getpid()
+lockFile = tmpDir + "/GET_Conus_RAP.lock"
 
 for hour in range(cleanBackHours,cleanBackHours2,-1):
 	# Calculate current hour.
