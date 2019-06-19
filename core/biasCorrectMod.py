@@ -323,7 +323,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     try:
         # The second half of this caclulation below is the actual calculation of the incoming SW bias, which is then
         # added (or subtracted if negative) to the original values.
-        swTmp[indValid] = swTmp[indValid] - \
+        swTmp[indValid] = swTmp[indValid] + \
                           (c1 + (c2 * ( (fHr - 1) / (nFcstHr - 1)))) * np.cos(sol_zen_ang[indValid] * d2r) * \
                           swTmp[indValid]
     except:
