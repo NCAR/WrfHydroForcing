@@ -110,3 +110,6 @@ for cycle in range(0,int(nCycles)):
 				print("Unable to retrieve: " + url)
 				print("Data may not available yet...")
 				continue
+
+# Remove the LOCK file.
+os.remove(lockFile)

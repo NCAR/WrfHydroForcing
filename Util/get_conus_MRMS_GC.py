@@ -89,3 +89,6 @@ for hour in range(cleanBackHours,lookBackHours,-1):
 		print("FILE: " + url + " not found.")
 		continue
 
+# Remove the LOCK file.
+os.remove(lockFile)
+
