@@ -61,6 +61,18 @@ warningTitle = 'Warning_get_MRMS_RQI'
 pid = os.getpid()
 lockFile = tmpDir + "/GET_MRMS_RQI.lock"
 
+# First check to see if lock file exists, if it does, throw error message as
+# another pull program is running. If lock file not found, create one with PID.
+if os.path.isfile(lockFile):
+	fileLock = open(lockFile,'r')
+	pid = fileLock.readline()
+	warningMsg =  "WARNING: Another MRMS RQI Fetch Program Running. PID: " + pid
+	warningOut(warningMsg,warningTitle,emailAddy,lockFile)
+else:
+	fileLock = open(lockFile,'w')
+	fileLock.write(str(os.getpid()))
+	fileLock.close()
+
 for hour in range(cleanBackHours, lookBackHours, -1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600 * hour)
