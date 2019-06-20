@@ -80,7 +80,7 @@ for hour in range(cleanBackHours,lookBackHours,-1):
 		continue # WRF-ARW Puerto Rico nest data is only available for 06/18 UTC.. 
 	else:
 		# Compose path to directory containing data. 
-		cleanDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d%H')
+		cleanDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d')
 
 		# Check to see if directory exists. If it does, remove it. 
 		if os.path.isdir(cleanDir):
