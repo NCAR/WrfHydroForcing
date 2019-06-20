@@ -106,11 +106,9 @@ for hour in range(lookBackHours,lagBackHours,-1):
 						   "z.priconest.hiresf" + str(hrDownload).zfill(2) + \
 						   ".tm00.grib2"
 			url = httpDownloadDir + "/" + fileDownload
-			print(url)
 			outFile = namOutDir + "/" + fileDownload
 			if os.path.isfile(outFile):
 				continue
-			print(outFile)
 			try:
 				request.urlretrieve(url,outFile)
 			except:
