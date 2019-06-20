@@ -94,7 +94,8 @@ for hour in range(cleanBackHours,lookBackHours,-1):
 			print("Removing old data from: " + cleanDir)
 			shutil.rmtree(cleanDir)
 
-for cycle in range(0,int(nCycles)):
+# Now that cleaning is done, download files within the download window.
+for hour in range(lookBackHours, lagBackHours, -1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600 * hour)
 
