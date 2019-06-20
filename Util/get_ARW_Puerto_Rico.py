@@ -59,6 +59,18 @@ warningTitle = 'Warning_ARW_PR'
 pid = os.getpid()
 lockFile = tmpDir + "/GET_ARW_PR.lock"
 
+# First check to see if lock file exists, if it does, throw error message as
+# another pull program is running. If lock file not found, create one with PID.
+if os.path.isfile(lockFile):
+	fileLock = open(lockFile,'r')
+	pid = fileLock.readline()
+	warningMsg =  "WARNING: Another WRF ARW Puerto Rico Fetch Program Running. PID: " + pid
+	warningOut(warningMsg,warningTitle,emailAddy,lockFile)
+else:
+	fileLock = open(lockFile,'w')
+	fileLock.write(str(os.getpid()))
+	fileLock.close()
+
 for hour in range(cleanBackHours,lookBackHours,-1):
 	# Calculate current hour.
 	dCurrent = dNow - datetime.timedelta(seconds=3600*hour)
@@ -68,7 +80,7 @@ for hour in range(cleanBackHours,lookBackHours,-1):
 		continue # WRF-ARW Puerto Rico nest data is only available for 06/18 UTC.. 
 	else:
 		# Compose path to directory containing data. 
-		cleanDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d%H')
+		cleanDir = outDir + "/hiresw." + dCurrent.strftime('%Y%m%d')
 
 		# Check to see if directory exists. If it does, remove it. 
 		if os.path.isdir(cleanDir):
