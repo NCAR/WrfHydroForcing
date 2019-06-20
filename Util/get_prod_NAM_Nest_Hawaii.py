@@ -42,7 +42,7 @@ def msgUser(msgContent,msgFlag):
 	if msgFlag == 1:
 		print(msgContent)
 
-outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/NAM_Nest_Hawaii"
+outDir = "/glade/p/cisl/nwc/nwm_forcings/Forcing_Inputs/NAM_Nest_Hawaii"
 tmpDir = "/glade/scratch/karsten"
 lookBackHours = 72 # How many hours to look for data.....
 cleanBackHours = 240 # Period between this time and the beginning of the lookback period to cleanout old data.  
