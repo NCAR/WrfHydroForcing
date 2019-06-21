@@ -42,7 +42,7 @@ def msgUser(msgContent,msgFlag):
 	if msgFlag == 1:
 		print(msgContent)
 
-outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/RAP_Conus"
+outDir = "/glade/p/cisl/nwc/nwm_forcings/Forcing_Inputs/RAP_Conus"
 tmpDir = "/glade/scratch/karsten"
 lookBackHours = 30
 cleanBackHours = 240

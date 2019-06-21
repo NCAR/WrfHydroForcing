@@ -45,7 +45,7 @@ def msgUser(msgContent,msgFlag):
 
 # Program parameters
 msgFlag = 1 # 1 = Print to screen, 0 = Do not print unecessary information
-outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/CFSv2"
+outDir = "/glade/p/cisl/nwc/nwm_forcings/Forcing_Inputs/CFSv2"
 tmpDir = "/glade/scratch/karsten"
 lookBackHours = 240 # How many hours to look for data.....
 cleanBackHours = 720 # Period between this time and the beginning of the lookback period to cleanout old data

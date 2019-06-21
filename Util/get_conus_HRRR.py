@@ -42,7 +42,7 @@ def msgUser(msgContent,msgFlag):
 	if msgFlag == 1:
 		print(msgContent)
 
-outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/HRRR_Conus"
+outDir = "/glade/p/cisl/nwc/nwm_forcings/Forcing_Inputs/HRRR_Conus"
 tmpDir = "/glade/scratch/karsten"
 lookBackHours = 30
 cleanBackHours = 240
@@ -62,6 +62,18 @@ warningTitle = 'Warning_get_Conus_HRRR'
 
 pid = os.getpid()
 lockFile = tmpDir + "/GET_Conus_HRRR.lock"
+
+# First check to see if lock file exists, if it does, throw error message as
+# another pull program is running. If lock file not found, create one with PID.
+if os.path.isfile(lockFile):
+	fileLock = open(lockFile,'r')
+	pid = fileLock.readline()
+	warningMsg =  "WARNING: Another HRRR Conus Fetch Program Running. PID: " + pid
+	warningOut(warningMsg,warningTitle,emailAddy,lockFile)
+else:
+	fileLock = open(lockFile,'w')
+	fileLock.write(str(os.getpid()))
+	fileLock.close()
 
 for hour in range(cleanBackHours,cleanBackHours2,-1):
 	# Calculate current hour.
