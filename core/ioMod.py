@@ -332,13 +332,23 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
                 errMod.log_warning(ConfigOptions,MpiConfig)
             try:
-                subprocess.run([Wgrib2Cmd],shell=True)
+                cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, shell=True)
+                out, err = cmdOutput.communicate()
+                exitcode = cmdOutput.returncode
+                #subprocess.run([Wgrib2Cmd],shell=True)
             except:
                 ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                     NetCdfFileOut
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
                 break
+
+            # Reset temporary subprocess variables.
+            out = None
+            err = None
+            exitcode = None
+
             # Ensure file exists.
             if not os.path.isfile(NetCdfFileOut):
                 ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
