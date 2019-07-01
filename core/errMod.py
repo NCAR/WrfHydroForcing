@@ -1,6 +1,7 @@
 import sys
 import logging
 from mpi4py import MPI
+import numpy as np
 
 def err_out_screen(err_msg):
     """
@@ -233,3 +234,134 @@ def close_log(ConfigOptions,MpiConfig):
         err_out_screen_para(('Unable to close looging file: ' + ConfigOptions.logFile +
                              ' on RANK: ' + str(MpiConfig.rank)),MpiConfig)
     ConfigOptions.logHandle = None
+
+def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
+    """
+    Function for running a reasonable value check for individual forcing
+    variables. This one check type with the other checking for final missing
+    values in the final output grid.
+    :param ConfigOptions:
+    :param input_forcings:
+    :param MpiConfig:
+    :return:
+    """
+    # Establish a range of values for each output variable.
+    variable_range = {
+        'U2D': [0, -500.0, 500.0],
+        'V2D': [1, -500.0, 500.0],
+        'LWDOWN': [2, -1000.0, 10000.0],
+        'RAINRATE': [3, 0.0, 100.0],
+        'T2D': [4, 0.0, 400.0],
+        'Q2D': [5, -100.0, 100.0],
+        'PSFC': [6, 0.0, 2000000.0],
+        'SWDOWN': [7, 0.0, 5000.0]
+    }
+
+    # Loop over all the variables. Check for reasonable ranges. If any values are
+    # exceeded, shut the forcing engine down.
+    for varTmp in variable_range:
+        # First check to see if we have any data that is not missing.
+        indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
+                             != ConfigOptions.globalNdv)
+
+        if len(indCheck[0] == 0):
+            ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
+            log_critical(ConfigOptions, MpiConfig)
+            indCheck = None
+            return
+
+        # Check to see if any pixel cells are below the minimum value.
+        indCheck = np.where((input_forcings.regridded_forcings2[variable_range[varTmp][0]] != ConfigOptions.globalNdv) &
+                            (input_forcings.regridded_forcings2[variable_range[varTmp][0]] < variable_range[varTmp][1]))
+        numCells = len(indCheck[0])
+        if numCells > 0:
+            ConfigOptions.errMsg = "Data below minimum threshold for: " + varTmp + " in " + input_forcings.file_in2 + \
+                                   " for " + str(numCells) + " regridded pixel cells."
+            log_critical(ConfigOptions, MpiConfig)
+            indCheck = None
+            return
+
+        # Check to see if any pixel cells are above the maximum value.
+        indCheck = np.where((input_forcings.regridded_forcings2[variable_range[varTmp][0]] != ConfigOptions.globalNdv) &
+                            (input_forcings.regridded_forcings2[variable_range[varTmp][0]] > variable_range[varTmp][2]))
+        numCells = len(indCheck[0])
+        if numCells > 0:
+            ConfigOptions.errMsg = "Data above maximum threshold for: " + varTmp + " in " + input_forcings.file_in2 + \
+                                   " for " + str(numCells) + " regridded pixel cells."
+            log_critical(ConfigOptions, MpiConfig)
+            indCheck = None
+            return
+
+    indCheck = None
+    return
+
+def check_supp_pcp_bounds(ConfigOptions, supplemental_precip, MpiConfig):
+    """
+    Function for running a reasonable value check on supplemental precipitation
+    values. This is one check type with the other checking for final missing
+    values in the final output grid.
+    :param ConfigOptions:
+    :param supplemental_precip:
+    :param MpiConfig:
+    :return:
+    """
+    # First check to see if we have any data that is not missing.
+    indCheck = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
+
+    if len(indCheck[0] == 0):
+        ConfigOptions.errMsg = "No valid supplemental precip found in " + supplemental_precip.file_in2
+        log_critical(ConfigOptions, MpiConfig)
+        indCheck = None
+        return
+
+    # Check to see if any pixel cells are below the minimum value.
+    indCheck = np.where((supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv) &
+                        (supplemental_precip.regridded_precip2 < 0.0))
+    numCells = len(indCheck[0])
+    if numCells > 0:
+        ConfigOptions.errMsg = "Supplemental precip data below minimum threshold for in " + \
+                               supplemental_precip.file_in2 + \
+                               " for " + str(numCells) + " regridded pixel cells."
+        log_critical(ConfigOptions, MpiConfig)
+        indCheck = None
+        return
+
+    # Check to see if any pixel cells are above the maximum value.
+    indCheck = np.where((supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv) &
+                        (supplemental_precip.regridded_precip2 > 100.0))
+    numCells = len(indCheck[0])
+    if numCells > 0:
+        ConfigOptions.errMsg = "Supplemental precip data above maximum threshold for in " + \
+                               supplemental_precip.file_in2 + \
+                               " for " + str(numCells) + " regridded pixel cells."
+        log_critical(ConfigOptions, MpiConfig)
+        indCheck = None
+        return
+
+    indCheck = None
+    return
+
+def check_missing_final(ConfigOptions, output_grid, var_name, MpiConfig):
+    """
+    Function that checks the final output grids to ensure no missing values
+    are in place. Final output grids cannot contain any missing values per
+    WRF-Hydro requirements.
+    :param ConfigOptions:
+    :param output_grid:
+    :param var_name:
+    :param MpiConfig:
+    :return:
+    """
+    # Run NDV check. If ANY values are found, throw an error and shut the
+    # forcing engine down.
+    indCheck = np.where(output_grid == ConfigOptions.globalNdv)
+
+    if len(indCheck[0]) > 0:
+        ConfigOptions.errMsg = "Found " + str(len(indCheck[0])) + " in output grid for: " + \
+                               var_name
+        log_critical(ConfigOptions, MpiConfig)
+        indCheck = None
+        return
+    else:
+        indCheck = None
+        return
