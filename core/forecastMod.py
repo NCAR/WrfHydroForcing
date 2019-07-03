@@ -141,6 +141,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+                    # Run check on regridded fields for reasonable values that are not missing values.
+                    errMod.check_forcing_bounds(ConfigOptions, inputForcingMod[forceKey], MpiConfig)
+                    errMod.check_program_status(ConfigOptions, MpiConfig)
+
                     # If we are restarting a forecast cycle, re-calculate the neighboring files, and regrid the
                     # next set of forcings as the previous step just regridded the previous forcing.
                     if inputForcingMod[forceKey].rstFlag == 1:
@@ -190,6 +194,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
 
                         # Regrid the supplemental precipitation.
                         suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+                        # Run check on regridded fields for reasonable values that are not missing values.
+                        errMod.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
                         errMod.check_program_status(ConfigOptions, MpiConfig)
 
                         # Run temporal interpolation on the grids.
