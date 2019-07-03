@@ -266,6 +266,11 @@ class OutputObj:
         # Now loop through each variable, collect the data (call on each processor), assemble into the final
         # output grid, and place into the output file (if on processor 0).
         for varTmp in output_variable_attribute_dict:
+            # First run a check for missing values. There should be none at this point.
+            errMod.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0],:,:],
+                                       varTmp, MpiConfig)
+            errMod.check_program_status(ConfigOptions, MpiConfig)
+
             # Collect data from the various processors, and place into the output file.
             try:
                 final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
@@ -332,13 +337,23 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
                 errMod.log_warning(ConfigOptions,MpiConfig)
             try:
-                subprocess.run([Wgrib2Cmd],shell=True)
+                cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, shell=True)
+                out, err = cmdOutput.communicate()
+                exitcode = cmdOutput.returncode
+                #subprocess.run([Wgrib2Cmd],shell=True)
             except:
                 ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                     NetCdfFileOut
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
                 break
+
+            # Reset temporary subprocess variables.
+            out = None
+            err = None
+            exitcode = None
+
             # Ensure file exists.
             if not os.path.isfile(NetCdfFileOut):
                 ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
