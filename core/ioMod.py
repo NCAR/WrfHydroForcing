@@ -267,7 +267,7 @@ class OutputObj:
         # output grid, and place into the output file (if on processor 0).
         for varTmp in output_variable_attribute_dict:
             # First run a check for missing values. There should be none at this point.
-            errMod.check_missing_final(ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0],:,:],
+            errMod.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0],:,:],
                                        varTmp, MpiConfig)
             errMod.check_program_status(ConfigOptions, MpiConfig)
 

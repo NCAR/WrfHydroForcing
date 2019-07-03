@@ -2,6 +2,7 @@ import sys
 import logging
 from mpi4py import MPI
 import numpy as np
+import os
 
 def err_out_screen(err_msg):
     """
@@ -341,11 +342,12 @@ def check_supp_pcp_bounds(ConfigOptions, supplemental_precip, MpiConfig):
     indCheck = None
     return
 
-def check_missing_final(ConfigOptions, output_grid, var_name, MpiConfig):
+def check_missing_final(outPath, ConfigOptions, output_grid, var_name, MpiConfig):
     """
     Function that checks the final output grids to ensure no missing values
     are in place. Final output grids cannot contain any missing values per
     WRF-Hydro requirements.
+    ;:param outPath:
     :param ConfigOptions:
     :param output_grid:
     :param var_name:
@@ -357,10 +359,13 @@ def check_missing_final(ConfigOptions, output_grid, var_name, MpiConfig):
     indCheck = np.where(output_grid == ConfigOptions.globalNdv)
 
     if len(indCheck[0]) > 0:
-        ConfigOptions.errMsg = "Found " + str(len(indCheck[0])) + " in output grid for: " + \
+        ConfigOptions.errMsg = "Found " + str(len(indCheck[0])) + " NDV pixel cells in output grid for: " + \
                                var_name
         log_critical(ConfigOptions, MpiConfig)
         indCheck = None
+        # If the output file has been created, remove it as it will be empty.
+        if os.path.isfile(outPath):
+            os.remove(outPath)
         return
     else:
         indCheck = None
