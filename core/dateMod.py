@@ -491,14 +491,21 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                 input_forcings.rstFlag = 1
                 input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
                 input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                if input_forcings.productName == "GFS_Production_GRIB2":
+                    if MpiConfg.rank == 0:
+                        input_forcings.globalPcpRate1 = input_forcings.globalPcpRate1
+                        input_forcings.globalPcpRate2 = input_forcings.globalPcpRate2
                 input_forcings.file_in2 = tmpFile1
                 input_forcings.file_in1 = tmpFile1
                 input_forcings.fcst_date2 = input_forcings.fcst_date1
                 input_forcings.fcst_hour2 = input_forcings.fcst_hour1
             else:
-                # The GFS window has shifted. Reset fields 2 to
+                # The forcing window has shifted. Reset fields 2 to
                 # be fields 1.
                 input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                if input_forcings.productName == "GFS_Production_GRIB2":
+                    if MpiConfg.rank == 0:
+                        input_forcings.globalPcpRate1[:, :] = input_forcings.globalPcpRate2[:, :]
                 input_forcings.file_in1 = tmpFile1
                 input_forcings.file_in2 = tmpFile2
         input_forcings.regridComplete = False
