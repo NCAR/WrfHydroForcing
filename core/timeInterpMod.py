@@ -178,3 +178,74 @@ def weighted_average_supp_pcp(supplemental_precip,ConfigOptions,MpiConfig):
         # We have missing files.
         supplemental_precip.final_supp_precip[:, :] = ConfigOptions.globalNdv
 
+def gfs_pcp_time_interp(input_forcings,ConfigOptions,MpiConfig):
+    """
+    Function that will calculate an instantaneous precipitation rate, representative
+    of the latest forecast GFS hour, or range of GFS forecast hours. This is
+    done as GFS has a quirky way of outputting precipitation rates.
+    :param input_forcings:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :return: instPcpGlobal
+    """
+    # There is a chain of logic we will follow here for GFS data.
+    # Forecast Hours <= 120:
+    # 1.) For first hour in every six hour period, the avg precip rate
+    #     will be treated as the instantaneous rate. No processing
+    #     needed. So 0-1, 6-7, 12-13, etc.
+    # 2.) For remaining hours, we need to calculate the difference between
+    #     this avg precip rate, and the previous one. So,
+    #     [(0-4)-(0-3)] gives us a precipitation rate for hour 4.
+    # Forecast Hours > 120:
+    # 1.) For the first three hours of every six hour period, we
+    #     will treat the avg precip rate coming in as the instantaneous
+    #     value at hour 3. This is because there are no values for
+    #     individual hours within this horizon. So, 120-123, 126-129, etc
+    # 2.) For other three hours, we need to calculate the difference
+    #     between the previous three hourly average rate, and the average
+    #     rate for this entire six hour time frame. Why is this the case
+    #     with GFS? Ask someone at NCEP.......
+    #     [(120-126)-(120-123)] gives us a precipitation rate representative
+    #     of the second three hour period. It's not necessarily instantaneous,
+    #     but we will treat it as such.
+    if input_forcings.fcst_hour2 <= 120:
+        if input_forcings.fcst_hour2%6 == 1:
+            # We are on the first hour of a six-hour period. We can treat
+            # the precipitation rate as instantaneous for this hour.
+            instPcpGlobal = input_forcings.globalPcpRate2
+            total1 = None
+            total2 = None
+        else:
+            # We need to calculate the difference from the previous
+            # avg window to get an instantaneous value for this hour.
+            total1 = input_forcings.globalPcpRate1 * (3600.0 * (input_forcings.fcst_hour1%6))
+            if input_forcings.fcst_hour2%6 == 0:
+                # We have a 0-6, 6-12, 12-18 avg rate....
+                total2 = input_forcings.globalPcpRate2 * (3600.0 * 6)
+            else:
+                # We have 0-5, 0-4, etc
+                total2 = input_forcings.globalPcpRate2 * (3600.0 * (input_forcings.fcst_hour2%6))
+            instPcpGlobal = (total2 - total1)/3600.0
+            # Reset variables to free up memory
+            total1 = None
+            total2 = None
+    else:
+        # We are in Situation #2 which currently runs out until the end of the
+        # end of the GFS forecast cycle of 384 hours.
+        if input_forcings.fcst_hour2%6 == 3:
+            # We are on the first 3 hours of a six hour period. Simply treat the average
+            # precipitation rate for this time period as the instantaneous precipitation
+            # rate.
+            instPcpGlobal = input_forcings.globalPcpRate2
+            total2 = None
+            total1 = None
+        else:
+            total1 = input_forcings.globalPcpRate1 * (3600.0 * 3.0)
+            total2 = input_forcings.globalPcpRate2 * (3600.0 * 6.0)
+            instPcpGlobal = (total2 - total1)/(3600.0 * 3.0)
+            # Reset variables to free up memory.
+            total1 = None
+            total2 = None
+    # Return the interpolated grid back to the regridding program.
+    return instPcpGlobal
+

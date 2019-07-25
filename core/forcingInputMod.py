@@ -70,6 +70,8 @@ class input_forcings:
         # --------------------------------
         self.regridded_forcings1 = None
         self.regridded_forcings2 = None
+        self.globalPcpRate1 = None
+        self.globalPcpRate2 = None
         self.regridded_mask = None
         self.final_forcings = None
         self.ndv = None
