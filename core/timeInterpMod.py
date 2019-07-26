@@ -247,5 +247,9 @@ def gfs_pcp_time_interp(input_forcings,ConfigOptions,MpiConfig):
             total1 = None
             total2 = None
     # Return the interpolated grid back to the regridding program.
+
+    # Set any negative values to 0.0
+    instPcpGlobal[np.where(instPcpGlobal < 0.0)] = 0.0
+
     return instPcpGlobal
 
