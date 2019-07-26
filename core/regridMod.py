@@ -9,6 +9,7 @@ import subprocess
 from netCDF4 import Dataset
 import numpy as np
 from core import ioMod
+from core import timeInterpMod
 
 def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     """
@@ -1068,6 +1069,16 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         else:
             varTmp = None
         errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # If we are regridding GFS data, and this is precipitation, we need to run calculations
+        # on the global precipitation average rates to calculate instantaneous global rates.
+        # This is due to GFS's weird nature of doing average rates over different periods.
+        if input_forcings.productName == "GFS_Production_GRIB2":
+            if forceTmp == "PRATE":
+                if MpiConfig.rank == 0:
+                    input_forcings.globalPcpRate2 = varTmp
+                    varTmp = None
+                    varTmp = timeInterpMod.gfs_pcp_time_interp(input_forcings, ConfigOptions, MpiConfig)
 
         varSubTmp = MpiConfig.scatter_array(input_forcings, varTmp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
