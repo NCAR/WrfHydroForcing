@@ -470,6 +470,18 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
         print(tmpFile2)
         print('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
 
+    # If needed, initialize the globalPcpRate1 array (this is for when we have the initial grid, or we need to change
+    # grids.
+    if np.any(input_forcings.globalPcpRate2) and not np.any(input_forcings.globalPcpRate1):
+        input_forcings.globalPcpRate1 = np.empty([input_forcings.globalPcpRate2.shape[0],
+                                                  input_forcings.globalPcpRate2.shape[1]], np.float32)
+    if np.any(input_forcings.globalPcpRate2) and np.any(input_forcings.globalPcpRate1):
+        if input_forcings.globalPcpRate2.shape[0] != input_forcings.globalPcpRate1.shape[0]:
+            # The grid has changed, we need to re-initialize the globalPcpRate1 array.
+            input_forcings.globalPcpRate1 = None
+            input_forcings.globalPcpRate1 = np.empty([input_forcings.globalPcpRate2.shape[0],
+                                                      input_forcings.globalPcpRate2.shape[1]], np.float32)
+
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmpFile1 or input_forcings.file_in2 != tmpFile2:
