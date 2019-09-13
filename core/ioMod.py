@@ -46,14 +46,16 @@ class OutputObj:
         :return:
         """
         output_variable_attribute_dict = {
-            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point'],
-            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point'],
-            'LWDOWN': [2,'W m-2','surface downward longwave_flux','Surface downward long-wave radiation flux','time: point'],
-            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean'],
-            'T2D': [4,'K','air temperature','2-m Air Temperature','time: point'],
-            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point'],
-            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point'],
-            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux','Surface downward short-wave radiation flux','time point']
+            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point',0.001,0.0],
+            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point',0.001,0.0],
+            'LWDOWN': [2,'W m-2','surface downward longwave_flux',
+                       'Surface downward long-wave radiation flux','time: point',0.001,0.0],
+            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean',1.0,0.0],
+            'T2D': [4,'K','air temperature','2-m Air Temperature','time: point',0.01,100.0],
+            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0],
+            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0],
+            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
+                       'Surface downward short-wave radiation flux','time point',0.001,0.0]
         }
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
@@ -138,7 +140,10 @@ class OutputObj:
                 if ConfigOptions.spatial_meta is not None:
                     # Create coordinate variables and populate with attributes read in.
                     try:
-                        idOut.createVariable('x','f8',('x'))
+                        if ConfigOptions.useCompression == 1:
+                            idOut.createVariable('x', 'f8', ('x'), zlib=True, complevel=2)
+                        else:
+                            idOut.createVariable('x','f8',('x'))
                     except:
                         ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -158,7 +163,10 @@ class OutputObj:
                         break
 
                     try:
-                        idOut.createVariable('y','f8',('y'))
+                        if ConfigOptions.useCompression == 1:
+                            idOut.createVariable('y','f8',('y'), zlib=True, complevel=2)
+                        else:
+                            idOut.createVariable('y', 'f8', ('y'))
                     except:
                         ConfigOptions.errMsg = "Unable to create y variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -193,7 +201,12 @@ class OutputObj:
                 # Loop through and create each variable, along with expected attributes.
                 for varTmp in output_variable_attribute_dict:
                     try:
-                        idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
+                        if ConfigOptions.useCompression == 1:
+                            idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
+                                                 fill_value=int(ConfigOptions.globalNdv/
+                                                                output_variable_attribute_dict[varTmp][5]))
+                        else:
+                            idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                     except:
                         ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -259,6 +272,22 @@ class OutputObj:
                             " in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
+                    # If we are using scale_factor / add_offset, create here.
+                    if ConfigOptions.useCompression == 1:
+                        try:
+                            idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
+                        except:
+                            ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
+                                                   " in: " + self.outPath
+                            errMod.log_critical(ConfigOptions, MpiConfig)
+                            break
+                        try:
+                            idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
+                        except:
+                            ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
+                                                   " in: " + self.outPath
+                            errMod.log_critical(ConfigOptions, MpiConfig)
+                            break
                 break
 
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -287,6 +316,16 @@ class OutputObj:
                         ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
+                    # If we are using scale_factor/add_offset, create the integer values here.
+                    if ConfigOptions.useCompression == 1:
+                        try:
+                            dataOutTmp = dataOutTmp - varTmp[6]
+                            dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
+                            dataOutTmp = dataOutTmp.astype(int)
+                        except:
+                            ConfigOptions.errMsg = "Unable to convert final output grid to integer type for: " + varTmp
+                            errMod.log_critical(ConfigOptions, MpiConfig)
+                            break
                     try:
                         idOut.variables[varTmp][0,:,:] = dataOutTmp
                     except:

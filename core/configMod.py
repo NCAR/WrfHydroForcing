@@ -27,6 +27,7 @@ class ConfigOptions:
         self.output_freq = None
         self.output_dir = None
         self.scratch_dir = None
+        self.useCompression = None
         self.num_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
@@ -183,6 +184,21 @@ class ConfigOptions:
         if not os.path.isdir(self.scratch_dir):
             errMod.err_out_screen('Specified output directory: ' + \
                                   self.scratch_dir + ' not found')
+
+        # Read in compression option
+        try:
+            self.useCompression = int(config['Output']['compressOutput'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate compressOut in the '
+                                  'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate compressOut in the '
+                                  'configuration file.')
+        except ValueError:
+            errMod.err_out_screen('Improper compressOut value.')
+        if self.useCompression < 0 or self.useCompression > 1:
+            errMod.err_out_screen('Please choose a compressOut value '
+                                  'of 0 or 1.')
 
         # Read in retrospective options
         try:
