@@ -85,7 +85,7 @@ for hour in range(cleanBackHours, lookBackHours, -1):
 		print("Removing old file: " + fileClean)
 		os.remove(fileClean)
 
-for hour in range(cleanBackHours,lookBackHours,-1):
+for hour in range(lookBackHours,lagBackHours,-1):
 	dCycle = dNow - datetime.timedelta(seconds=3600*hour)
 	print("Current Step = " + dCycle.strftime('%Y-%m-%d %H'))
 
