@@ -130,6 +130,13 @@ class OutputObj:
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
 
+                try:
+                    idOut.model_output_type = "forcing"
+                except:
+                    ConfigOptions.errMsg = "Unable to put model_output_type global attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
                 # Create variables.
                 try:
                     idOut.createVariable('time','i4',('time'))
