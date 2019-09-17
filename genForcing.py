@@ -23,13 +23,13 @@ def main():
     parser = argparse.ArgumentParser(description='Main calling program to generate WRF-Hydro Forcing')
     parser.add_argument('config_file', metavar='config_file', type=str, nargs='+',
                         help='Configuration file for the forcing engine')
-    parser.add_argument('nwm_version', metavar='nwm_version', type=float, nargs='?',
+    parser.add_argument('nwm_version', metavar='nwm_version', type=str, nargs='?',
                         help='National Water Model Version Number Specification')
 
     # Process the input arguments into the program.
     args = parser.parse_args()
 
-    if len(args.config_file) > 1:
+    if len(args.config_file) > 2:
         errMod.err_out_screen('Improper arguments passed to main calling program')
 
     if not os.path.isfile(args.config_file[0]):
