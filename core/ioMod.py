@@ -121,6 +121,15 @@ class OutputObj:
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
+                if ConfigOptions.nwmVersion is not None:
+                    try:
+                        idOut.NWM_version_number = "v" + str(ConfigOptions.nwmVersion)
+                    except:
+                        ConfigOptions.errMsg = "Unable to set the NWM_version_number global attribute in: " \
+                                               + self.outPath
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+
                 # Create variables.
                 try:
                     idOut.createVariable('time','i4',('time'))
