@@ -265,11 +265,11 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
                              != ConfigOptions.globalNdv)
 
-        if len(indCheck[0]) == 0:
-            ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
-            log_critical(ConfigOptions, MpiConfig)
-            indCheck = None
-            return
+        #if len(indCheck[0]) == 0:
+        #    ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
+        #    log_critical(ConfigOptions, MpiConfig)
+        #    indCheck = None
+        #    return
 
         # Check to see if any pixel cells are below the minimum value.
         indCheck = np.where((input_forcings.regridded_forcings2[variable_range[varTmp][0]] != ConfigOptions.globalNdv) &
