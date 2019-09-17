@@ -78,6 +78,7 @@ class ConfigOptions:
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
         self.errFlag = 0
+        self.nwmVersion = None
 
     def read_config(self):
         """

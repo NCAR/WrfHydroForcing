@@ -23,6 +23,8 @@ def main():
     parser = argparse.ArgumentParser(description='Main calling program to generate WRF-Hydro Forcing')
     parser.add_argument('config_file', metavar='config_file', type=str, nargs='+',
                         help='Configuration file for the forcing engine')
+    parser.add_argument('nwm_version', metavar='nwm_version', type=float, nargs='?',
+                        help='National Water Model Version Number Specification')
 
     # Process the input arguments into the program.
     args = parser.parse_args()
@@ -36,6 +38,11 @@ def main():
     # Initialize the configuration object that will contain all
     # user-specified options.
     jobMeta = configMod.ConfigOptions(args.config_file[0])
+
+    # Place NWM version number (if provided by the user). This will be placed into the final
+    # output files as a global attribute.
+    if args.nwm_version is not None:
+        jobMeta.nwmVersion = args.nwm_version
 
     # Parse the configuration options
     try:
