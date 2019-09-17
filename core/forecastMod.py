@@ -5,6 +5,7 @@ import sys
 from core import downscaleMod
 from core import biasCorrectMod
 from core import layeringMod
+import numpy as np
 
 def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,MpiConfig,OutputObj):
     """
@@ -196,18 +197,20 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                         suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-                        # Run check on regridded fields for reasonable values that are not missing values.
-                        errMod.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
-                        errMod.check_program_status(ConfigOptions, MpiConfig)
+                        if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
+                                np.any(suppPcpMod[suppPcpKey].regridded_precip2):
+                            # Run check on regridded fields for reasonable values that are not missing values.
+                            errMod.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
+                            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-                        # Run temporal interpolation on the grids.
-                        suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
-                        errMod.check_program_status(ConfigOptions, MpiConfig)
+                            # Run temporal interpolation on the grids.
+                            suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                            errMod.check_program_status(ConfigOptions, MpiConfig)
 
-                        # Layer in the supplemental precipitation into the current output object.
-                        layeringMod.layer_supplemental_precipitation(OutputObj,suppPcpMod[suppPcpKey],
-                                                                     ConfigOptions,MpiConfig)
-                        errMod.check_program_status(ConfigOptions, MpiConfig)
+                            # Layer in the supplemental precipitation into the current output object.
+                            layeringMod.layer_supplemental_precipitation(OutputObj,suppPcpMod[suppPcpKey],
+                                                                         ConfigOptions,MpiConfig)
+                            errMod.check_program_status(ConfigOptions, MpiConfig)
 
                 # Call the output routines
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
