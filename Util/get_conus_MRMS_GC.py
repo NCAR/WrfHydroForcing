@@ -43,14 +43,14 @@ def msgUser(msgContent,msgFlag):
 
 # Program parameters
 msgFlag = 1 # 1 = Print to screen, 0 = Do not print unecessary information
-outDir = "/glade/p/cisl/nwc/karsten/NWM_v21_Dev/INPUT/MRMS/GaugeCorr_QPE_01H"
+outDir = "/glade/p/cisl/nwc/nwm_forcings/Forcing_Inputs/MRMS/GaugeCorr_QPE_01H"
 tmpDir = "/glade/scratch/karsten"
 lookBackHours = 72 # How many hours to look for data.....
 cleanBackHours = 240 # Period between this time and the beginning of the lookback period to cleanout old data
 lagBackHours = 1 # Wait at least this long back before searching for files.
 dNowUTC = datetime.datetime.utcnow()
 dNow = datetime.datetime(dNowUTC.year,dNowUTC.month,dNowUTC.day,dNowUTC.hour)
-lookBackHours = 24
+lookBackHours = 48
 ncepHTTP = "https://mrms.ncep.noaa.gov/data/2D/GaugeCorr_QPE_01H"
 
 # Define communication of issues.
