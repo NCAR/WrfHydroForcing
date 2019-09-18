@@ -11,6 +11,8 @@ import os
 import subprocess
 import gzip
 import shutil
+import datetime
+import math
 
 class OutputObj:
     """
@@ -204,6 +206,26 @@ class OutputObj:
                     idOut.variables['reference_time'].long_name = "model initialization time"
                 except:
                     ConfigOptions.errMsg = "Unable to create reference_time long_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                # Populate time variables
+                dEpoch = datetime.datetime(1970, 1, 1)
+                dtValid = self.outDate - dEpoch
+                dtRef = ConfigOptions.current_fcst_cycle - dEpoch
+
+                try:
+                    idOut.variables['time'][0] = int(dtValid * 24.0 * 60.0) + int(math.floor(dtValid / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                try:
+                    idOut.variables['reference_time'][0] = int(dtRef * 24.0 * 60.0) + \
+                                                           int(math.floor(dtRef / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
