@@ -461,6 +461,9 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     :param ConfigOptions:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
     if MpiConfig.rank == 0:
         while (True):
@@ -544,6 +547,11 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     else:
         idTmp = None
 
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
     # Return the NetCDF file handle back to the user.
     return idTmp
 
@@ -556,6 +564,9 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     # Open the NetCDF file on the master processor and read in data.
     if MpiConfig.rank == 0:
         while (True):
@@ -597,6 +608,11 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
         idTmp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
     # Return the NetCDF file handle back to the user.
     return idTmp
 
@@ -609,6 +625,9 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     if MpiConfig.rank == 0:
         # Unzip the file in place.
         try:
@@ -625,3 +644,8 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
             raise Exception()
     else:
         return
+
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
+    errMod.check_program_status(ConfigOptions, MpiConfig)
