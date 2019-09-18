@@ -149,7 +149,7 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.total_valid_times = str(ConfigOptions.num_output_steps)
+                    idOut.total_valid_times = float(ConfigOptions.num_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     errMod.log_critical(ConfigOptions, MpiConfig)
