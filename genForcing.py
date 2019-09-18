@@ -25,6 +25,8 @@ def main():
                         help='Configuration file for the forcing engine')
     parser.add_argument('nwm_version', metavar='nwm_version', type=str, nargs='?',
                         help='National Water Model Version Number Specification')
+    parser.add_argument('nwm_config', metavar='nwm_config', type=str, nargs='?',
+                        help='National Water Model Configuration')
 
     # Process the input arguments into the program.
     args = parser.parse_args()
@@ -40,6 +42,11 @@ def main():
     # output files as a global attribute.
     if args.nwm_version is not None:
         jobMeta.nwmVersion = args.nwm_version
+
+    # Place NWM configuration (if provided by the user). This will be placed into the final
+    # output files as a global attribute.
+    if args.nwm_config is not None:
+        jobMeta.nwmConfig = args.nwm_config
 
     # Parse the configuration options
     try:
