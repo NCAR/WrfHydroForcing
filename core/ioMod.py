@@ -215,15 +215,16 @@ class OutputObj:
                 dtRef = ConfigOptions.current_fcst_cycle - dEpoch
 
                 try:
-                    idOut.variables['time'][0] = int(dtValid * 24.0 * 60.0) + int(math.floor(dtValid / 60.0))
+                    idOut.variables['time'][0] = int(dtValid.days * 24.0 * 60.0) + \
+                                                 int(math.floor(dtValid.seconds / 60.0))
                 except:
                     ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
                 try:
-                    idOut.variables['reference_time'][0] = int(dtRef * 24.0 * 60.0) + \
-                                                           int(math.floor(dtRef / 60.0))
+                    idOut.variables['reference_time'][0] = int(dtRef.days * 24.0 * 60.0) + \
+                                                           int(math.floor(dtRef.seconds / 60.0))
                 except:
                     ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
                     errMod.log_critical(ConfigOptions, MpiConfig)
