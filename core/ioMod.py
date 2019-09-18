@@ -13,6 +13,7 @@ import gzip
 import shutil
 import datetime
 import math
+import time
 
 class OutputObj:
     """
@@ -471,11 +472,19 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
                 errMod.log_warning(ConfigOptions,MpiConfig)
             try:
-                cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE, shell=True)
-                out, err = cmdOutput.communicate()
-                exitcode = cmdOutput.returncode
-                #subprocess.run([Wgrib2Cmd],shell=True)
+                statusWgrib2 = True
+                while statusWgrib2:
+                    cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
+                                                 stderr=subprocess.PIPE, shell=True)
+                    out, err = cmdOutput.communicate()
+                    exitcode = cmdOutput.returncode
+                    #subprocess.run([Wgrib2Cmd],shell=True)
+                    if not os.path.isfile(NetCdfFileOut):
+                        ConfigOptions.statusMsg = "wgrib2 failed.... Trying again...."
+                        errMod.log_msg(ConfigOptions, MpiConfig)
+                        time.sleep(5)
+                    else:
+                        statusWgrib2 = False
             except:
                 ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                     NetCdfFileOut
