@@ -167,6 +167,46 @@ class OutputObj:
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
+                # Populate time and reference time variables with appropriate attributes and time values.
+                try:
+                    idOut.variables['time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time units attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].standard_name = "time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time standard_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].long_name = "valid output time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time long_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                try:
+                    idOut.variables['reference_time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time units attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].standard_name = "forecast_reference_time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time standard_name attribute in: " + \
+                                           self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].long_name = "model initialization time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time long_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
                 # Create geospatial metadata coordinate variables if data was read in from an optional
                 # spatial metadata file.
                 if ConfigOptions.spatial_meta is not None:
