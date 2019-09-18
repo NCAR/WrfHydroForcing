@@ -130,6 +130,15 @@ class OutputObj:
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
 
+                if ConfigOptions.nwmConfig is not None:
+                    try:
+                        idOut.model_configuration = ConfigOptions.nwmConfig
+                    except:
+                        ConfigOptions.errMsg = "Unable to set the model_configuration global attribute in: " + \
+                                               self.outPath
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+
                 try:
                     idOut.model_output_type = "forcing"
                 except:
