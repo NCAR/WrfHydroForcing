@@ -21,6 +21,8 @@ class ConfigOptions:
         self.supp_precip_forcings = None
         self.input_force_dirs = None
         self.supp_precip_dirs = None
+        self.input_force_mandatory = None
+        self.supp_precip_mandatory = None
         self.number_inputs = None
         self.number_supp_pcp = None
         self.number_custom_inputs = 0
@@ -138,6 +140,39 @@ class ConfigOptions:
             if not os.path.isdir(self.input_force_dirs[dirTmp]):
                 errMod.err_out_screen('Unable to locate forcing directory: ' +
                                       self.input_force_dirs[dirTmp])
+
+        # Read in the mandatory enforcement options for input forcings.
+        try:
+            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate InputMandatory under Input section in'
+                                  'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputMandatory under Input section in'
+                                  'configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper InputMandatory option specified in '
+                                  'configuration file')
+
+        # Process input forcing enforcement options
+        try:
+            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                  'in the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper InputMandatory options specified in the configuration file.')
+        if len(self.input_force_mandatory) != self.number_inputs:
+            errMod.err_out_screen('Please specify InputMandatory values for each corresponding input '
+                                  'forcings in the configuration file.')
+        # Check to make sure enforcement options makes sense.
+        for enforceOpt in self.input_force_mandatory:
+            if enforceOpt < 0 or enforceOpt > 1:
+                errMod.err_out_screen('Invalid InputMandatory chosen in the configuration file. Please'
+                                      ' choose a value of 0 or 1 for each corresponding input forcing.')
 
         # Read in the output frequency
         try:
@@ -924,6 +959,27 @@ class ConfigOptions:
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     errMod.err_out_screen('Unable to locate supp pcp directory: ' +
                                           self.supp_precip_dirs[dirTmp])
+
+            # Process supplemental precipitation enforcement options
+            try:
+                self.supp_precip_mandatory = json.loads(config['SuppForcing']['SuppPcpMandatory'])
+            except KeyError:
+                    errMod.err_out_screen('Unable to locate SuppPcpMandatory under the SuppForcing section '
+                                          'in the configuration file.')
+            except configparser.NoOptionError:
+                    errMod.err_out_screen('Unable to locate SuppPcpMandatory under the SuppForcing section '
+                                          'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                    errMod.err_out_screen('Improper SuppPcpMandatory options specified in the configuration file.')
+            if len(self.supp_precip_mandatory) != self.number_supp_pcp:
+                    errMod.err_out_screen('Please specify SuppPcpMandatory values for each corresponding supplemental '
+                                          'precip options in the configuration file.')
+            # Check to make sure enforcement options makes sense.
+            for enforceOpt in self.supp_precip_mandatory:
+                if enforceOpt < 0 or enforceOpt > 1:
+                    errMod.err_out_screen('Invalid SuppPcpMandatory chosen in the configuration file. Please'
+                                          ' choose a value of 0 or 1 for each corresponding '
+                                          'supplemental precipitation.')
 
             # Read in the regridding options.
             try:

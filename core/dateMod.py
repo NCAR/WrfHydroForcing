@@ -169,8 +169,17 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Ensure we have the necessary new file
     if MpiConfg.rank == 0:
         if not os.path.isfile(input_forcings.file_in2):
-            ConfigOptions.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
-            errMod.log_critical(ConfigOptions,MpiConfg)
+            if input_forcings.enforce == 1:
+                ConfigOptions.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions,MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(input_forcings.regridded_forcings2):
+                    input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
@@ -311,8 +320,17 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Ensure we have the necessary new file
     if MpiConfg.rank == 0:
         if not os.path.isfile(input_forcings.file_in2):
-            ConfigOptions.errMsg = "Expected input RAP file: " + input_forcings.file_in2 + " not found."
-            errMod.log_critical(ConfigOptions, MpiConfg)
+            if input_forcings.enforce == 1:
+                ConfigOptions.errMsg = "Expected input RAP file: " + input_forcings.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input RAP file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(input_forcings.regridded_forcings2):
+                    input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
@@ -526,8 +544,17 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Ensure we have the necessary new file
     if MpiConfg.rank == 0:
         if not os.path.isfile(input_forcings.file_in2):
-            ConfigOptions.errMsg = "Expected input GFS file: " + input_forcings.file_in2 + " not found."
-            errMod.log_critical(ConfigOptions, MpiConfg)
+            if input_forcings.enforce == 1:
+                ConfigOptions.errMsg = "Expected input GFS file: " + input_forcings.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input GFS file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(input_forcings.regridded_forcings2):
+                    input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
@@ -662,8 +689,17 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Ensure we have the necessary new file
     if MpiConfg.rank == 0:
         if not os.path.isfile(input_forcings.file_in2):
-            ConfigOptions.errMsg = "Expected input NAM Nest file: " + input_forcings.file_in2 + " not found."
-            errMod.log_critical(ConfigOptions, MpiConfg)
+            if input_forcings.enforce == 1:
+                ConfigOptions.errMsg = "Expected input NAM Nest file: " + input_forcings.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input NAM Nest file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(input_forcings.regridded_forcings2):
+                    input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
@@ -824,8 +860,17 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     # Ensure we have the necessary new file
     if MpiConfg.rank == 0:
         if not os.path.isfile(input_forcings.file_in2):
-            ConfigOptions.errMsg = "Expected input CFSv2 file: " + input_forcings.file_in2 + " not found."
-            errMod.log_critical(ConfigOptions, MpiConfg)
+            if input_forcings.enforce == 1:
+                ConfigOptions.errMsg = "Expected input CFSv2 file: " + input_forcings.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input CFSv2 file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(input_forcings.regridded_forcings2):
+                    input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
@@ -945,6 +990,22 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
             input_forcings.regridComplete = False
         errMod.check_program_status(ConfigOptions, MpiConfg)
 
+        # Ensure we have the necessary new file
+        if MpiConfg.rank == 0:
+            if not os.path.isfile(input_forcings.file_in2):
+                if input_forcings.enforce == 1:
+                    ConfigOptions.errMsg = "Expected input Custom file: " + input_forcings.file_in2 + " not found."
+                    errMod.log_critical(ConfigOptions, MpiConfg)
+                else:
+                    ConfigOptions.statusMsg = "Expected input Custom file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                        "Will not use in " \
+                                                                                                        "final layering."
+                    errMod.log_msg(ConfigOptions, MpiConfg)
+                    if np.any(input_forcings.regridded_forcings2):
+                        input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+
+        errMod.check_program_status(ConfigOptions, MpiConfg)
+
 def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
     Function to calculate the previous and next MRMS radar-only QPE files. This
@@ -1056,13 +1117,30 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     # If either file does not exist, set to None. This will instruct downstream regridding steps to
     # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
     # added to the final output grids.
-    if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
-        if MpiConfg.rank == 0:
-            ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
-                                      "supplemental precipitation"
-            errMod.log_warning(ConfigOptions,MpiConfg)
-        supplemental_precip.file_in2 = None
-        supplemental_precip.file_in1 = None
+
+    #if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
+    #    if MpiConfg.rank == 0:
+    #        ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
+    #                                  "supplemental precipitation"
+    #        errMod.log_warning(ConfigOptions,MpiConfg)
+    #    supplemental_precip.file_in2 = None
+    #    supplemental_precip.file_in1 = None
+
+    #errMod.check_program_status(ConfigOptions, MpiConfg)
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(supplemental_precip.file_in2):
+            if supplemental_precip.enforce == 1:
+                ConfigOptions.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
+                                          " not found. " + "Will not use in final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(supplemental_precip.regridded_precip2):
+                    supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+
     errMod.check_program_status(ConfigOptions, MpiConfg)
 
 def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
@@ -1221,11 +1299,26 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     # If either file does not exist, set to None. This will instruct downstream regridding steps to
     # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
     # added to the final output grids.
-    if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
-        if MpiConfg.rank == 0:
-            ConfigOptions.statusMsg = "Found missing ARW file. Will not process supplemental precipitation for " \
-                                      "this time step."
-            errMod.log_msg(ConfigOptions, MpiConfg)
-        supplemental_precip.file_in2 = None
-        supplemental_precip.file_in1 = None
+    #if not os.path.isfile(tmpFile1) or not os.path.isfile(tmpFile2):
+    #    if MpiConfg.rank == 0:
+    #        ConfigOptions.statusMsg = "Found missing ARW file. Will not process supplemental precipitation for " \
+    #                                  "this time step."
+    #        errMod.log_msg(ConfigOptions, MpiConfg)
+    #    supplemental_precip.file_in2 = None
+    #    supplemental_precip.file_in1 = None
+
+    # Ensure we have the necessary new file
+    if MpiConfg.rank == 0:
+        if not os.path.isfile(supplemental_precip.file_in2):
+            if supplemental_precip.enforce == 1:
+                ConfigOptions.errMsg = "Expected input ARW file: " + supplemental_precip.file_in2 + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfg)
+            else:
+                ConfigOptions.statusMsg = "Expected input ARW file: " + supplemental_precip.file_in2 + \
+                                          " not found. " + "Will not use in final layering."
+                errMod.log_msg(ConfigOptions, MpiConfg)
+                if np.any(supplemental_precip.regridded_precip2):
+                    supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+
+    errMod.check_program_status(ConfigOptions, MpiConfg)
 
