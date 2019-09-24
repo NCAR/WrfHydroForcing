@@ -20,6 +20,11 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -248,6 +253,11 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -488,6 +498,11 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -767,6 +782,11 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -886,6 +906,11 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1154,6 +1179,11 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1370,6 +1400,11 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1451,14 +1486,14 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "No MRMS Precipitation available. Supplemental precipitation will " \
-                                      "not be used."
-            errMod.log_msg(ConfigOptions, MpiConfig)
-        supplemental_precip.regridded_precip2 = None
-        supplemental_precip.regridded_precip1 = None
-        return
+    #if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    #    if MpiConfig.rank == 0:
+    #        ConfigOptions.statusMsg = "No MRMS Precipitation available. Supplemental precipitation will " \
+    #                                  "not be used."
+    #        errMod.log_msg(ConfigOptions, MpiConfig)
+    #    supplemental_precip.regridded_precip2 = None
+    #    supplemental_precip.regridded_precip1 = None
+    #    return
 
     # Unzip MRMS files to temporary locations.
     try:
@@ -1685,6 +1720,11 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1714,13 +1754,13 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
-        if MpiConfig.rank == 0:
-            "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
-        supplemental_precip.regridded_precip2 = None
-        supplemental_precip.regridded_precip1 = None
-        return
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+    #if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    #    if MpiConfig.rank == 0:
+    #        "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
+    #    supplemental_precip.regridded_precip2 = None
+    #    supplemental_precip.regridded_precip1 = None
+    #    return
+    #errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create a temporary NetCDF file from the GRIB2 file.
     cmd = "wgrib2 " + supplemental_precip.file_in2 + " -match \":(" + \

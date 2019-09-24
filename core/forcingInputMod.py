@@ -22,6 +22,7 @@ class input_forcings:
         """
         self.keyValue = None
         self.inDir = None
+        self.enforce = None
         self.paramDir = None
         self.userFcstHorizon = None
         self.userCycleOffset = None
@@ -373,6 +374,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key] = input_forcings()
         InputDict[force_key].keyValue = force_key
         InputDict[force_key].regridOpt = ConfigOptions.regrid_opt[force_tmp]
+        InputDict[force_key].enforce = ConfigOptions.input_force_mandatory[force_tmp]
         InputDict[force_key].timeInterpOpt = ConfigOptions.forceTemoralInterp[force_tmp]
 
         InputDict[force_key].q2dDownscaleOpt = ConfigOptions.q2dDownscaleOpt[force_tmp]
