@@ -20,6 +20,7 @@ class supplemental_precip:
         """
         self.keyValue = None
         self.inDir = None
+        self.enforce = None
         self.productName = None
         self.fileType = None
         self.nx_global = None
