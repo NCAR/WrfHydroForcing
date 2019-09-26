@@ -197,8 +197,10 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                         suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-                        if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
-                                np.any(suppPcpMod[suppPcpKey].regridded_precip2):
+                        if suppPcpMod[suppPcpKey].regridded_precip1 is not None \
+                                and suppPcpMod[suppPcpKey].regridded_precip2 is not None:
+                        #if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
+                        #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
                             # Run check on regridded fields for reasonable values that are not missing values.
                             errMod.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
                             errMod.check_program_status(ConfigOptions, MpiConfig)
