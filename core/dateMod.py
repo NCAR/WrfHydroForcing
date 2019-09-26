@@ -145,7 +145,8 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_forcings1 is None:
+            #if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                               input_forcings.productName
@@ -177,7 +178,8 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                                                                                                    "Will not use in " \
                                                                                                    "final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(input_forcings.regridded_forcings2):
+                if input_forcings.regridded_forcings2 is not None:
+                #if np.any(input_forcings.regridded_forcings2):
                     input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -296,7 +298,8 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_forcings1 is None:
+            #if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                               input_forcings.productName
@@ -328,7 +331,8 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                                                                                                    "Will not use in " \
                                                                                                    "final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(input_forcings.regridded_forcings2):
+                if input_forcings.regridded_forcings2 is not None:
+                #if np.any(input_forcings.regridded_forcings2):
                     input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -490,10 +494,12 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If needed, initialize the globalPcpRate1 array (this is for when we have the initial grid, or we need to change
     # grids.
-    if np.any(input_forcings.globalPcpRate2) and not np.any(input_forcings.globalPcpRate1):
+    if input_forcings.globalPcpRate2 is not None and input_forcings.globalPcpRate1 is None:
+    #if np.any(input_forcings.globalPcpRate2) and not np.any(input_forcings.globalPcpRate1):
         input_forcings.globalPcpRate1 = np.empty([input_forcings.globalPcpRate2.shape[0],
                                                   input_forcings.globalPcpRate2.shape[1]], np.float32)
-    if np.any(input_forcings.globalPcpRate2) and np.any(input_forcings.globalPcpRate1):
+    if input_forcings.globalPcpRate2 is not None and input_forcings.globalPcpRate1 is not None:
+    #if np.any(input_forcings.globalPcpRate2) and np.any(input_forcings.globalPcpRate1):
         if input_forcings.globalPcpRate2.shape[0] != input_forcings.globalPcpRate1.shape[0]:
             # The grid has changed, we need to re-initialize the globalPcpRate1 array.
             input_forcings.globalPcpRate1 = None
@@ -513,7 +519,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_forcings1 is None:
+            #if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                               input_forcings.productName
@@ -552,7 +559,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                                                                                                    "Will not use in " \
                                                                                                    "final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(input_forcings.regridded_forcings2):
+                if input_forcings.regridded_forcings2 is not None:
+                #if np.any(input_forcings.regridded_forcings2):
                     input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -665,7 +673,8 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_forcings1 is None:
+            #if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                               input_forcings.productName
@@ -697,7 +706,8 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                                                                                                    "Will not use in " \
                                                                                                    "final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(input_forcings.regridded_forcings2):
+                if input_forcings.regridded_forcings2 is not None:
+                #if np.any(input_forcings.regridded_forcings2):
                     input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -833,7 +843,8 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
             # Check to see if we are restarting from a previously failed instance. In this case,
             # We are not on the first timestep, but no previous forcings have been processed.
             # We need to process the previous input timestep for temporal interpolation purposes.
-            if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_forcings1 is None:
+            #if not np.any(input_forcings.regridded_forcings1):
                 if MpiConfg.rank == 0:
                     ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                               input_forcings.productName
@@ -868,7 +879,8 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
                                                                                                    "Will not use in " \
                                                                                                    "final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(input_forcings.regridded_forcings2):
+                if input_forcings.regridded_forcings2 is not None:
+                #if np.any(input_forcings.regridded_forcings2):
                     input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -969,7 +981,8 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
                 # Check to see if we are restarting from a previously failed instance. In this case,
                 # We are not on the first timestep, but no previous forcings have been processed.
                 # We need to process the previous input timestep for temporal interpolation purposes.
-                if not np.any(input_forcings.regridded_forcings1):
+                if input_forcings.regridded_forcings1 is None:
+                #if not np.any(input_forcings.regridded_forcings1):
                     if MpiConfg.rank == 0:
                         ConfigOptions.statusMsg = "Restarting forecast cyle. Will regrid previous: " + \
                                                   input_forcings.productName
@@ -1001,7 +1014,8 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
                                                                                                         "Will not use in " \
                                                                                                         "final layering."
                     errMod.log_msg(ConfigOptions, MpiConfg)
-                    if np.any(input_forcings.regridded_forcings2):
+                    if input_forcings.regridded_forcings2 is not None:
+                    #if np.any(input_forcings.regridded_forcings2):
                         input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
         errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -1138,7 +1152,8 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
                 ConfigOptions.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
                                           " not found. " + "Will not use in final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(supplemental_precip.regridded_precip2):
+                if supplemental_precip.regridded_precip2 is not None:
+                #if np.any(supplemental_precip.regridded_precip2):
                     supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
@@ -1317,7 +1332,8 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
                 ConfigOptions.statusMsg = "Expected input ARW file: " + supplemental_precip.file_in2 + \
                                           " not found. " + "Will not use in final layering."
                 errMod.log_msg(ConfigOptions, MpiConfg)
-                if np.any(supplemental_precip.regridded_precip2):
+                if supplemental_precip.regridded_precip2 is not None:
+                #if np.any(supplemental_precip.regridded_precip2):
                     supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
 
     errMod.check_program_status(ConfigOptions, MpiConfg)
