@@ -76,6 +76,7 @@ class ConfigOptions:
         self.runCfsNldasBiasCorrect = False
         self.cfsv2EnsMember = None
         self.customFcstFreq = None
+        self.rqiMethod = None
         self.rqiThresh = 1.0
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
@@ -926,6 +927,20 @@ class ConfigOptions:
                                           '1 and 5.')
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt == 1 or suppOpt == 2:
+                    try:
+                        self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
+                    except KeyError:
+                        errMod.err_out_screen('Unable to locate RqiMethod under SuppForcing '
+                                              'section in the configuration file.')
+                    except configparser.NoOptionError:
+                        errMod.err_out_screen('Unable to locate RqiMethod under SuppForcing '
+                                              'section in the configuration file.')
+                    except json.decoder.JSONDecodeError:
+                        errMod.err_out_screen('Improper RqiMethod option in the configuration file.')
+                    # Make sure the RqiMethod makes sense.
+                    if self.rqiMethod < 0 or self.rqiMethod > 2:
+                        errMod.err_out_screen('Please specify an RqiMethod of either 0, 1, or 2.')
+
                     try:
                         self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
                     except KeyError:
