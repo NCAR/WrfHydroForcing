@@ -21,6 +21,7 @@ class ConfigOptions:
         self.supp_precip_forcings = None
         self.input_force_dirs = None
         self.supp_precip_dirs = None
+        self.supp_precip_param_dir = None
         self.input_force_mandatory = None
         self.supp_precip_mandatory = None
         self.number_inputs = None
@@ -1038,6 +1039,20 @@ class ConfigOptions:
                     errMod.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration '
                                           'file. Please choose a value of 0-2 for each corresponding input '
                                           'forcing.')
+
+            # Read in the optional parameter directory for supplemental precipitation.
+            try:
+                self.supp_precip_param_dir = json.loads(config['SuppForcing']['SuppPcpParamDir'])
+            except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
+                                      'in the configuration file.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
+                                      'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                errMod.err_out_screen('Improper SuppPcpParamDir option specified in the configuration file.')
+            if not os.path.isdir(self.supp_precip_param_dir):
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir: ' + self.supp_precip_param_dir)
 
         # Read in Ensemble information
         # Read in CFS ensemble member information IF we have chosen CFSv2 as an input
