@@ -212,6 +212,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[supp_pcp_key] = supplemental_precip()
         InputDict[supp_pcp_key].keyValue = supp_pcp_key
         InputDict[supp_pcp_key].regridOpt = ConfigOptions.regrid_opt_supp_pcp[supp_pcp_tmp]
+        InputDict[supp_pcp_key].enforce = ConfigOptions.supp_precip_mandatory[supp_pcp_tmp]
         InputDict[supp_pcp_key].timeInterpOpt = ConfigOptions.suppTemporalInterp[supp_pcp_tmp]
 
         InputDict[supp_pcp_key].inDir = ConfigOptions.supp_precip_dirs[supp_pcp_tmp]
