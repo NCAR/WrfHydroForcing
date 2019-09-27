@@ -1042,14 +1042,14 @@ class ConfigOptions:
 
             # Read in the optional parameter directory for supplemental precipitation.
             try:
-                self.supp_precip_param_dir = json.loads(config['SuppForcing']['SuppPcpParamDir'])
+                self.supp_precip_param_dir = config['SuppForcing']['SuppPcpParamDir']
             except KeyError:
                 errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
                                       'in the configuration file.')
             except configparser.NoOptionError:
                 errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
                                       'in the configuration file.')
-            except json.decoder.JSONDecodeError:
+            except ValueError:
                 errMod.err_out_screen('Improper SuppPcpParamDir option specified in the configuration file.')
             if not os.path.isdir(self.supp_precip_param_dir):
                 errMod.err_out_screen('Unable to locate SuppPcpParamDir: ' + self.supp_precip_param_dir)
