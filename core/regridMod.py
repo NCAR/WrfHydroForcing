@@ -1442,48 +1442,47 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # These files shouldn't exist. If they do, remove them.
     if MpiConfig.rank == 0:
-        while (True):
-            if os.path.isfile(mrms_tmp_grib2):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_grib2 + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_grib2)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_nc):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_nc + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_nc)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_rqi_grib2):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_rqi_grib2 + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_rqi_grib2)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_rqi_nc):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_rqi_nc + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_rqi_nc)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            break
+        if os.path.isfile(mrms_tmp_grib2):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_grib2 + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_nc):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_nc + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_rqi_grib2):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_rqi_grib2 + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_rqi_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_rqi_nc):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_rqi_nc + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_rqi_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        pass
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # If the input paths have been set to None, this means input is missing. We will

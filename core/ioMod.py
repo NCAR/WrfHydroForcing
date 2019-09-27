@@ -559,41 +559,40 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
 
     # Open the NetCDF file on the master processor and read in data.
     if MpiConfig.rank == 0:
-        while (True):
-            # Ensure file exists.
-            if not os.path.isfile(NetCdfFileIn):
-                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
-                                        " not found."
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                idTmp = None
-                break
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileIn):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
+                                    " not found."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
 
-            # Open the NetCDF file.
-            try:
-                idTmp = Dataset(NetCdfFileIn, 'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileIn, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                    NetCdfFileIn
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        if idTmp is not None:
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
                                         NetCdfFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            if idTmp is not None:
-                # Check for expected lat/lon variables.
-                if 'latitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                            NetCdfFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            if idTmp is not None:
-                if 'longitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                                            NetCdfFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            break
+                pass
+        if idTmp is not None:
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                        NetCdfFileIn
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                idTmp = None
+                pass
+        pass
     else:
         idTmp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
