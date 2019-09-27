@@ -143,6 +143,12 @@ def ncar_tbl_correction(input_forcings, GeoMetaWrfHydro, ConfigOptions, MpiConfi
         3: [0.35, 0.18, 0.15, 0.13, 0.12, 0.11, 0.10, 0.08, 0.07, 0.06, 0.05, 0.03, 0.02, 0.01,
             -0.01, -0.02, -0.03, -0.4, -0.05]
     }
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing table lookup bias correction for: " + \
+                                  input_forcings.netcdf_var_names[force_num] + " For input: " + \
+                                  input_forcings.productName
+        errMod.log_msg(ConfigOptions, MpiConfig)
+
     # First check to make sure we are within the accepted forecast range per the above table. For now, this
     # bias correction only applies to the first 18 forecast hours.
     if int(input_forcings.fcst_hour2) > 18:
@@ -201,6 +207,12 @@ def ncar_blanket_adjustment_lw(input_forcings, GeoMetaWrfHydro, ConfigOptions, M
     :param force_num:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing blanket bias correction on incoming longwave " \
+                                  "radiation fluxes for input: " + \
+                                  input_forcings.productName
+        errMod.log_msg(ConfigOptions, MpiConfig)
+
     # Establish blanket adjustment to apply across the board in W/m^2
     adj_lw = 9.0
 
@@ -251,6 +263,12 @@ def ncar_sw_hrrr_bias_correct(input_forcings, GeoMetaWrfHydro, ConfigOptions, Mp
     :param force_num:
     :return:
     """
+    if MpiConfig.rank == 0:
+        ConfigOptions.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+                                  "radiation fluxes for input: " + \
+                                  input_forcings.productName
+        errMod.log_msg(ConfigOptions, MpiConfig)
+
     # Establish constant parameters. NOTE!!! - These will change with future HRRR upgrades.
     c1 = -0.159
     c2 = -0.077
