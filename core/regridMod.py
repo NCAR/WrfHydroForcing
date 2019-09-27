@@ -1966,9 +1966,9 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
                                                       np.float32)
         supplemental_precip.regridded_precip2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
-        supplemental_precip.regridded_rqi1 = np.full([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        supplemental_precip.regridded_rqi1 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
-        supplemental_precip.regridded_rqi2 = np.full([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
+        supplemental_precip.regridded_rqi2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
         supplemental_precip.regridded_rqi1[:, :] = ConfigOptions.globalNdv
         supplemental_precip.regridded_rqi2[:, :] = ConfigOptions.globalNdv
