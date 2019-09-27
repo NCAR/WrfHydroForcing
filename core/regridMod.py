@@ -1604,6 +1604,11 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     if ConfigOptions.rqiMethod == 0:
         # We will set the RQI field to 1.0 here so no MRMS data gets masked out.
         supplemental_precip.regridded_rqi2[:, :] = 1.0
+
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "MRMS Will not be filtered using RQI values."
+            errMod.log_msg(ConfigOptions, MpiConfig)
+
     elif ConfigOptions.rqiMethod == 1:
         # Read in the RQI field from monthly climatological files.
         ioMod.read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip)
