@@ -1733,8 +1733,6 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     if supplemental_precip.regridComplete:
         return
 
-    if MpiConfig.rank == 0:
-        print("REGRID STATUS = " + str(supplemental_precip.regridComplete))
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     arw_tmp_nc = ConfigOptions.scratch_dir + "/ARW_PCP_TMP.nc"
@@ -1781,14 +1779,17 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     if calcRegridFlag:
         if MpiConfig.rank == 0:
-            print('CALCULATING ARW WEIGHTS')
+            ConfigOptions.statusMsg = "Calculating WRF ARW regridding weights."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         calculate_supp_pcp_weights(MpiConfig, ConfigOptions,
                                    supplemental_precip, idTmp, arw_tmp_nc)
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Regrid the input variables.
     if MpiConfig.rank == 0:
-        print("REGRIDDING: APCP_surface")
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Regridding WRF ARW APCP Precipitation."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         try:
             varTmp = idTmp.variables['APCP_surface'][0, :, :]
         except:
