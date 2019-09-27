@@ -639,3 +639,137 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     MpiConfig.comm.barrier()
 
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
+    """
+    Function to read in monthly RQI grids on the NWM grid. This is an NWM ONLY
+    option. Please do not activate if not executing on the NWM conus grid.
+    :param ConfigOptions:
+    :param MpiConfig:
+    :param supplemental_precip:
+    :return:
+    """
+    # Ensure all processors are synced up before proceeding.
+    MpiConfig.comm.barrier()
+
+    # First check to see if the RQI grids have valid values in them. There should
+    # be NO NDV values if the grids have properly been read in.
+    indTmp = np.where(supplemental_precip.regridded_rqi2 != ConfigOptions.globalNdv)
+
+    rqiPath = ConfigOptions.supp_precip_param_dir + "/MRMS_WGT_RQI0.9_m" + \
+              supplemental_precip.pcp_date2.strftime('%m') + '_v1.1_geosmth.nc'
+
+    if len(indTmp[0]) == 0:
+        # We haven't initialized the RQI fields. We need to do this.....
+        if MpiConfig.rank == 1:
+            ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            # First make sure the RQI file exists.
+            if not os.path.isfile(rqiPath):
+                ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the Parameter file.
+            try:
+                idTmp = Dataset(rqiPath, 'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
+                pass
+
+            # Extract out the RQI grid.
+            try:
+                varTmp = idTmp.variables['POP_0mabovemeansealevel'][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Sanity checking on grid size.
+            if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
+                ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
+                                       "in parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            idTmp = None
+            varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the array out to the local processors
+        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+
+        supplemental_precip.regridded_rqi2[:, :] = varSubTmp
+
+        # Reset variables for memory purposes
+        varSubTmp = None
+        varTmp = None
+
+        # Close the RQI NetCDF file
+        try:
+            idTmp.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+    # Also check to see if we have switched to a new month based on the previous
+    # MRMS step and the current one.
+    if supplemental_precip.pcp_date2.month != supplemental_precip.pcp_date1.month:
+        # We need to read in a new RQI monthly grid.
+        if MpiConfig.rank == 1:
+            ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            # First make sure the RQI file exists.
+            if not os.path.isfile(rqiPath):
+                ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the Parameter file.
+            try:
+                idTmp = Dataset(rqiPath, 'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
+                pass
+
+            # Extract out the RQI grid.
+            try:
+                varTmp = idTmp.variables['POP_0mabovemeansealevel'][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Sanity checking on grid size.
+            if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
+                ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
+                                        "in parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            idTmp = None
+            varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the array out to the local processors
+        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+
+        supplemental_precip.regridded_rqi2[:, :] = varSubTmp
+
+        # Reset variables for memory purposes
+        varSubTmp = None
+        varTmp = None
+
+        # Close the RQI NetCDF file
+        try:
+            idTmp.close()
+        except:
+            ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
+    errMod.check_program_status(ConfigOptions, MpiConfig)

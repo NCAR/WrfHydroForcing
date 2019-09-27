@@ -42,6 +42,7 @@ class input_forcings:
         self.timeInterpOpt = None
         self.t2dDownscaleOpt = None
         self.lapseGrid = None
+        self.rqiClimoGrid = None
         self.swDowscaleOpt = None
         self.precipDownscaleOpt = None
         self.nwmPRISM_numGrid = None
