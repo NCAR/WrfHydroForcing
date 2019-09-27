@@ -394,7 +394,8 @@ class OutputObj:
             # First run a check for missing values. There should be none at this point.
             errMod.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0],:,:],
                                        varTmp, MpiConfig)
-            errMod.check_program_status(ConfigOptions, MpiConfig)
+            if ConfigOptions.errFlag == 1:
+                continue
 
             # Collect data from the various processors, and place into the output file.
             try:
