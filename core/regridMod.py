@@ -1559,19 +1559,18 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
                 pass
         else:
             varTmp = None
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    try:
-        supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
-    except:
-        ConfigOptions.errMsg = "Unable to place MRMS data into local ESMF field."
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+        try:
+            supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
+        except:
+            ConfigOptions.errMsg = "Unable to place MRMS data into local ESMF field."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    if ConfigOptions.rqiMethod == 1:
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Regridding MRMS RQI Field."
             errMod.log_msg(ConfigOptions, MpiConfig)
@@ -1583,7 +1582,6 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
             errMod.log_critical(ConfigOptions, MpiConfig)
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    if ConfigOptions.rqiMethod == 1:
         # Set any pixel cells outside the input domain to the global missing value.
         try:
             supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
@@ -1601,15 +1599,15 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
             ConfigOptions.statusMsg = "MRMS Will not be filtered using RQI values."
             errMod.log_msg(ConfigOptions, MpiConfig)
 
-    elif ConfigOptions.rqiMethod == 1:
+    elif ConfigOptions.rqiMethod == 2:
         # Read in the RQI field from monthly climatological files.
         ioMod.read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip)
-    elif ConfigOptions.rqiMethod == 2:
+    elif ConfigOptions.rqiMethod == 1:
         # We are using the MRMS RQI field in realtime
         supplemental_precip.regridded_rqi2[:, :] = supplemental_precip.esmf_field_out.data
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    if ConfigOptions.rqiMethod == 2:
+    if ConfigOptions.rqiMethod == 1:
         # Close the temporary NetCDF file and remove it.
         if MpiConfig.rank == 0:
             try:
