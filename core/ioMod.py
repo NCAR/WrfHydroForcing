@@ -467,84 +467,69 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
 
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
     if MpiConfig.rank == 0:
-        while (True):
-            # Check to see if output file already exists. If so, delete it and
-            # override.
-            ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
-            errMod.log_msg(ConfigOptions, MpiConfig)
-            if os.path.isfile(NetCdfFileOut):
-                ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-                errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                statusWgrib2 = True
-                while statusWgrib2:
-                    cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
-                                                 stderr=subprocess.PIPE, shell=True)
-                    out, err = cmdOutput.communicate()
-                    exitcode = cmdOutput.returncode
-                    #subprocess.run([Wgrib2Cmd],shell=True)
-                    if not os.path.isfile(NetCdfFileOut):
-                        ConfigOptions.statusMsg = "wgrib2 failed.... Trying again...."
-                        errMod.log_msg(ConfigOptions, MpiConfig)
-                        time.sleep(5)
-                    else:
-                        statusWgrib2 = False
-            except:
-                ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
-                    NetCdfFileOut
+        # Check to see if output file already exists. If so, delete it and
+        # override.
+        ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
+        errMod.log_msg(ConfigOptions, MpiConfig)
+        if os.path.isfile(NetCdfFileOut):
+            ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
+            errMod.log_warning(ConfigOptions,MpiConfig)
+        try:
+            subprocess.run([Wgrib2Cmd],shell=True)
+        except:
+            ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
+                                   NetCdfFileOut
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        # Reset temporary subprocess variables.
+        out = None
+        err = None
+        exitcode = None
+
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileOut):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
+                                   " not found. It's possible the GRIB2 variable was not found."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileOut,'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                   NetCdfFileOut
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        if idTmp is not None:
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                                       GribFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            # Reset temporary subprocess variables.
-            out = None
-            err = None
-            exitcode = None
-
-            # Ensure file exists.
-            if not os.path.isfile(NetCdfFileOut):
-                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
-                    " not found. It's possible the GRIB2 variable was not found."
+                pass
+        if idTmp is not None:
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                       GribFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
+                pass
 
-            # Open the NetCDF file.
-            try:
-                idTmp = Dataset(NetCdfFileOut,'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                                        NetCdfFileOut
+        if idTmp is not None:
+            # Loop through all the expected variables.
+            if inputVar not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate expected variable: " + \
+                                       inputVar + " in: " + NetCdfFileOut
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            if idTmp is not None:
-                # Check for expected lat/lon variables.
-                if 'latitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                           GribFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            if idTmp is not None:
-                if 'longitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                                           GribFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-
-            if idTmp is not None:
-                # Loop through all the expected variables.
-                if inputVar not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate expected variable: " + \
-                                           inputVar + " in: " + NetCdfFileOut
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-
-            break
+                pass
     else:
         idTmp = None
 
