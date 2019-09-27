@@ -182,9 +182,8 @@ def find_conus_hrrr_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -337,9 +336,8 @@ def find_conus_rap_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -567,9 +565,8 @@ def find_gfs_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -716,9 +713,8 @@ def find_nam_nest_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -891,9 +887,8 @@ def find_cfsv2_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -1028,9 +1023,8 @@ def find_custom_hourly_neighbors(input_forcings,ConfigOptions,dCurrent,MpiConfg)
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.enforce == 1:
-            if input_forcings.regridded_forcings2 is not None:
-                input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = ConfigOptions.globalNdv
 
 def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -1168,9 +1162,8 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(supplemental_precip.file_in2):
-        if supplemental_precip.enforce == 1:
-            if supplemental_precip.regridded_precip2 is not None:
-                supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
 
 def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -1350,7 +1343,6 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(supplemental_precip.file_in2):
-        if supplemental_precip.enforce == 1:
-            if supplemental_precip.regridded_precip2 is not None:
-                supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
 
