@@ -1497,19 +1497,12 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     #    return
 
     # Unzip MRMS files to temporary locations.
-    try:
-        ioMod.unzip_file(supplemental_precip.file_in2,mrms_tmp_grib2,
-                         ConfigOptions,MpiConfig)
-    except:
-        errMod.log_critical(ConfigOptions, MpiConfig)
+    ioMod.unzip_file(supplemental_precip.file_in2,mrms_tmp_grib2,ConfigOptions,MpiConfig)
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     if ConfigOptions.rqiMethod == 1:
-        try:
-            ioMod.unzip_file(supplemental_precip.rqi_file_in2,mrms_tmp_rqi_grib2,
-                             ConfigOptions,MpiConfig)
-        except:
-            errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+        ioMod.unzip_file(supplemental_precip.rqi_file_in2,mrms_tmp_rqi_grib2,ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Perform a GRIB dump to NetCDF for the MRMS precip and RQI data.
     cmd1 = "wgrib2 " + mrms_tmp_grib2 + " -netcdf " + mrms_tmp_nc

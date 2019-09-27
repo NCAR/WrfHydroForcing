@@ -625,19 +625,16 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
                     shutil.copyfileobj(fTmpGz, fTmp)
         except:
             ConfigOptions.errMsg = "Unable to unzip: " + GzFileIn
-            raise Exception()
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            return
 
         if not os.path.isfile(FileOut):
             ConfigOptions.errMsg = "Unable to locate expected unzipped file: " + \
                                    FileOut
-            raise Exception()
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            return
     else:
         return
-
-    # Ensure all processors are synced up before outputting.
-    MpiConfig.comm.barrier()
-
-    errMod.check_program_status(ConfigOptions, MpiConfig)
 
 def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
     """
@@ -667,14 +664,14 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
             if not os.path.isfile(rqiPath):
                 ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
 
             # Open the Parameter file.
             try:
                 idTmp = Dataset(rqiPath, 'r')
             except:
                 ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
-                pass
+                return
 
             # Extract out the RQI grid.
             try:
@@ -682,19 +679,17 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
             except:
                 ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
 
             # Sanity checking on grid size.
             if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                        "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
         else:
             idTmp = None
             varTmp = None
-        errMod.check_program_status(ConfigOptions, MpiConfig)
-
         # Scatter the array out to the local processors
         varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
 
@@ -710,7 +705,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
         except:
             ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
             errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
+            return
 
     # Also check to see if we have switched to a new month based on the previous
     # MRMS step and the current one.
@@ -723,14 +718,14 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
             if not os.path.isfile(rqiPath):
                 ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
 
             # Open the Parameter file.
             try:
                 idTmp = Dataset(rqiPath, 'r')
             except:
                 ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
-                pass
+                return
 
             # Extract out the RQI grid.
             try:
@@ -738,19 +733,17 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
             except:
                 ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
 
             # Sanity checking on grid size.
             if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                         "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                pass
+                return
         else:
             idTmp = None
             varTmp = None
-        errMod.check_program_status(ConfigOptions, MpiConfig)
-
         # Scatter the array out to the local processors
         varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
 
@@ -766,9 +759,4 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
         except:
             ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
             errMod.log_critical(ConfigOptions, MpiConfig)
-            pass
-
-    # Ensure all processors are synced up before outputting.
-    MpiConfig.comm.barrier()
-
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+            return
