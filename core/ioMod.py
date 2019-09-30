@@ -682,7 +682,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
                 pass
 
             # Sanity checking on grid size.
-            if varTmp.shape[1] != GeoMetaWrfHydro.ny_global or varTmp.shape[2] != GeoMetaWrfHydro.nx_global:
+            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                        "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -742,7 +742,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
                 pass
 
             # Sanity checking on grid size.
-            if varTmp.shape[1] != GeoMetaWrfHydro.ny_global or varTmp.shape[2] != GeoMetaWrfHydro.nx_global:
+            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                         "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -753,7 +753,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         # Scatter the array out to the local processors
-        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro, varTmp, ConfigOptions)
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
         supplemental_precip.regridded_rqi2[:, :] = varSubTmp
