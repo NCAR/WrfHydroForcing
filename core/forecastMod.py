@@ -149,9 +149,11 @@ def process_forecasts(ConfigOptions,wrfHydroGeoMeta,inputForcingMod,suppPcpMod,M
                     # If we are restarting a forecast cycle, re-calculate the neighboring files, and regrid the
                     # next set of forcings as the previous step just regridded the previous forcing.
                     if inputForcingMod[forceKey].rstFlag == 1:
-                        # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
-                        inputForcingMod[forceKey].regridded_forcings1[:, :, :] = \
-                            inputForcingMod[forceKey].regridded_forcings2[:, :, :]
+                        if inputForcingMod[forceKey].regridded_forcings1 is not None and \
+                                inputForcingMod[forceKey].regridded_forcings2 is not None:
+                            # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
+                            inputForcingMod[forceKey].regridded_forcings1[:, :, :] = \
+                                inputForcingMod[forceKey].regridded_forcings2[:, :, :]
 
                         # Re-calculate the neighbor files.
                         inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
