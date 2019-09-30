@@ -299,12 +299,14 @@ class OutputObj:
                     try:
                         if ConfigOptions.useCompression == 1:
                             if varTmp != 'RAINRATE':
-                                idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
+                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
                                                      fill_value=ConfigOptions.globalNdv,
-                                                     #fill_value=int(ConfigOptions.globalNdv/
-                                                     #               output_variable_attribute_dict[varTmp][5]),
                                                      zlib=True, complevel=2,
                                                      least_significant_digit=output_variable_attribute_dict[varTmp][7])
+                                #idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
+                                #                     fill_value=int(ConfigOptions.globalNdv/
+                                #                                    output_variable_attribute_dict[varTmp][5]),
+                                #                     zlib=True, complevel=2)
                             else:
                                 idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
                                                      fill_value=ConfigOptions.globalNdv, zlib=True, complevel=2)
