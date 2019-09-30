@@ -258,6 +258,11 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         'SWDOWN': [7, 0.0, 5000.0]
     }
 
+    # If the regridded field is None type, return to the main program as this means no forcings
+    # were found for this timestep.
+    if input_forcings.regridded_forcings2 is None:
+        return
+
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
@@ -306,6 +311,11 @@ def check_supp_pcp_bounds(ConfigOptions, supplemental_precip, MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the regridded field is None type, return to the main program as this means no forcings
+    # were found for this timestep.
+    if supplemental_precip.regridded_precip2 is None:
+        return
+
     # First check to see if we have any data that is not missing.
     indCheck = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
 
