@@ -403,7 +403,6 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # Regrid the input variables.
         if MpiConfig.rank == 0:
             while (True):
-                print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
                 try:
                     varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
                 except:
@@ -813,14 +812,10 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
                                              ConfigOptions, MpiConfig, wrfHydroGeoMeta)
 
         if calcRegridFlag:
-            if MpiConfig.rank == 0:
-                print('CALCULATING WEIGHTS')
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if MpiConfig.rank == 0:
-                print("READING IN CUSTOM HEIGHT FIELD")
             if 'HGT_surface' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate HGT_surface in: " + input_forcings.file_in2
                 raise Exception()
@@ -839,8 +834,6 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
             input_forcings.esmf_field_in.data[:,:] = varSubTmp
             MpiConfig.comm.barrier()
 
-            if MpiConfig.rank == 0:
-                print("REGRIDDING CUSTOM HEIGHT FIELD")
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
             # Set any pixel cells outside the input domain to the global missing value.
@@ -855,7 +848,6 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
             varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
         else:
             varTmp = None
@@ -2324,8 +2316,6 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
     supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
     MpiConfig.comm.barrier()
 
-    if MpiConfig.rank == 0:
-        print("CREATING SUPPLEMENTAL PRECIP REGRID OBJECT")
     supplemental_precip.regridObj = ESMF.Regrid(supplemental_precip.esmf_field_in,
                                                 supplemental_precip.esmf_field_out,
                                                 src_mask_values=np.array([0]),
