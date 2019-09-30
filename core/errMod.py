@@ -258,6 +258,11 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         'SWDOWN': [7, 0.0, 5000.0]
     }
 
+    # If the regridded field is None type, return to the main program as this means no forcings
+    # were found for this timestep.
+    if input_forcings.regridded_forcings2 is None:
+        return
+
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
@@ -265,11 +270,11 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
                              != ConfigOptions.globalNdv)
 
-        if len(indCheck[0]) == 0:
-            ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
-            log_critical(ConfigOptions, MpiConfig)
-            indCheck = None
-            return
+        #if len(indCheck[0]) == 0:
+        #    ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
+        #    log_critical(ConfigOptions, MpiConfig)
+        #    indCheck = None
+        #    return
 
         # Check to see if any pixel cells are below the minimum value.
         indCheck = np.where((input_forcings.regridded_forcings2[variable_range[varTmp][0]] != ConfigOptions.globalNdv) &
@@ -306,14 +311,19 @@ def check_supp_pcp_bounds(ConfigOptions, supplemental_precip, MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the regridded field is None type, return to the main program as this means no forcings
+    # were found for this timestep.
+    if supplemental_precip.regridded_precip2 is None:
+        return
+
     # First check to see if we have any data that is not missing.
     indCheck = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
 
-    if len(indCheck[0]) == 0:
-        ConfigOptions.errMsg = "No valid supplemental precip found in " + supplemental_precip.file_in2
-        log_critical(ConfigOptions, MpiConfig)
-        indCheck = None
-        return
+    #if len(indCheck[0]) == 0:
+    #    ConfigOptions.errMsg = "No valid supplemental precip found in " + supplemental_precip.file_in2
+    #    log_critical(ConfigOptions, MpiConfig)
+    #    indCheck = None
+    #    return
 
     # Check to see if any pixel cells are below the minimum value.
     indCheck = np.where((supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv) &

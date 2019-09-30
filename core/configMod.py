@@ -21,12 +21,16 @@ class ConfigOptions:
         self.supp_precip_forcings = None
         self.input_force_dirs = None
         self.supp_precip_dirs = None
+        self.supp_precip_param_dir = None
+        self.input_force_mandatory = None
+        self.supp_precip_mandatory = None
         self.number_inputs = None
         self.number_supp_pcp = None
         self.number_custom_inputs = 0
         self.output_freq = None
         self.output_dir = None
         self.scratch_dir = None
+        self.useCompression = None
         self.num_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
@@ -73,10 +77,13 @@ class ConfigOptions:
         self.runCfsNldasBiasCorrect = False
         self.cfsv2EnsMember = None
         self.customFcstFreq = None
+        self.rqiMethod = None
         self.rqiThresh = 1.0
         self.globalNdv = -9999.0
         self.d_program_init = datetime.datetime.utcnow()
         self.errFlag = 0
+        self.nwmVersion = None
+        self.nwmConfig = None
 
     def read_config(self):
         """
@@ -136,6 +143,39 @@ class ConfigOptions:
                 errMod.err_out_screen('Unable to locate forcing directory: ' +
                                       self.input_force_dirs[dirTmp])
 
+        # Read in the mandatory enforcement options for input forcings.
+        try:
+            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate InputMandatory under Input section in'
+                                  'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputMandatory under Input section in'
+                                  'configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper InputMandatory option specified in '
+                                  'configuration file')
+
+        # Process input forcing enforcement options
+        try:
+            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                  'in the configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                  'in the configuration file.')
+        except json.decoder.JSONDecodeError:
+            errMod.err_out_screen('Improper InputMandatory options specified in the configuration file.')
+        if len(self.input_force_mandatory) != self.number_inputs:
+            errMod.err_out_screen('Please specify InputMandatory values for each corresponding input '
+                                  'forcings in the configuration file.')
+        # Check to make sure enforcement options makes sense.
+        for enforceOpt in self.input_force_mandatory:
+            if enforceOpt < 0 or enforceOpt > 1:
+                errMod.err_out_screen('Invalid InputMandatory chosen in the configuration file. Please'
+                                      ' choose a value of 0 or 1 for each corresponding input forcing.')
+
         # Read in the output frequency
         try:
             self.output_freq = int(config['Output']['OutputFrequency'])
@@ -183,6 +223,21 @@ class ConfigOptions:
         if not os.path.isdir(self.scratch_dir):
             errMod.err_out_screen('Specified output directory: ' + \
                                   self.scratch_dir + ' not found')
+
+        # Read in compression option
+        try:
+            self.useCompression = int(config['Output']['compressOutput'])
+        except KeyError:
+            errMod.err_out_screen('Unable to locate compressOut in the '
+                                  'configuration file.')
+        except configparser.NoOptionError:
+            errMod.err_out_screen('Unable to locate compressOut in the '
+                                  'configuration file.')
+        except ValueError:
+            errMod.err_out_screen('Improper compressOut value.')
+        if self.useCompression < 0 or self.useCompression > 1:
+            errMod.err_out_screen('Please choose a compressOut value '
+                                  'of 0 or 1.')
 
         # Read in retrospective options
         try:
@@ -874,6 +929,20 @@ class ConfigOptions:
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt == 1 or suppOpt == 2:
                     try:
+                        self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
+                    except KeyError:
+                        errMod.err_out_screen('Unable to locate RqiMethod under SuppForcing '
+                                              'section in the configuration file.')
+                    except configparser.NoOptionError:
+                        errMod.err_out_screen('Unable to locate RqiMethod under SuppForcing '
+                                              'section in the configuration file.')
+                    except json.decoder.JSONDecodeError:
+                        errMod.err_out_screen('Improper RqiMethod option in the configuration file.')
+                    # Make sure the RqiMethod makes sense.
+                    if self.rqiMethod < 0 or self.rqiMethod > 2:
+                        errMod.err_out_screen('Please specify an RqiMethod of either 0, 1, or 2.')
+
+                    try:
                         self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
                     except KeyError:
                         errMod.err_out_screen('Unable to locate RqiThreshold under '
@@ -906,6 +975,27 @@ class ConfigOptions:
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     errMod.err_out_screen('Unable to locate supp pcp directory: ' +
                                           self.supp_precip_dirs[dirTmp])
+
+            # Process supplemental precipitation enforcement options
+            try:
+                self.supp_precip_mandatory = json.loads(config['SuppForcing']['SuppPcpMandatory'])
+            except KeyError:
+                    errMod.err_out_screen('Unable to locate SuppPcpMandatory under the SuppForcing section '
+                                          'in the configuration file.')
+            except configparser.NoOptionError:
+                    errMod.err_out_screen('Unable to locate SuppPcpMandatory under the SuppForcing section '
+                                          'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                    errMod.err_out_screen('Improper SuppPcpMandatory options specified in the configuration file.')
+            if len(self.supp_precip_mandatory) != self.number_supp_pcp:
+                    errMod.err_out_screen('Please specify SuppPcpMandatory values for each corresponding supplemental '
+                                          'precip options in the configuration file.')
+            # Check to make sure enforcement options makes sense.
+            for enforceOpt in self.supp_precip_mandatory:
+                if enforceOpt < 0 or enforceOpt > 1:
+                    errMod.err_out_screen('Invalid SuppPcpMandatory chosen in the configuration file. Please'
+                                          ' choose a value of 0 or 1 for each corresponding '
+                                          'supplemental precipitation.')
 
             # Read in the regridding options.
             try:
@@ -949,6 +1039,20 @@ class ConfigOptions:
                     errMod.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration '
                                           'file. Please choose a value of 0-2 for each corresponding input '
                                           'forcing.')
+
+            # Read in the optional parameter directory for supplemental precipitation.
+            try:
+                self.supp_precip_param_dir = config['SuppForcing']['SuppPcpParamDir']
+            except KeyError:
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
+                                      'in the configuration file.')
+            except configparser.NoOptionError:
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir under the SuppForcing section '
+                                      'in the configuration file.')
+            except ValueError:
+                errMod.err_out_screen('Improper SuppPcpParamDir option specified in the configuration file.')
+            if not os.path.isdir(self.supp_precip_param_dir):
+                errMod.err_out_screen('Unable to locate SuppPcpParamDir: ' + self.supp_precip_param_dir)
 
         # Read in Ensemble information
         # Read in CFS ensemble member information IF we have chosen CFSv2 as an input

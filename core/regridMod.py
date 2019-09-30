@@ -20,6 +20,11 @@ def regrid_conus_hrrr(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -248,6 +253,11 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -393,7 +403,6 @@ def regrid_conus_rap(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # Regrid the input variables.
         if MpiConfig.rank == 0:
             while (True):
-                print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
                 try:
                     varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
                 except:
@@ -488,6 +497,11 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -664,9 +678,11 @@ def regrid_cfsv2(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
         # bias correction. These grids are interpolated in a separate routine, AFTER bias
         # correction has taken place.
         if ConfigOptions.runCfsNldasBiasCorrect:
-            if not np.any(input_forcings.coarse_input_forcings1) and not \
-                    np.any(input_forcings.coarse_input_forcings2) and \
-                    ConfigOptions.current_output_step == 1:
+            if input_forcings.coarse_input_forcings1 is None and input_forcings.coarse_input_forcings2 is None \
+                    and ConfigOptions.current_output_step == 1:
+            #if not np.any(input_forcings.coarse_input_forcings1) and not \
+            #        np.any(input_forcings.coarse_input_forcings2) and \
+            #        ConfigOptions.current_output_step == 1:
                 # We need to create NumPy arrays to hold the CFSv2 global data.
                 input_forcings.coarse_input_forcings2 = np.empty([8, varSubTmp.shape[0], varSubTmp.shape[1]],
                                                                  np.float64)
@@ -767,6 +783,11 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -791,14 +812,10 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
                                              ConfigOptions, MpiConfig, wrfHydroGeoMeta)
 
         if calcRegridFlag:
-            if MpiConfig.rank == 0:
-                print('CALCULATING WEIGHTS')
             calculate_weights(MpiConfig, ConfigOptions,
                               forceCount, input_forcings, idTmp)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if MpiConfig.rank == 0:
-                print("READING IN CUSTOM HEIGHT FIELD")
             if 'HGT_surface' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate HGT_surface in: " + input_forcings.file_in2
                 raise Exception()
@@ -817,8 +834,6 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
             input_forcings.esmf_field_in.data[:,:] = varSubTmp
             MpiConfig.comm.barrier()
 
-            if MpiConfig.rank == 0:
-                print("REGRIDDING CUSTOM HEIGHT FIELD")
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
             # Set any pixel cells outside the input domain to the global missing value.
@@ -833,7 +848,6 @@ def regrid_custom_hourly_netcdf(input_forcings,ConfigOptions,wrfHydroGeoMeta,Mpi
 
         # Regrid the input variables.
         if MpiConfig.rank == 0:
-            print("REGRIDDING: " + input_forcings.netcdf_var_names[forceCount])
             varTmp = idTmp.variables[input_forcings.netcdf_var_names[forceCount]][0,:,:]
         else:
             varTmp = None
@@ -886,6 +900,11 @@ def regrid_gfs(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1154,6 +1173,11 @@ def regrid_nam_nest(input_forcings,ConfigOptions,wrfHydroGeoMeta,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1370,6 +1394,11 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
@@ -1405,73 +1434,67 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     # These files shouldn't exist. If they do, remove them.
     if MpiConfig.rank == 0:
-        while (True):
-            if os.path.isfile(mrms_tmp_grib2):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_grib2 + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_grib2)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_nc):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_nc + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_nc)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_rqi_grib2):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_rqi_grib2 + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_rqi_grib2)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            if os.path.isfile(mrms_tmp_rqi_nc):
-                ConfigOptions.statusMsg = "Found old temporary file: " + \
-                                          mrms_tmp_rqi_nc + " - Removing....."
-                errMod.log_warning(ConfigOptions,MpiConfig)
-                try:
-                    os.remove(mrms_tmp_rqi_nc)
-                except:
-                    ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
-                    errMod.log_critical(ConfigOptions, MpiConfig)
-                    break
-            break
+        if os.path.isfile(mrms_tmp_grib2):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_grib2 + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_nc):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_nc + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_rqi_grib2):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_rqi_grib2 + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_rqi_grib2)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_grib2
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        if os.path.isfile(mrms_tmp_rqi_nc):
+            ConfigOptions.statusMsg = "Found old temporary file: " + \
+                                        mrms_tmp_rqi_nc + " - Removing....."
+            errMod.log_warning(ConfigOptions,MpiConfig)
+            try:
+                os.remove(mrms_tmp_rqi_nc)
+            except:
+                ConfigOptions.errMsg = "Unable to remove file: " + mrms_tmp_rqi_nc
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        pass
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "No MRMS Precipitation available. Supplemental precipitation will " \
-                                      "not be used."
-            errMod.log_msg(ConfigOptions, MpiConfig)
-        supplemental_precip.regridded_precip2 = None
-        supplemental_precip.regridded_precip1 = None
-        return
+    #if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    #    if MpiConfig.rank == 0:
+    #        ConfigOptions.statusMsg = "No MRMS Precipitation available. Supplemental precipitation will " \
+    #                                  "not be used."
+    #        errMod.log_msg(ConfigOptions, MpiConfig)
+    #    supplemental_precip.regridded_precip2 = None
+    #    supplemental_precip.regridded_precip1 = None
+    #    return
 
     # Unzip MRMS files to temporary locations.
-    try:
-        ioMod.unzip_file(supplemental_precip.file_in2,mrms_tmp_grib2,
-                         ConfigOptions,MpiConfig)
-    except:
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    try:
-        ioMod.unzip_file(supplemental_precip.rqi_file_in2,mrms_tmp_rqi_grib2,
-                         ConfigOptions,MpiConfig)
-    except:
-        errMod.log_critical(ConfigOptions, MpiConfig)
+    ioMod.unzip_file(supplemental_precip.file_in2,mrms_tmp_grib2,ConfigOptions,MpiConfig)
     errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    if ConfigOptions.rqiMethod == 1:
+        ioMod.unzip_file(supplemental_precip.rqi_file_in2,mrms_tmp_rqi_grib2,ConfigOptions,MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Perform a GRIB dump to NetCDF for the MRMS precip and RQI data.
     cmd1 = "wgrib2 " + mrms_tmp_grib2 + " -netcdf " + mrms_tmp_nc
@@ -1479,26 +1502,28 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
                               MpiConfig,supplemental_precip.netcdf_var_names[0])
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    cmd2 = "wgrib2 " + mrms_tmp_rqi_grib2 + " -netcdf " + mrms_tmp_rqi_nc
-    idMrmsRqi = ioMod.open_grib2(mrms_tmp_rqi_grib2, mrms_tmp_rqi_nc, cmd2, ConfigOptions,
-                                 MpiConfig, supplemental_precip.rqi_netcdf_var_names[0])
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+    if ConfigOptions.rqiMethod == 1:
+        cmd2 = "wgrib2 " + mrms_tmp_rqi_grib2 + " -netcdf " + mrms_tmp_rqi_nc
+        idMrmsRqi = ioMod.open_grib2(mrms_tmp_rqi_grib2, mrms_tmp_rqi_nc, cmd2, ConfigOptions,
+                                     MpiConfig, supplemental_precip.rqi_netcdf_var_names[0])
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Remove temporary GRIB2 files
     if MpiConfig.rank == 0:
-        while (True):
-            try:
-                os.remove(mrms_tmp_grib2)
-            except:
-                ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_grib2
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                break
+        try:
+            os.remove(mrms_tmp_grib2)
+        except:
+            ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_grib2
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+
+        if ConfigOptions.rqiMethod == 1:
             try:
                 os.remove(mrms_tmp_rqi_grib2)
             except:
                 ConfigOptions.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_rqi_grib2
                 errMod.log_critical(ConfigOptions, MpiConfig)
-            break
+            pass
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Check to see if we need to calculate regridding weights.
@@ -1515,84 +1540,95 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Regrid the RQI grid.
-    if MpiConfig.rank == 0:
-        while (True):
+    if ConfigOptions.rqiMethod == 1:
+        if MpiConfig.rank == 0:
             try:
                 varTmp = idMrmsRqi.variables[supplemental_precip.rqi_netcdf_var_names[0]][0, :, :]
             except:
                 ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.rqi_netcdf_var_names[0] + \
-                                       " from: " + mrms_tmp_rqi_grib2
+                                        " from: " + mrms_tmp_rqi_grib2
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                break
-            break
-    else:
-        varTmp = None
+                pass
+        else:
+            varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        try:
+            supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
+        except:
+            ConfigOptions.errMsg = "Unable to place MRMS data into local ESMF field."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Regridding MRMS RQI Field."
+            errMod.log_msg(ConfigOptions, MpiConfig)
+        try:
+            supplemental_precip.esmf_field_out = supplemental_precip.regridObj(supplemental_precip.esmf_field_in,
+                                                                               supplemental_precip.esmf_field_out)
+        except:
+            ConfigOptions.errMsg = "Unable to regrid MRMS RQI field."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Set any pixel cells outside the input domain to the global missing value.
+        try:
+            supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
+                ConfigOptions.globalNdv
+        except:
+            ConfigOptions.errMsg = "Unable to run mask calculation for MRMS RQI data."
+            errMod.log_critical(ConfigOptions, MpiConfig)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    if ConfigOptions.rqiMethod == 0:
+        # We will set the RQI field to 1.0 here so no MRMS data gets masked out.
+        supplemental_precip.regridded_rqi2[:, :] = 1.0
+
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "MRMS Will not be filtered using RQI values."
+            errMod.log_msg(ConfigOptions, MpiConfig)
+
+    elif ConfigOptions.rqiMethod == 2:
+        # Read in the RQI field from monthly climatological files.
+        ioMod.read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, wrfHydroGeoMeta)
+    elif ConfigOptions.rqiMethod == 1:
+        # We are using the MRMS RQI field in realtime
+        supplemental_precip.regridded_rqi2[:, :] = supplemental_precip.esmf_field_out.data
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
-    varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    try:
-        supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
-    except:
-        ConfigOptions.errMsg = "Unable to place MRMS data into local ESMF field."
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = "Regridding MRMS RQI Field."
-        errMod.log_msg(ConfigOptions, MpiConfig)
-    try:
-        supplemental_precip.esmf_field_out = supplemental_precip.regridObj(supplemental_precip.esmf_field_in,
-                                                                           supplemental_precip.esmf_field_out)
-    except:
-        ConfigOptions.errMsg = "Unable to regrid MRMS RQI field."
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    # Set any pixel cells outside the input domain to the global missing value.
-    try:
-        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
-            ConfigOptions.globalNdv
-    except:
-        ConfigOptions.errMsg = "Unable to run mask calculation for MRMS RQI data."
-        errMod.log_critical(ConfigOptions, MpiConfig)
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    supplemental_precip.regridded_rqi2[:, :] = supplemental_precip.esmf_field_out.data
-    errMod.check_program_status(ConfigOptions, MpiConfig)
-
-    # Close the temporary NetCDF file and remove it.
-    if MpiConfig.rank == 0:
-        while (True):
+    if ConfigOptions.rqiMethod == 1:
+        # Close the temporary NetCDF file and remove it.
+        if MpiConfig.rank == 0:
             try:
                 idMrmsRqi.close()
             except:
                 ConfigOptions.errMsg = "Unable to close NetCDF file: " + mrms_tmp_rqi_nc
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                break
+                pass
             try:
                 os.remove(mrms_tmp_rqi_nc)
             except:
                 ConfigOptions.errMsg = "Unable to remove NetCDF file: " + mrms_tmp_rqi_nc
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                break
-            break
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+                pass
+            pass
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Regrid the input variables.
     if MpiConfig.rank == 0:
         ConfigOptions.statusMsg = "Regridding: " + supplemental_precip.netcdf_var_names[0]
         errMod.log_msg(ConfigOptions, MpiConfig)
-        while (True):
-            try:
-                varTmp = idMrms.variables[supplemental_precip.netcdf_var_names[0]][0, :, :]
-            except:
-                ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.netcdf_var_names[0] + \
-                                       " from: " + mrms_tmp_nc
-                errMod.log_critical(ConfigOptions, MpiConfig)
-                break
-            break
+        try:
+            varTmp = idMrms.variables[supplemental_precip.netcdf_var_names[0]][0, :, :]
+        except:
+            ConfigOptions.errMsg = "Unable to extract: " + supplemental_precip.netcdf_var_names[0] + \
+                                    " from: " + mrms_tmp_nc
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            pass
+        pass
     else:
         varTmp = None
     errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -1627,7 +1663,7 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
     # Check for any RQI values below the threshold specified by the user.
     # Set these values to global NDV.
     try:
-        indFilter = np.where(supplemental_precip.regridded_rqi2 <= ConfigOptions.rqiThresh)
+        indFilter = np.where(supplemental_precip.regridded_rqi2 < ConfigOptions.rqiThresh)
     except:
         ConfigOptions.errMsg = "Unable to run MRMS RQI threshold search."
         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -1685,14 +1721,20 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     :param MpiConfig:
     :return:
     """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        return
+
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
     if supplemental_precip.regridComplete:
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "No ARW regridding required for this timesetp."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         return
 
-    if MpiConfig.rank == 0:
-        print("REGRID STATUS = " + str(supplemental_precip.regridComplete))
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     arw_tmp_nc = ConfigOptions.scratch_dir + "/ARW_PCP_TMP.nc"
@@ -1714,13 +1756,13 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
-        if MpiConfig.rank == 0:
-            "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
-        supplemental_precip.regridded_precip2 = None
-        supplemental_precip.regridded_precip1 = None
-        return
-    errMod.check_program_status(ConfigOptions, MpiConfig)
+    #if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    #    if MpiConfig.rank == 0:
+    #        "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
+    #    supplemental_precip.regridded_precip2 = None
+    #    supplemental_precip.regridded_precip1 = None
+    #    return
+    #errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create a temporary NetCDF file from the GRIB2 file.
     cmd = "wgrib2 " + supplemental_precip.file_in2 + " -match \":(" + \
@@ -1739,14 +1781,17 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
 
     if calcRegridFlag:
         if MpiConfig.rank == 0:
-            print('CALCULATING ARW WEIGHTS')
+            ConfigOptions.statusMsg = "Calculating WRF ARW regridding weights."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         calculate_supp_pcp_weights(MpiConfig, ConfigOptions,
                                    supplemental_precip, idTmp, arw_tmp_nc)
         errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Regrid the input variables.
     if MpiConfig.rank == 0:
-        print("REGRIDDING: APCP_surface")
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Regridding WRF ARW APCP Precipitation."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         try:
             varTmp = idTmp.variables['APCP_surface'][0, :, :]
         except:
@@ -1843,7 +1888,8 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
             ConfigOptions.errMsg = "Unable to create " + input_forcings.productName + \
                                    " destination ESMF field object."
             errMod.log_critical(ConfigOptions,MpiConfig)
-            return
+            pass
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
     # a new weight file:
@@ -1918,6 +1964,8 @@ def check_supp_pcp_regrid_status(idTmp,supplemental_precip,ConfigOptions,MpiConf
                                                       np.float32)
         supplemental_precip.regridded_rqi2 = np.empty([wrfHydroGeoMeta.ny_local, wrfHydroGeoMeta.nx_local],
                                                       np.float32)
+        supplemental_precip.regridded_rqi1[:, :] = ConfigOptions.globalNdv
+        supplemental_precip.regridded_rqi2[:, :] = ConfigOptions.globalNdv
 
     if MpiConfig.rank == 0:
         if supplemental_precip.nx_global is None or supplemental_precip.ny_global is None:
@@ -2268,8 +2316,6 @@ def calculate_supp_pcp_weights(MpiConfig,ConfigOptions,supplemental_precip,idTmp
     supplemental_precip.esmf_field_in.data[:, :] = varSubTmp
     MpiConfig.comm.barrier()
 
-    if MpiConfig.rank == 0:
-        print("CREATING SUPPLEMENTAL PRECIP REGRID OBJECT")
     supplemental_precip.regridObj = ESMF.Regrid(supplemental_precip.esmf_field_in,
                                                 supplemental_precip.esmf_field_out,
                                                 src_mask_values=np.array([0]),

@@ -132,7 +132,8 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     # Calculate the elevation difference.
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
-    if not np.any(input_forcings.lapseGrid):
+    if input_forcings.lapseGrid is None:
+    #if not np.any(input_forcings.lapseGrid):
         # We have not read in our lapse rate file. Read it in, do extensive checks,
         # scatter the lapse rate grid out to individual processors, then apply the
         # lapse rate to the 2-meter temperature grid.

@@ -14,7 +14,11 @@ def no_interpolation(input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
-    input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+    # Check to make sure we have valid grids.
+    if input_forcings.regridded_forcings2 is None:
+        input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+    else:
+        input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
 
 def no_interpolation_supp_pcp(supplemental_precip,ConfigOptions,MpiConfig):
     """
@@ -47,7 +51,7 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
             errMod.log_msg(ConfigOptions, MpiConfig)
-            return
+        return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step.
@@ -59,11 +63,17 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
 
     if abs(dtFromNext.total_seconds()) <= abs(dtFromPrevious.total_seconds()):
         # Default to the regridded states from the next forecast output step.
-        input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+        if input_forcings.regridded_forcings2 is None:
+            input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+        else:
+            input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
     else:
         # Default to the regridded states from the previous forecast output
         # step.
-        input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings1[:,:,:]
+        if input_forcings.regridded_forcings1 is None:
+            input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+        else:
+            input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings1[:,:,:]
 
 def nearest_neighbor_supp_pcp(supplemental_precip,ConfigOptions,MpiConfig):
     """
@@ -103,13 +113,21 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # Check to make sure we have valid grids.
+    if input_forcings.regridded_forcings2 is None:
+        input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+        return
+    if input_forcings.regridded_forcings1 is None:
+        input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+        return
+
     # If we are running CFSv2 with bias correction, bypass as temporal interpolation is done
     # internally (NWM-only).
     if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
             errMod.log_msg(ConfigOptions, MpiConfig)
-            return
+        return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step. Use this to calculate a fraction
