@@ -298,10 +298,14 @@ class OutputObj:
                 for varTmp in output_variable_attribute_dict:
                     try:
                         if ConfigOptions.useCompression == 1:
-                            idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
-                                                 fill_value=int(ConfigOptions.globalNdv/
-                                                                output_variable_attribute_dict[varTmp][5]), zlib=True,
-                                                 complevel=2)
+                            if varTmp != 'RAINRATE':
+                                idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
+                                                     fill_value=int(ConfigOptions.globalNdv/
+                                                                    output_variable_attribute_dict[varTmp][5]),
+                                                     zlib=True, complevel=2)
+                            else:
+                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
+                                                     fill_value=ConfigOptions.globalNdv, zlib=True, complevel=2)
                         else:
                             idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                     except:
@@ -416,14 +420,15 @@ class OutputObj:
                         break
                     # If we are using scale_factor/add_offset, create the integer values here.
                     if ConfigOptions.useCompression == 1:
-                        try:
-                            dataOutTmp = dataOutTmp - output_variable_attribute_dict[varTmp][6]
-                            dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
-                            dataOutTmp = dataOutTmp.astype(int)
-                        except:
-                            ConfigOptions.errMsg = "Unable to convert final output grid to integer type for: " + varTmp
-                            errMod.log_critical(ConfigOptions, MpiConfig)
-                            break
+                        if varTmp != 'RAINRATE':
+                            try:
+                                dataOutTmp = dataOutTmp - output_variable_attribute_dict[varTmp][6]
+                                dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
+                                dataOutTmp = dataOutTmp.astype(int)
+                            except:
+                                ConfigOptions.errMsg = "Unable to convert final output grid to integer type for: " + varTmp
+                                errMod.log_critical(ConfigOptions, MpiConfig)
+                                break
                     try:
                         idOut.variables[varTmp][0,:,:] = dataOutTmp
                     except:
