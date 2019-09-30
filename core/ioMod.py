@@ -682,7 +682,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
                 pass
 
             # Sanity checking on grid size.
-            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
+            if varTmp.shape[1] != GeoMetaWrfHydro.ny_global or varTmp.shape[2] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                        "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -742,7 +742,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
                 pass
 
             # Sanity checking on grid size.
-            if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
+            if varTmp.shape[1] != GeoMetaWrfHydro.ny_global or varTmp.shape[2] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                         "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
