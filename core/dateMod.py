@@ -1036,7 +1036,7 @@ def find_hourly_MRMS_radar_neighbors(supplemental_precip,ConfigOptions,dCurrent,
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
-            supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+            supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
 
 def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dCurrent,MpiConfg):
     """
@@ -1210,5 +1210,5 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
-            supplemental_precip.regridded_precip2[:, :, :] = ConfigOptions.globalNdv
+            supplemental_precip.regridded_precip2[:, :] = ConfigOptions.globalNdv
 
