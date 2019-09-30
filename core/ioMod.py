@@ -664,14 +664,14 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
             if not os.path.isfile(rqiPath):
                 ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
 
             # Open the Parameter file.
             try:
                 idTmp = Dataset(rqiPath, 'r')
             except:
                 ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
-                return
+                pass
 
             # Extract out the RQI grid.
             try:
@@ -679,19 +679,22 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
             except:
                 ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
 
             # Sanity checking on grid size.
             if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                        "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
         else:
             idTmp = None
             varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
         # Scatter the array out to the local processors
         varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         supplemental_precip.regridded_rqi2[:, :] = varSubTmp
 
@@ -700,12 +703,15 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
         varTmp = None
 
         # Close the RQI NetCDF file
-        try:
-            idTmp.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            return
+        if MpiConfig.rank == 0:
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
 
     # Also check to see if we have switched to a new month based on the previous
     # MRMS step and the current one.
@@ -718,14 +724,14 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
             if not os.path.isfile(rqiPath):
                 ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
 
             # Open the Parameter file.
             try:
                 idTmp = Dataset(rqiPath, 'r')
             except:
                 ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
-                return
+                pass
 
             # Extract out the RQI grid.
             try:
@@ -733,19 +739,22 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
             except:
                 ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
 
             # Sanity checking on grid size.
             if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                         "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
-                return
+                pass
         else:
             idTmp = None
             varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
         # Scatter the array out to the local processors
         varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
 
         supplemental_precip.regridded_rqi2[:, :] = varSubTmp
 
@@ -754,9 +763,11 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
         varTmp = None
 
         # Close the RQI NetCDF file
-        try:
-            idTmp.close()
-        except:
-            ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
-            errMod.log_critical(ConfigOptions, MpiConfig)
-            return
+        if MpiConfig.rank == 0:
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        errMod.check_program_status(ConfigOptions, MpiConfig)
