@@ -1601,7 +1601,7 @@ def regrid_mrms_hourly(supplemental_precip,ConfigOptions,wrfHydroGeoMeta,MpiConf
 
     elif ConfigOptions.rqiMethod == 2:
         # Read in the RQI field from monthly climatological files.
-        ioMod.read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip)
+        ioMod.read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, wrfHydroGeoMeta)
     elif ConfigOptions.rqiMethod == 1:
         # We are using the MRMS RQI field in realtime
         supplemental_precip.regridded_rqi2[:, :] = supplemental_precip.esmf_field_out.data
