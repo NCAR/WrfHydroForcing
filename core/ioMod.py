@@ -11,6 +11,9 @@ import os
 import subprocess
 import gzip
 import shutil
+import datetime
+import math
+import time
 
 class OutputObj:
     """
@@ -46,14 +49,16 @@ class OutputObj:
         :return:
         """
         output_variable_attribute_dict = {
-            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point'],
-            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point'],
-            'LWDOWN': [2,'W m-2','surface downward longwave_flux','Surface downward long-wave radiation flux','time: point'],
-            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean'],
-            'T2D': [4,'K','air temperature','2-m Air Temperature','time: point'],
-            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point'],
-            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point'],
-            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux','Surface downward short-wave radiation flux','time point']
+            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point',0.001,0.0,3],
+            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point',0.001,0.0,3],
+            'LWDOWN': [2,'W m-2','surface_downward_longwave_flux',
+                       'Surface downward long-wave radiation flux','time: point',0.001,0.0,3],
+            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean',1.0,0.0,0],
+            'T2D': [4,'K','air_temperature','2-m Air Temperature','time: point',0.01,100.0,2],
+            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0,6],
+            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0,1],
+            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
+                       'Surface downward short-wave radiation flux','time point',0.001,0.0,3]
         }
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
@@ -119,6 +124,38 @@ class OutputObj:
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
+                if ConfigOptions.nwmVersion is not None:
+                    try:
+                        idOut.NWM_version_number = "v" + str(ConfigOptions.nwmVersion)
+                    except:
+                        ConfigOptions.errMsg = "Unable to set the NWM_version_number global attribute in: " \
+                                               + self.outPath
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+
+                if ConfigOptions.nwmConfig is not None:
+                    try:
+                        idOut.model_configuration = ConfigOptions.nwmConfig
+                    except:
+                        ConfigOptions.errMsg = "Unable to set the model_configuration global attribute in: " + \
+                                               self.outPath
+                        errMod.log_critical(ConfigOptions, MpiConfig)
+                        break
+
+                try:
+                    idOut.model_output_type = "forcing"
+                except:
+                    ConfigOptions.errMsg = "Unable to put model_output_type global attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                try:
+                    idOut.total_valid_times = float(ConfigOptions.num_output_steps)
+                except:
+                    ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
                 # Create variables.
                 try:
                     idOut.createVariable('time','i4',('time'))
@@ -133,12 +170,76 @@ class OutputObj:
                     errMod.log_critical(ConfigOptions, MpiConfig)
                     break
 
+                # Populate time and reference time variables with appropriate attributes and time values.
+                try:
+                    idOut.variables['time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time units attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].standard_name = "time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time standard_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].long_name = "valid output time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time long_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                try:
+                    idOut.variables['reference_time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time units attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].standard_name = "forecast_reference_time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time standard_name attribute in: " + \
+                                           self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].long_name = "model initialization time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time long_name attribute in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                # Populate time variables
+                dEpoch = datetime.datetime(1970, 1, 1)
+                dtValid = self.outDate - dEpoch
+                dtRef = ConfigOptions.current_fcst_cycle - dEpoch
+
+                try:
+                    idOut.variables['time'][0] = int(dtValid.days * 24.0 * 60.0) + \
+                                                 int(math.floor(dtValid.seconds / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
+                try:
+                    idOut.variables['reference_time'][0] = int(dtRef.days * 24.0 * 60.0) + \
+                                                           int(math.floor(dtRef.seconds / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.outPath
+                    errMod.log_critical(ConfigOptions, MpiConfig)
+                    break
+
                 # Create geospatial metadata coordinate variables if data was read in from an optional
                 # spatial metadata file.
                 if ConfigOptions.spatial_meta is not None:
                     # Create coordinate variables and populate with attributes read in.
                     try:
-                        idOut.createVariable('x','f8',('x'))
+                        if ConfigOptions.useCompression == 1:
+                            idOut.createVariable('x', 'f8', ('x'), zlib=True, complevel=2)
+                        else:
+                            idOut.createVariable('x','f8',('x'))
                     except:
                         ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -158,7 +259,10 @@ class OutputObj:
                         break
 
                     try:
-                        idOut.createVariable('y','f8',('y'))
+                        if ConfigOptions.useCompression == 1:
+                            idOut.createVariable('y','f8',('y'), zlib=True, complevel=2)
+                        else:
+                            idOut.createVariable('y', 'f8', ('y'))
                     except:
                         ConfigOptions.errMsg = "Unable to create y variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -193,7 +297,21 @@ class OutputObj:
                 # Loop through and create each variable, along with expected attributes.
                 for varTmp in output_variable_attribute_dict:
                     try:
-                        idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
+                        if ConfigOptions.useCompression == 1:
+                            if varTmp != 'RAINRATE':
+                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
+                                                     fill_value=ConfigOptions.globalNdv,
+                                                     zlib=True, complevel=2,
+                                                     least_significant_digit=output_variable_attribute_dict[varTmp][7])
+                                #idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
+                                #                     fill_value=int(ConfigOptions.globalNdv/
+                                #                                    output_variable_attribute_dict[varTmp][5]),
+                                #                     zlib=True, complevel=2)
+                            else:
+                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
+                                                     fill_value=ConfigOptions.globalNdv, zlib=True, complevel=2)
+                        else:
+                            idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                     except:
                         ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
@@ -259,6 +377,23 @@ class OutputObj:
                             " in: " + self.outPath
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
+                    # If we are using scale_factor / add_offset, create here.
+                    #if ConfigOptions.useCompression == 1:
+                    #    if varTmp != 'RAINRATE':
+                    #        try:
+                    #            idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
+                    #        except:
+                    #            ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
+                    #                                   " in: " + self.outPath
+                    #            errMod.log_critical(ConfigOptions, MpiConfig)
+                    #            break
+                    #        try:
+                    #            idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
+                    #        except:
+                    #            ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
+                    #                                   " in: " + self.outPath
+                    #            errMod.log_critical(ConfigOptions, MpiConfig)
+                    #            break
                 break
 
         errMod.check_program_status(ConfigOptions, MpiConfig)
@@ -269,7 +404,8 @@ class OutputObj:
             # First run a check for missing values. There should be none at this point.
             errMod.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0],:,:],
                                        varTmp, MpiConfig)
-            errMod.check_program_status(ConfigOptions, MpiConfig)
+            if ConfigOptions.errFlag == 1:
+                continue
 
             # Collect data from the various processors, and place into the output file.
             try:
@@ -287,6 +423,17 @@ class OutputObj:
                         ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
                         errMod.log_critical(ConfigOptions, MpiConfig)
                         break
+                    # If we are using scale_factor/add_offset, create the integer values here.
+                    #if ConfigOptions.useCompression == 1:
+                    #    if varTmp != 'RAINRATE':
+                    #        try:
+                    #            dataOutTmp = dataOutTmp - output_variable_attribute_dict[varTmp][6]
+                    #            dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
+                    #            dataOutTmp = dataOutTmp.astype(int)
+                    #        except:
+                    #            ConfigOptions.errMsg = "Unable to convert final output grid to integer type for: " + varTmp
+                    #            errMod.log_critical(ConfigOptions, MpiConfig)
+                    #            break
                     try:
                         idOut.variables[varTmp][0,:,:] = dataOutTmp
                     except:
@@ -326,80 +473,85 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     :param ConfigOptions:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
     if MpiConfig.rank == 0:
-        while (True):
-            # Check to see if output file already exists. If so, delete it and
-            # override.
-            ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
-            errMod.log_msg(ConfigOptions, MpiConfig)
-            if os.path.isfile(NetCdfFileOut):
-                ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-                errMod.log_warning(ConfigOptions,MpiConfig)
-            try:
-                cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE, shell=True)
-                out, err = cmdOutput.communicate()
-                exitcode = cmdOutput.returncode
-                #subprocess.run([Wgrib2Cmd],shell=True)
-            except:
-                ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
-                    NetCdfFileOut
+        # Check to see if output file already exists. If so, delete it and
+        # override.
+        ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
+        errMod.log_msg(ConfigOptions, MpiConfig)
+        if os.path.isfile(NetCdfFileOut):
+            ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
+            errMod.log_warning(ConfigOptions,MpiConfig)
+        try:
+            cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE, shell=True)
+            out, err = cmdOutput.communicate()
+            exitcode = cmdOutput.returncode
+            #subprocess.run([Wgrib2Cmd],shell=True)
+        except:
+            ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
+                                   NetCdfFileOut
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        # Reset temporary subprocess variables.
+        out = None
+        err = None
+        exitcode = None
+
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileOut):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
+                                   " not found. It's possible the GRIB2 variable was not found."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileOut,'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                   NetCdfFileOut
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        if idTmp is not None:
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                                       GribFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            # Reset temporary subprocess variables.
-            out = None
-            err = None
-            exitcode = None
-
-            # Ensure file exists.
-            if not os.path.isfile(NetCdfFileOut):
-                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
-                    " not found. It's possible the GRIB2 variable was not found."
+                pass
+        if idTmp is not None:
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                       GribFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
+                pass
 
-            # Open the NetCDF file.
-            try:
-                idTmp = Dataset(NetCdfFileOut,'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                                        NetCdfFileOut
+        if idTmp is not None:
+            # Loop through all the expected variables.
+            if inputVar not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate expected variable: " + \
+                                       inputVar + " in: " + NetCdfFileOut
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            if idTmp is not None:
-                # Check for expected lat/lon variables.
-                if 'latitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                           GribFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            if idTmp is not None:
-                if 'longitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                                           GribFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-
-            if idTmp is not None:
-                # Loop through all the expected variables.
-                if inputVar not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate expected variable: " + \
-                                           inputVar + " in: " + NetCdfFileOut
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-
-            break
+                pass
     else:
         idTmp = None
+
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Return the NetCDF file handle back to the user.
     return idTmp
@@ -413,45 +565,52 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     :param ConfigOptions:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     # Open the NetCDF file on the master processor and read in data.
     if MpiConfig.rank == 0:
-        while (True):
-            # Ensure file exists.
-            if not os.path.isfile(NetCdfFileIn):
-                ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
-                                        " not found."
-                errMod.log_critical(ConfigOptions,MpiConfig)
-                idTmp = None
-                break
+        # Ensure file exists.
+        if not os.path.isfile(NetCdfFileIn):
+            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
+                                    " not found."
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
 
-            # Open the NetCDF file.
-            try:
-                idTmp = Dataset(NetCdfFileIn, 'r')
-            except:
-                ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+        # Open the NetCDF file.
+        try:
+            idTmp = Dataset(NetCdfFileIn, 'r')
+        except:
+            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
+                                    NetCdfFileIn
+            errMod.log_critical(ConfigOptions,MpiConfig)
+            idTmp = None
+            pass
+
+        if idTmp is not None:
+            # Check for expected lat/lon variables.
+            if 'latitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
                                         NetCdfFileIn
                 errMod.log_critical(ConfigOptions,MpiConfig)
                 idTmp = None
-                break
-
-            if idTmp is not None:
-                # Check for expected lat/lon variables.
-                if 'latitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                            NetCdfFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            if idTmp is not None:
-                if 'longitude' not in idTmp.variables.keys():
-                    ConfigOptions.errMsg = "Unable t locate longitude from: " + \
-                                            NetCdfFileIn
-                    errMod.log_critical(ConfigOptions,MpiConfig)
-                    idTmp = None
-                    break
-            break
+                pass
+        if idTmp is not None:
+            if 'longitude' not in idTmp.variables.keys():
+                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                                        NetCdfFileIn
+                errMod.log_critical(ConfigOptions,MpiConfig)
+                idTmp = None
+                pass
+        pass
     else:
         idTmp = None
+    errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Return the NetCDF file handle back to the user.
@@ -466,6 +625,9 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
+    # Ensure all processors are synced up before outputting.
+    MpiConfig.comm.barrier()
+
     if MpiConfig.rank == 0:
         # Unzip the file in place.
         try:
@@ -474,11 +636,149 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
                     shutil.copyfileobj(fTmpGz, fTmp)
         except:
             ConfigOptions.errMsg = "Unable to unzip: " + GzFileIn
-            raise Exception()
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            return
 
         if not os.path.isfile(FileOut):
             ConfigOptions.errMsg = "Unable to locate expected unzipped file: " + \
                                    FileOut
-            raise Exception()
+            errMod.log_critical(ConfigOptions, MpiConfig)
+            return
     else:
         return
+
+def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMetaWrfHydro):
+    """
+    Function to read in monthly RQI grids on the NWM grid. This is an NWM ONLY
+    option. Please do not activate if not executing on the NWM conus grid.
+    :param ConfigOptions:
+    :param MpiConfig:
+    :param supplemental_precip:
+    :return:
+    """
+    # Ensure all processors are synced up before proceeding.
+    MpiConfig.comm.barrier()
+
+    # First check to see if the RQI grids have valid values in them. There should
+    # be NO NDV values if the grids have properly been read in.
+    indTmp = np.where(supplemental_precip.regridded_rqi2 != ConfigOptions.globalNdv)
+
+    rqiPath = ConfigOptions.supp_precip_param_dir + "/MRMS_WGT_RQI0.9_m" + \
+              supplemental_precip.pcp_date2.strftime('%m') + '_v1.1_geosmth.nc'
+
+    if len(indTmp[0]) == 0:
+        # We haven't initialized the RQI fields. We need to do this.....
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            # First make sure the RQI file exists.
+            if not os.path.isfile(rqiPath):
+                ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the Parameter file.
+            try:
+                idTmp = Dataset(rqiPath, 'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
+                pass
+
+            # Extract out the RQI grid.
+            try:
+                varTmp = idTmp.variables['POP_0mabovemeansealevel'][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Sanity checking on grid size.
+            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
+                                       "in parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            idTmp = None
+            varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the array out to the local processors
+        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        supplemental_precip.regridded_rqi2[:, :] = varSubTmp
+
+        # Reset variables for memory purposes
+        varSubTmp = None
+        varTmp = None
+
+        # Close the RQI NetCDF file
+        if MpiConfig.rank == 0:
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+
+    # Also check to see if we have switched to a new month based on the previous
+    # MRMS step and the current one.
+    if supplemental_precip.pcp_date2.month != supplemental_precip.pcp_date1.month:
+        # We need to read in a new RQI monthly grid.
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
+            errMod.log_msg(ConfigOptions, MpiConfig)
+            # First make sure the RQI file exists.
+            if not os.path.isfile(rqiPath):
+                ConfigOptions.errMsg = "Expected RQI parameter file: " + rqiPath + " not found."
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Open the Parameter file.
+            try:
+                idTmp = Dataset(rqiPath, 'r')
+            except:
+                ConfigOptions.errMsg = "Unable to open parameter file: " + rqiPath
+                pass
+
+            # Extract out the RQI grid.
+            try:
+                varTmp = idTmp.variables['POP_0mabovemeansealevel'][0, :, :]
+            except:
+                ConfigOptions.errMsg = "Unable to extract POP_0mabovemeansealevel from parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+
+            # Sanity checking on grid size.
+            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
+                ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
+                                        "in parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        else:
+            idTmp = None
+            varTmp = None
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        # Scatter the array out to the local processors
+        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro, varTmp, ConfigOptions)
+        errMod.check_program_status(ConfigOptions, MpiConfig)
+
+        supplemental_precip.regridded_rqi2[:, :] = varSubTmp
+
+        # Reset variables for memory purposes
+        varSubTmp = None
+        varTmp = None
+
+        # Close the RQI NetCDF file
+        if MpiConfig.rank == 0:
+            try:
+                idTmp.close()
+            except:
+                ConfigOptions.errMsg = "Unable to close parameter file: " + rqiPath
+                errMod.log_critical(ConfigOptions, MpiConfig)
+                pass
+        errMod.check_program_status(ConfigOptions, MpiConfig)
