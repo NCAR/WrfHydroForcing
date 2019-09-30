@@ -1229,7 +1229,7 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
             errMod.log_msg(ConfigOptions,MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
-            return
+            pass
     errMod.check_program_status(ConfigOptions,MpiConfg)
 
     # Calculate the previous file to process.
@@ -1262,7 +1262,7 @@ def find_hourly_WRF_ARW_HiRes_PCP_neighbors(supplemental_precip,ConfigOptions,dC
             errMod.log_msg(ConfigOptions, MpiConfg)
             supplemental_precip.file_in2 = None
             supplemental_precip.file_in1 = None
-            return
+            pass
     errMod.check_program_status(ConfigOptions,MpiConfg)
 
     supplemental_precip.fcst_hour2 = nextARWForecastHour

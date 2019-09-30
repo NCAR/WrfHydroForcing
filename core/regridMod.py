@@ -1738,6 +1738,9 @@ def regrid_hourly_WRF_ARW_HiRes_PCP(supplemental_precip,ConfigOptions,wrfHydroGe
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
     if supplemental_precip.regridComplete:
+        if MpiConfig.rank == 0:
+            ConfigOptions.statusMsg = "No ARW regridding required for this timesetp."
+            errMod.log_msg(ConfigOptions, MpiConfig)
         return
 
     # Create a path for a temporary NetCDF files that will
@@ -1893,7 +1896,8 @@ def check_regrid_status(idTmp,forceCount,input_forcings,ConfigOptions,MpiConfig,
             ConfigOptions.errMsg = "Unable to create " + input_forcings.productName + \
                                    " destination ESMF field object."
             errMod.log_critical(ConfigOptions,MpiConfig)
-            return
+            pass
+    errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Determine if we need to calculate a regridding object. The following situations warrant the calculation of
     # a new weight file:

@@ -51,7 +51,7 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
             errMod.log_msg(ConfigOptions, MpiConfig)
-            return
+        return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step.
@@ -127,7 +127,7 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
             errMod.log_msg(ConfigOptions, MpiConfig)
-            return
+        return
 
     # Calculate the difference between the current output timestep,
     # and the previous input forecast output step. Use this to calculate a fraction
