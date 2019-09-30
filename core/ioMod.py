@@ -375,20 +375,21 @@ class OutputObj:
                         break
                     # If we are using scale_factor / add_offset, create here.
                     if ConfigOptions.useCompression == 1:
-                        try:
-                            idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
-                        except:
-                            ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
-                                                   " in: " + self.outPath
-                            errMod.log_critical(ConfigOptions, MpiConfig)
-                            break
-                        try:
-                            idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
-                        except:
-                            ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
-                                                   " in: " + self.outPath
-                            errMod.log_critical(ConfigOptions, MpiConfig)
-                            break
+                        if varTmp != 'RAINRATE':
+                            try:
+                                idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
+                            except:
+                                ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
+                                                       " in: " + self.outPath
+                                errMod.log_critical(ConfigOptions, MpiConfig)
+                                break
+                            try:
+                                idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
+                            except:
+                                ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
+                                                       " in: " + self.outPath
+                                errMod.log_critical(ConfigOptions, MpiConfig)
+                                break
                 break
 
         errMod.check_program_status(ConfigOptions, MpiConfig)
