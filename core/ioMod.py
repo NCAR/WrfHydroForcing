@@ -636,7 +636,7 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     else:
         return
 
-def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
+def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMetaWrfHydro):
     """
     Function to read in monthly RQI grids on the NWM grid. This is an NWM ONLY
     option. Please do not activate if not executing on the NWM conus grid.
@@ -682,7 +682,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
                 return
 
             # Sanity checking on grid size.
-            if varTmp.shape[0] != 3840 or varTmp.shape[1] != 4608:
+            if varTmp.shape[0] != GeoMetaWrfHydro.ny_global or varTmp.shape[1] != GeoMetaWrfHydro.nx_global:
                 ConfigOptions.errMsg = "Improper dimension sizes for POP_0mabovemeansealevel " \
                                        "in parameter file: " + rqiPath
                 errMod.log_critical(ConfigOptions, MpiConfig)
@@ -691,7 +691,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip):
             idTmp = None
             varTmp = None
         # Scatter the array out to the local processors
-        varSubTmp = MpiConfig.scatter_array(supplemental_precip, varTmp, ConfigOptions)
+        varSubTmp = MpiConfig.scatter_array(GeoMetaWrfHydro, varTmp, ConfigOptions)
 
         supplemental_precip.regridded_rqi2[:, :] = varSubTmp
 
