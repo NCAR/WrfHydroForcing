@@ -657,7 +657,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
 
     if len(indTmp[0]) == 0:
         # We haven't initialized the RQI fields. We need to do this.....
-        if MpiConfig.rank == 1:
+        if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
             errMod.log_msg(ConfigOptions, MpiConfig)
             # First make sure the RQI file exists.
@@ -717,7 +717,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
     # MRMS step and the current one.
     if supplemental_precip.pcp_date2.month != supplemental_precip.pcp_date1.month:
         # We need to read in a new RQI monthly grid.
-        if MpiConfig.rank == 1:
+        if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Reading in RQI Parameter File: " + rqiPath
             errMod.log_msg(ConfigOptions, MpiConfig)
             # First make sure the RQI file exists.
