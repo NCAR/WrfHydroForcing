@@ -300,7 +300,8 @@ class OutputObj:
                         if ConfigOptions.useCompression == 1:
                             idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
                                                  fill_value=int(ConfigOptions.globalNdv/
-                                                                output_variable_attribute_dict[varTmp][5]))
+                                                                output_variable_attribute_dict[varTmp][5]), zlib=True,
+                                                 complevel=2)
                         else:
                             idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
                     except:
