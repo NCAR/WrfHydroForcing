@@ -417,7 +417,7 @@ class OutputObj:
                     # If we are using scale_factor/add_offset, create the integer values here.
                     if ConfigOptions.useCompression == 1:
                         try:
-                            dataOutTmp = dataOutTmp - varTmp[6]
+                            dataOutTmp = dataOutTmp - output_variable_attribute_dict[varTmp][6]
                             dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
                             dataOutTmp = dataOutTmp.astype(int)
                         except:
