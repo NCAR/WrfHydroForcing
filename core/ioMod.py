@@ -51,10 +51,10 @@ class OutputObj:
         output_variable_attribute_dict = {
             'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point',0.001,0.0],
             'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point',0.001,0.0],
-            'LWDOWN': [2,'W m-2','surface downward longwave_flux',
+            'LWDOWN': [2,'W m-2','surface_downward_longwave_flux',
                        'Surface downward long-wave radiation flux','time: point',0.001,0.0],
             'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean',1.0,0.0],
-            'T2D': [4,'K','air temperature','2-m Air Temperature','time: point',0.01,100.0],
+            'T2D': [4,'K','air_temperature','2-m Air Temperature','time: point',0.01,100.0],
             'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0],
             'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0],
             'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
