@@ -1,9 +1,10 @@
 """
 Temporal interpolation input forcings to the current output timestep.
 """
-import sys
-from core import errMod
 import numpy as np
+
+from core import err_handler
+
 
 def no_interpolation(input_forcings,ConfigOptions,MpiConfig):
     """
@@ -50,7 +51,7 @@ def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
     if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
-            errMod.log_msg(ConfigOptions, MpiConfig)
+            err_handler.log_msg(ConfigOptions, MpiConfig)
         return
 
     # Calculate the difference between the current output timestep,
@@ -126,7 +127,7 @@ def weighted_average(input_forcings,ConfigOptions,MpiConfig):
     if ConfigOptions.runCfsNldasBiasCorrect and input_forcings.productName == "CFSv2_6Hr_Global_GRIB2":
         if MpiConfig.rank == 0:
             ConfigOptions.statusMsg = "Bypassing temporal interpolation routine due to NWM bias correction for CFSv2"
-            errMod.log_msg(ConfigOptions, MpiConfig)
+            err_handler.log_msg(ConfigOptions, MpiConfig)
         return
 
     # Calculate the difference between the current output timestep,
