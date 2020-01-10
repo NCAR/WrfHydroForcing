@@ -1,8 +1,10 @@
-import sys
 import logging
-from mpi4py import MPI
-import numpy as np
 import os
+import sys
+
+import numpy as np
+from mpi4py import MPI
+
 
 def err_out_screen(err_msg):
     """
@@ -28,10 +30,10 @@ def err_out_screen_para(err_msg,MpiConfig):
     """
     err_msg_out = 'ERROR: RANK - ' + str(MpiConfig.rank) + ' : ' + err_msg
     print(err_msg_out)
-    MpiConfig.comm.Abort()
+    # MpiConfig.comm.Abort()
     sys.exit(1)
 
-def check_program_status(ConfigOptions,MpiConfig):
+def check_program_status(ConfigOptions, MpiConfig):
     """
     Generic function to check the err statuses for each processor in the program.
     If any flags come back, gracefully exit the program.
@@ -43,17 +45,25 @@ def check_program_status(ConfigOptions,MpiConfig):
     MpiConfig.comm.barrier()
 
     # Collect values from each processor.
-    data = MpiConfig.comm.gather(ConfigOptions.errFlag, root=0)
+    # data = MpiConfig.comm.gather(ConfigOptions.errFlag, root=0)
+    # if MpiConfig.rank == 0:
+    #     for i in range(MpiConfig.size):
+    #         if data[i] != 0:
+    #             MpiConfig.comm.Abort()
+    #             sys.exit(1)
+    # else:
+    #     assert data is None
+
+    # Reduce version:
+    any_error = MpiConfig.comm.reduce(ConfigOptions.errFlag)
     if MpiConfig.rank == 0:
-        for i in range(MpiConfig.size):
-            if data[i] != 0:
-                MpiConfig.comm.Abort()
-                sys.exit(1)
-    else:
-        assert data is None
+        if ConfigOptions.errFlag:
+            # print("any_error: ", any_error, type(any_error), flush=True)
+            MpiConfig.comm.Abort()
+            sys.exit(1)
 
     # Sync up processors.
-    MpiConfig.comm.barrier()
+    # MpiConfig.comm.barrier()
 
 def init_log(ConfigOptions,MpiConfig):
     """
