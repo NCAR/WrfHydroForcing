@@ -1,9 +1,9 @@
-from core import errMod
-from netCDF4 import Dataset
+import math
+
 import ESMF
 import numpy as np
-import sys
-import math
+from netCDF4 import Dataset
+
 
 class GeoMetaWrfHydro:
     """
