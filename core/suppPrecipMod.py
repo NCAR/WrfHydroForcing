@@ -2,12 +2,12 @@
 High-level module file that will handle supplemental analysis/observed precipitation grids
 that will replace precipitation in the final output files.
 """
-from core import dateMod
-from core import regridMod
 import numpy as np
+
+from core import time_handling
+from core import regrid
 from core import timeInterpMod
-import os
-from core import errMod
+
 
 class supplemental_precip:
     """
@@ -129,10 +129,10 @@ class supplemental_precip:
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
-            1: dateMod.find_hourly_MRMS_radar_neighbors,
-            2: dateMod.find_hourly_MRMS_radar_neighbors,
-            3: dateMod.find_hourly_WRF_ARW_HiRes_PCP_neighbors,
-            4: dateMod.find_hourly_WRF_ARW_HiRes_PCP_neighbors
+            1: time_handling.find_hourly_mrms_radar_neighbors,
+            2: time_handling.find_hourly_mrms_radar_neighbors,
+            3: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors,
+            4: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
@@ -158,10 +158,10 @@ class supplemental_precip:
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
         regrid_inputs = {
-            1: regridMod.regrid_mrms_hourly,
-            2: regridMod.regrid_mrms_hourly,
-            3: regridMod.regrid_hourly_WRF_ARW_HiRes_PCP,
-            4: regridMod.regrid_hourly_WRF_ARW_HiRes_PCP
+            1: regrid.regrid_mrms_hourly,
+            2: regrid.regrid_mrms_hourly,
+            3: regrid.regrid_hourly_wrf_arw_hi_res_pcp,
+            4: regrid.regrid_hourly_wrf_arw_hi_res_pcp
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:

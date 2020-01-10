@@ -4,12 +4,12 @@ parameters in all input forcing products. These parameters
 include things such as file types, grid definitions (including
 initializing ESMF grids and regrid objects), etc
 """
-from core import dateMod
-from core import regridMod
 import numpy as np
+
+from core import time_handling
+from core import regrid
 from core import timeInterpMod
-import os
-from core import errMod
+
 
 class input_forcings:
     """
@@ -297,22 +297,22 @@ class input_forcings:
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
-            3: dateMod.find_gfs_neighbors,
-            5: dateMod.find_conus_hrrr_neighbors,
-            6: dateMod.find_conus_rap_neighbors,
-            7: dateMod.find_cfsv2_neighbors,
-            9: dateMod.find_gfs_neighbors,
-            10: dateMod.find_custom_hourly_neighbors,
-            11: dateMod.find_custom_hourly_neighbors,
-            12: dateMod.find_custom_hourly_neighbors,
-            13: dateMod.find_nam_nest_neighbors,
-            14: dateMod.find_nam_nest_neighbors,
-            15: dateMod.find_nam_nest_neighbors
+            3: time_handling.find_gfs_neighbors,
+            5: time_handling.find_conus_hrrr_neighbors,
+            6: time_handling.find_conus_rap_neighbors,
+            7: time_handling.find_cfsv2_neighbors,
+            9: time_handling.find_gfs_neighbors,
+            10: time_handling.find_custom_hourly_neighbors,
+            11: time_handling.find_custom_hourly_neighbors,
+            12: time_handling.find_custom_hourly_neighbors,
+            13: time_handling.find_nam_nest_neighbors,
+            14: time_handling.find_nam_nest_neighbors,
+            15: time_handling.find_nam_nest_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
 
-    def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
+    def regrid_inputs(self, ConfigOptions, wrfHyroGeoMeta, MpiConfig):
         """
         Polymorphic function that will regrid input forcings to the
         final output grids for this particular timestep. For
@@ -325,17 +325,17 @@ class input_forcings:
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
         regrid_inputs = {
-            3: regridMod.regrid_gfs,
-            5: regridMod.regrid_conus_hrrr,
-            6: regridMod.regrid_conus_rap,
-            7: regridMod.regrid_cfsv2,
-            9: regridMod.regrid_gfs,
-            10: regridMod.regrid_custom_hourly_netcdf,
-            11: regridMod.regrid_custom_hourly_netcdf,
-            12: regridMod.regrid_custom_hourly_netcdf,
-            13: regridMod.regrid_nam_nest,
-            14: regridMod.regrid_nam_nest,
-            15: regridMod.regrid_nam_nest
+            3: regrid.regrid_gfs,
+            5: regrid.regrid_conus_hrrr,
+            6: regrid.regrid_conus_rap,
+            7: regrid.regrid_cfsv2,
+            9: regrid.regrid_gfs,
+            10: regrid.regrid_custom_hourly_netcdf,
+            11: regrid.regrid_custom_hourly_netcdf,
+            12: regrid.regrid_custom_hourly_netcdf,
+            13: regrid.regrid_nam_nest,
+            14: regrid.regrid_nam_nest,
+            15: regrid.regrid_nam_nest
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 
