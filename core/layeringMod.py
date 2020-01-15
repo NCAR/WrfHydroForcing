@@ -38,7 +38,8 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
 
             # Reset for next iteration and memory efficiency.
             indSet = None
-    MpiConfig.comm.barrier()
+    # MpiConfig.comm.barrier()
+
 
 def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions,MpiConfig):
     """
@@ -67,4 +68,4 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     layerOut = None
     indSet = None
 
-    MpiConfig.comm.barrier()
+    #MpiConfig.comm.barrier()
