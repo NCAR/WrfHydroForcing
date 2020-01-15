@@ -39,8 +39,9 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
-            ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
-        completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
+            ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+        completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
+        #completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
         if os.path.isfile(completeFlag):
             ConfigOptions.statusMsg = "Forecast Cycle: " + \
                                       ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M') + \
@@ -63,7 +64,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
         # Compose a path to a log file, which will contain information
         # about this forecast cycle.
-        ConfigOptions.logFile = fcstCycleOutDir + "/LOG_" + \
+        #ConfigOptions.logFile = fcstCycleOutDir + "/LOG_" + \
+        ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
             ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
             "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
@@ -84,7 +86,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             ConfigOptions.statusMsg = 'Forecast Cycle Length is: ' + \
                                       str(ConfigOptions.cycle_length_minutes) + " minutes"
             err_handler.log_msg(ConfigOptions, MpiConfig)
-        MpiConfig.comm.barrier()
+        # MpiConfig.comm.barrier()
 
         # Loop through each output timestep. Perform the following functions:
         # 1.) Calculate all necessary input files per user options.
@@ -114,13 +116,13 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 ConfigOptions.statusMsg =  "Processing for output timestep: " + \
                                            OutputObj.outDate.strftime('%Y-%m-%d %H:%M')
                 err_handler.log_msg(ConfigOptions, MpiConfig)
-            MpiConfig.comm.barrier()
+            # MpiConfig.comm.barrier()
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
             OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
                 ".LDASIN_DOMAIN1"
-            MpiConfig.comm.barrier()
+            #MpiConfig.comm.barrier()
 
             if os.path.isfile(OutputObj.outPath):
                 if MpiConfig.rank == 0:

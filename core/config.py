@@ -424,7 +424,7 @@ class ConfigOptions:
                 if (dt_tmp.days*1440+dt_tmp.seconds/60.0) % self.fcst_freq != 0:
                     err_handler.err_out_screen('Please choose an equal divider forecast frequency for your '
                                                'specified reforecast range.')
-                self.nFcsts = int((dt_tmp.days*1440+dt_tmp.seconds/60.0)/self.fcst_freq) + 1
+                self.nFcsts = int((dt_tmp.days*1440+dt_tmp.seconds/60.0)/self.fcst_freq)
 
             # Read in the ForecastInputHorizons options.
             try:
