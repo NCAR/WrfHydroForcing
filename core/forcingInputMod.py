@@ -91,6 +91,7 @@ class input_forcings:
         self.fcst_date2 = None
         self.height = None
         self.netcdf_var_names = None
+        self.grib_mes_idx = None
         self.input_map_output = None
         self.grib_levels = None
         self.grib_vars = None
@@ -101,6 +102,13 @@ class input_forcings:
         self.rstFlag = 0
         self.regridded_precip1 = None
         self.regridded_precip2 = None
+
+        self.global_x_lower = None
+        self.global_y_lower = None
+        self.global_x_upper = None
+        self.global_y_upper = None
+        self.has_cache = False
+
 
     def define_product(self):
         """
@@ -302,6 +310,27 @@ class input_forcings:
                 'APCP_surface', 'PRES_surface'],
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
+
+        # arrays that store the message ids of required forcing variables for each forcing type
+        # TODO fill these arrays for forcing types other than GFS
+        grib_message_idx = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: [33,34,39,40,43,88,91,6],
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: None
+        }
+        self.grib_mes_idx = grib_message_idx[self.keyValue] 
 
         input_map_to_outputs = {
             1: None,
