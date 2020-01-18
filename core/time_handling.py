@@ -581,7 +581,7 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     if prev_nam_nest_forecast_hour == 0:
         prev_nam_nest_forecast_hour = 1
 
-    if input_forcings.keyValue == 13:
+    if input_forcings.keyValue == 13 or input_forcings.keyValue == 16:
         domain_string = "hawaiinest"
     elif input_forcings.keyValue == 14:
         domain_string = "priconest"
@@ -1169,7 +1169,11 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
             str(next_arw_forecast_hour).zfill(2) + '.pr.grib2'
     else:
-        tmp_file1 = tmp_file2 = ''
+        tmp_file1 = tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
+            current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
+            current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
+            str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
+
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous ARW supplemental precipitation file: " + tmp_file1
@@ -1181,14 +1185,14 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
-        if config_options.current_output_step == 1:
-            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
-            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
-        else:
-            # The forecast window has shifted. Reset fields 2 to
-            # be fields 1.
-            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
-            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        # if config_options.current_output_step == 1:
+        #     supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        #     supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        # else:
+        #     # The forecast window has shifted. Reset fields 2 to
+        #     # be fields 1.
+        #     supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        #     supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
         supplemental_precip.file_in1 = tmp_file1
         supplemental_precip.file_in2 = tmp_file2
         supplemental_precip.regridComplete = False

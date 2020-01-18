@@ -16,6 +16,12 @@ class input_forcings:
     This is an abstract class that will define all the parameters
     of a single input forcing product.
     """
+    
+    # Constants
+    GRIB2 = "GRIB2"
+    GRIB1 = "GRIB1"
+    NETCDF = "NETCDF"
+    
     def __init__(self):
         """
         Initializing all attributes and objects to None.
@@ -93,6 +99,8 @@ class input_forcings:
         self.psfcTmp = None
         self.t2dTmp = None
         self.rstFlag = 0
+        self.regridded_precip1 = None
+        self.regridded_precip2 = None
 
     def define_product(self):
         """
@@ -100,6 +108,10 @@ class input_forcings:
         forcing key value.
         :return:
         """
+        GRIB1 = self.GRIB1
+        GRIB2 = self.GRIB2
+        NETCDF = self.NETCDF
+
         product_names = {
             1: "NLDAS2_GRIB1",
             2: "NARR_GRIB1",
@@ -115,26 +127,28 @@ class input_forcings:
             12: "Custom_NetCDF_Hourly",
             13: "NAM_Nest_3km_Hawaii",
             14: "NAM_Nest_3km_PuertoRico",
-            15: "NAM_Nest_3km_Alaska"
+            15: "NAM_Nest_3km_Alaska",
+            16: "NAM_Next_3km_Hawaii_Radiation-Only"
         }
         self.productName = product_names[self.keyValue]
 
         product_types = {
-            1: "GRIB1",
-            2: "GRIB1",
-            3: "GRIB2",
-            4: "GRIB2",
-            5: "GRIB2",
-            6: "GRIB2",
-            7: "GRIB2",
-            8: "GRIB2",
-            9: "GRIB2",
-            10: "NetCDF",
-            11: "NetCDF",
-            12: "NetCDF",
-            13: "GRIB2",
-            14: "GRIB2",
-            15: "GRIB2"
+            1: GRIB1,
+            2: GRIB1,
+            3: GRIB2,
+            4: GRIB2,
+            5: GRIB2,
+            6: GRIB2,
+            7: GRIB2,
+            8: GRIB2,
+            9: GRIB2,
+            10: NETCDF,
+            11: NETCDF,
+            12: NETCDF,
+            13: GRIB2,
+            14: GRIB2,
+            15: GRIB2,
+            16: GRIB2
         }
         self.fileType = product_types[self.keyValue]
 
@@ -153,116 +167,123 @@ class input_forcings:
             12: -9999,
             13: 360,
             14: 360,
-            15: 360
+            15: 360,
+            16: 360
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
         grib_vars_in = {
             1: None,
             2: None,
-            3: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
+            3: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
             4: None,
-            5: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
-            6: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
-            7: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
-            8: None,
-            9: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
+            5: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
+            6: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
+            7: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
+            8: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES'],
+            9: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
             10: None,
             11: None,
             12: None,
-            13: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
-            14: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES'],
-            15: ['TMP','SPFH','UGRD','VGRD','PRATE','DSWRF',
-                'DLWRF','PRES']
+            13: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            14: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            15: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            16: ['DSWRF', 'DLWRF']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
         grib_levels_in = {
             1: None,
             2: None,
-            3: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
+            3: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
             4: None,
-            5: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
-            6: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
-            7: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
-            8: None,
-            9: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
+            5: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
+            6: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
+            7: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
+            8: ['80 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface'],
+            9: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
             10: None,
             11: None,
             12: None,
-            13: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
-            14: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface'],
-            15: ['2 m above ground','2 m above ground',
-                '10 m above ground','10 m above ground',
-                'surface','surface','surface','surface']
-
+            13: ['2 m above ground', '2 m above ground',
+                 '10 m above ground', '10 m above ground',
+                 'surface', 'surface', 'surface', 'surface'],
+            14: ['2 m above ground', '2 m above ground',
+                 '10 m above ground', '10 m above ground',
+                 'surface', 'surface', 'surface', 'surface'],
+            15: ['2 m above ground', '2 m above ground',
+                 '10 m above ground', '10 m above ground',
+                 'surface', 'surface', 'surface', 'surface'],
+            16: ['surface', 'surface']
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
         netcdf_variables = {
             1: None,
             2: None,
-            3: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+            3: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
             4: None,
-            5: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+            5: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            6: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+            6: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            7: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+            7: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            8: None,
-            9: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
+            8: ['TMP_80maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'APCP_surface', 'PRES_surface'],
+            9: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            10: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
-                 'DLWRF','PRES'],
-            11: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
-                 'DLWRF','PRES'],
-            12: ['T2D','Q2D','U10','V10','RAINRATE','DSWRF',
-                 'DLWRF','PRES'],
-            13: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
-                'PRES_surface'],
-            14: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
-                'PRES_surface'],
-            15: ['TMP_2maboveground','SPFH_2maboveground',
-                'UGRD_10maboveground','VGRD_10maboveground',
-                'PRATE_surface','DSWRF_surface','DLWRF_surface',
-                'PRES_surface']
+            10: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            11: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            12: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
+                 'DLWRF', 'PRES'],
+            13: ['TMP_2maboveground', 'SPFH_2maboveground',
+                 'UGRD_10maboveground', 'VGRD_10maboveground',
+                 'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                 'PRES_surface'],
+            14: ['TMP_2maboveground', 'SPFH_2maboveground',
+                 'UGRD_10maboveground', 'VGRD_10maboveground',
+                 'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                 'PRES_surface'],
+            15: ['TMP_2maboveground', 'SPFH_2maboveground',
+                 'UGRD_10maboveground', 'VGRD_10maboveground',
+                 'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                 'PRES_surface'],
+            16: ['DSWRF_surface', 'DLWRF_surface']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -274,14 +295,15 @@ class input_forcings:
             5: [4,5,0,1,3,7,2,6],
             6: [4,5,0,1,3,7,2,6],
             7: [4,5,0,1,3,7,2,6],
-            8: None,
+            8: [4,5,0,1,3,6],
             9: [4,5,0,1,3,7,2,6],
             10: [4,5,0,1,3,7,2,6],
             11: [4,5,0,1,3,7,2,6],
             12: [4,5,0,1,3,7,2,6],
             13: [4,5,0,1,3,7,2,6],
             14: [4,5,0,1,3,7,2,6],
-            15: [4,5,0,1,3,7,2,6]
+            15: [4,5,0,1,3,7,2,6],
+            16: [7,2]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
@@ -301,13 +323,15 @@ class input_forcings:
             5: time_handling.find_conus_hrrr_neighbors,
             6: time_handling.find_conus_rap_neighbors,
             7: time_handling.find_cfsv2_neighbors,
+            8: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors,
             9: time_handling.find_gfs_neighbors,
             10: time_handling.find_custom_hourly_neighbors,
             11: time_handling.find_custom_hourly_neighbors,
             12: time_handling.find_custom_hourly_neighbors,
             13: time_handling.find_nam_nest_neighbors,
             14: time_handling.find_nam_nest_neighbors,
-            15: time_handling.find_nam_nest_neighbors
+            15: time_handling.find_nam_nest_neighbors,
+            16: time_handling.find_nam_nest_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -329,13 +353,15 @@ class input_forcings:
             5: regrid.regrid_conus_hrrr,
             6: regrid.regrid_conus_rap,
             7: regrid.regrid_cfsv2,
+            8: regrid.regrid_hourly_wrf_arw,
             9: regrid.regrid_gfs,
             10: regrid.regrid_custom_hourly_netcdf,
             11: regrid.regrid_custom_hourly_netcdf,
             12: regrid.regrid_custom_hourly_netcdf,
             13: regrid.regrid_nam_nest,
             14: regrid.regrid_nam_nest,
-            15: regrid.regrid_nam_nest
+            15: regrid.regrid_nam_nest,
+            16: regrid.regrid_nam_nest
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 
