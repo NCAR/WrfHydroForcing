@@ -276,6 +276,9 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
+        if varTmp not in input_forcings.regridded_forcings2:
+            continue
+
         # First check to see if we have any data that is not missing.
         indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
                              != ConfigOptions.globalNdv)

@@ -1154,15 +1154,14 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
         err_handler.check_program_status(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         if calc_regrid_flag:
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating NAM nest regridding weights...."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(mpi_config, config_options,
-                              force_count, input_forcings, id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -1621,6 +1620,229 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     err_handler.check_program_status(config_options, mpi_config)
 
 
+def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
+    """
+       Function for handing regridding of input NAM nest data
+       fro GRIB2 files.
+       :param mpi_config:
+       :param wrf_hydro_geo_meta:
+       :param input_forcings:
+       :param config_options:
+       :return:
+       """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    if input_forcings.regridComplete:
+        config_options.statusMsg = "No regridding of WRF-ARW nest data necessary for this timestep - already completed."
+        err_handler.log_msg(config_options, mpi_config)
+        return
+
+    # Create a path for a temporary NetCDF files that will
+    # be created through the wgrib2 process.
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "ARW_TMP.nc"
+    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "ARW_TMP_HEIGHT.nc"
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # This file shouldn't exist.... but if it does (previously failed
+    # execution of the program), remove it.....
+    if mpi_config.rank == 0:
+        if os.path.isfile(input_forcings.tmpFile):
+            config_options.statusMsg = "Found old temporary file: " + \
+                                       input_forcings.tmpFile + " - Removing....."
+            err_handler.log_warning(config_options, mpi_config)
+            try:
+                os.remove(input_forcings.tmpFile)
+            except OSError:
+                err_handler.err_out(config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
+    # to NetCDF, read in the data, regrid it, then map it to the appropriate
+    # array slice in the output arrays.
+    for force_count, _ in enumerate(input_forcings.grib_vars):
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Processing WRF-ARW Variable: " + input_forcings.grib_vars[force_count]
+            err_handler.log_msg(config_options, mpi_config)
+        # Create a temporary NetCDF file from the GRIB2 file.
+        # work around for the APCP field, which is "0-n" hour/day
+        val = input_forcings.fcst_hour2
+        if val % 24 == 0:
+            val = int(val / 24)
+        apcp = "0-{} {} acc fcst".format(val, 'hour' if input_forcings.fcst_hour2 % 24 else 'day') \
+            if input_forcings.grib_vars[force_count] == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+        cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
+              input_forcings.grib_vars[force_count] + "):(" + \
+              input_forcings.grib_levels[force_count] + "):(" + apcp + \
+              '):" -netcdf ' + input_forcings.tmpFile
+        print(cmd, flush=True)
+
+        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+                                  config_options, mpi_config, input_forcings.netcdf_var_names[force_count])
+        err_handler.check_program_status(config_options, mpi_config)
+
+        calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        if calc_regrid_flag:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Calculating WRF-ARW regridding weights...."
+                err_handler.log_msg(config_options, mpi_config)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # Read in the RAP height field, which is used for downscaling purposes.
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Reading in WRF-ARW elevation data from GRIB2."
+                err_handler.log_msg(config_options, mpi_config)
+            cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+                  "\":(HGT):(surface):\" " + \
+                  " -netcdf " + input_forcings.tmpFileHeight
+            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+                                             cmd, config_options, mpi_config, 'HGT_surface')
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # Regrid the height variable.
+            if mpi_config.rank == 0:
+                var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+            else:
+                var_tmp = None
+            err_handler.check_program_status(config_options, mpi_config)
+
+            var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            try:
+                input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to place NetCDF WRF-ARW elevation data into the ESMF field object: " \
+                                        + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Regridding WRF-ARW elevation data to the WRF-Hydro domain."
+                err_handler.log_msg(config_options, mpi_config)
+            try:
+                input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                         input_forcings.esmf_field_out)
+            except ValueError as ve:
+                config_options.errMsg = "Unable to regrid WRF-ARW elevation data to the WRF-Hydro domain " \
+                                        "using ESMF: " + str(ve)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # Set any pixel cells outside the input domain to the global missing value.
+            try:
+                input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                    config_options.globalNdv
+            except (ValueError, ArithmeticError) as npe:
+                config_options.errMsg = "Unable to compute mask on WRF-ARW elevation data: " + str(npe)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            try:
+                input_forcings.height[:, :] = input_forcings.esmf_field_out.data
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to extract ESMF regridded WRF-ARW elevation data to a local " \
+                                        "array: " + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # Close the temporary NetCDF file and remove it.
+            if mpi_config.rank == 0:
+                try:
+                    id_tmp_height.close()
+                except OSError:
+                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+                    err_handler.log_critical(config_options, mpi_config)
+
+                try:
+                    os.remove(input_forcings.tmpFileHeight)
+                except OSError:
+                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+                    err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Regrid the input variables.
+        var_tmp = None
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Regridding WRF-ARW input variable: " + \
+                                       input_forcings.netcdf_var_names[force_count]
+            err_handler.log_msg(config_options, mpi_config)
+            try:
+                var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to extract " + input_forcings.netcdf_var_names[force_count] + \
+                                        " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
+                err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local array into local ESMF field: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+        except ValueError as ve:
+            config_options.errMsg = "Unable to regrid input WRF-ARW forcing variables using ESMF: " + str(ve)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Set any pixel cells outside the input domain to the global missing value.
+        try:
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                config_options.globalNdv
+        except (ValueError, ArithmeticError) as npe:
+            config_options.errMsg = "Unable to calculate mask from input WRF-ARW regridded forcings: " + str(npe)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
+                input_forcings.esmf_field_out.data
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local ESMF regridded data into local array: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if config_options.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Close the temporary NetCDF file and remove it.
+        if mpi_config.rank == 0:
+            try:
+                id_tmp.close()
+            except OSError:
+                config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+                err_handler.log_critical(config_options, mpi_config)
+            try:
+                os.remove(input_forcings.tmpFile)
+            except OSError:
+                config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+                err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+
 def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for handling regridding hourly forecasted ARW precipitation for hi-res nests.
@@ -1689,8 +1911,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
         if mpi_config.rank == 0:
             config_options.statusMsg = "Calculating WRF ARW regridding weights."
             err_handler.log_msg(config_options, mpi_config)
-        calculate_supp_pcp_weights(mpi_config, config_options,
-                                   supplemental_precip, id_tmp, arw_tmp_nc)
+        calculate_supp_pcp_weights(supplemental_precip, id_tmp, arw_tmp_nc, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the input variables.
@@ -1827,7 +2048,7 @@ def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf
     return calc_regrid_flag
 
 
-def check_supp_pcp_regrid_status(supplemental_precip, id_tmp, config_options, wrf_hydro_geo_meta, mpi_config):
+def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, mpi_config, wrf_hydro_geo_meta):
     """
     Function for checking to see if regridding weights need to be
     calculated (or recalculated).
