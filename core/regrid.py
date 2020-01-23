@@ -52,14 +52,14 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                 err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    for force_count, _ in enumerate(input_forcings.grib_vars):
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing Conus HRRR Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing Conus HRRR Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
 
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-              input_forcings.grib_vars[force_count] + "):(" + \
+              grib_var + "):(" + \
               input_forcings.grib_levels[force_count] + "):(" + \
               str(input_forcings.fcst_hour2) + " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
@@ -271,14 +271,13 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                 err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    force_count = 0
-    for _ in input_forcings.grib_vars:
+    for force_count, grib_var in input_forcings.grib_vars:
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing Conus RAP Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing Conus RAP Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-              input_forcings.grib_vars[force_count] + "):(" + \
+              grib_var + "):(" + \
               input_forcings.grib_levels[force_count] + "):(" + str(input_forcings.fcst_hour2) + \
               " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
@@ -451,8 +450,6 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                 err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-        force_count = force_count + 1
-
 
 def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
@@ -501,13 +498,13 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
                 err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    for force_count, _ in enumerate(input_forcings.grib_vars):
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing CFSv2 Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing CFSv2 Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-              input_forcings.grib_vars[force_count] + "):(" + \
+              grib_var + "):(" + \
               input_forcings.grib_levels[force_count] + "):(" + str(input_forcings.fcst_hour2) + \
               " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
@@ -751,10 +748,10 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
     id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
     mpi_config.comm.barrier()
 
-    for force_count, _ in enumerate(input_forcings.netcdf_var_names):
+    for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing Custom NetCDF Forcing Variable: " + \
-                                       input_forcings.grib_vars[force_count]
+                                       nc_var
             err_handler.log_msg(config_options, mpi_config)
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
                                                config_options, mpi_config, wrf_hydro_geo_meta)
@@ -891,9 +888,9 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     # Loop through all of the input forcings in GFS data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
     # array slice in the output arrays.
-    for force_count, force_tmp in enumerate(input_forcings.grib_vars):
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing 13km GFS Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing 13km GFS Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
         if force_tmp == "PRATE":
@@ -910,13 +907,13 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                 tmp_hr_previous = input_forcings.fcst_hour1
 
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-                  input_forcings.grib_vars[force_count] + "):(" + \
+                  grib_var + "):(" + \
                   input_forcings.grib_levels[force_count] + "):(" + str(tmp_hr_previous) + \
                   "-" + str(input_forcings.fcst_hour2) + \
                   " hour ave fcst):\" -netcdf " + input_forcings.tmpFile
         else:
             cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-                  input_forcings.grib_vars[force_count] + "):(" + \
+                  grib_var + "):(" + \
                   input_forcings.grib_levels[force_count] + "):(" + str(input_forcings.fcst_hour2) + \
                   " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
@@ -1024,7 +1021,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
         # on the global precipitation average rates to calculate instantaneous global rates.
         # This is due to GFS's weird nature of doing average rates over different periods.
         if input_forcings.productName == "GFS_Production_GRIB2":
-            if force_tmp == "PRATE":
+            if grib_var == "PRATE":
                 if mpi_config.rank == 0:
                     input_forcings.globalPcpRate2 = var_tmp
                     var_tmp = timeInterpMod.gfs_pcp_time_interp(input_forcings, config_options, mpi_config)
@@ -1139,13 +1136,13 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
     # array slice in the output arrays.
-    for force_count, _ in enumerate(input_forcings.grib_vars):
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing NAM Nest Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing NAM Nest Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-              input_forcings.grib_vars[force_count] + "):(" + \
+              grib_var + "):(" + \
               input_forcings.grib_levels[force_count] + "):(" + str(input_forcings.fcst_hour2) + \
               " hour fcst):\" -netcdf " + input_forcings.tmpFile
 
@@ -1665,22 +1662,17 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
     # array slice in the output arrays.
-    for force_count, _ in enumerate(input_forcings.grib_vars):
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing WRF-ARW Variable: " + input_forcings.grib_vars[force_count]
+            config_options.statusMsg = "Processing WRF-ARW Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
-        # work around for the APCP field, which is "0-n" hour/day
-        val = input_forcings.fcst_hour2
-        if val % 24 == 0:
-            val = int(val / 24)
-        apcp = "0-{} {} acc fcst".format(val, 'hour' if input_forcings.fcst_hour2 % 24 else 'day') \
-            if input_forcings.grib_vars[force_count] == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+        var_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
+            if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
         cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
-              input_forcings.grib_vars[force_count] + "):(" + \
-              input_forcings.grib_levels[force_count] + "):(" + apcp + \
+              grib_var + "):(" + \
+              input_forcings.grib_levels[force_count] + "):(" + var_str + \
               '):" -netcdf ' + input_forcings.tmpFile
-        print(cmd, flush=True)
 
         id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, input_forcings.netcdf_var_names[force_count])
@@ -1812,6 +1804,17 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
             config_options.errMsg = "Unable to calculate mask from input WRF-ARW regridded forcings: " + str(npe)
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
+
+        # Convert the hourly precipitation total to a rate of mm/s
+        if grib_var == 'APCP':
+            try:
+                ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 3600.0
+                del ind_valid
+            except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+                config_options.errMsg = "Unable to run NDV search on WRF ARW precipitation: " + str(npe)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
 
         try:
             input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \

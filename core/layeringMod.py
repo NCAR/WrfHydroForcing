@@ -19,24 +19,25 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     :return:
     """
     # Loop through the 8 forcing products to layer in:
-    # 1.) U-Wind (m/s)
-    # 2.) V-Wind (m/s)
-    # 3.) Surface incoming longwave radiation flux (W/m^2)
-    # 4.) Precipitation rate (mm/s)
-    # 5.) 2-meter temperature (K)
-    # 6.) 2-meter specific humidity (kg/kg)
-    # 7.) Surface pressure (Pa)
-    # 8.) Surface incoming shortwave radiation flux (W/m^2)
+    # 0.) U-Wind (m/s)
+    # 1.) V-Wind (m/s)
+    # 2.) Surface incoming longwave radiation flux (W/m^2)
+    # 3.) Precipitation rate (mm/s)
+    # 4.) 2-meter temperature (K)
+    # 5.) 2-meter specific humidity (kg/kg)
+    # 6.) Surface pressure (Pa)
+    # 7.) Surface incoming shortwave radiation flux (W/m^2)
 
-    for forceTmp in range(0,8):
-        outLayerCurrent = OutputObj.output_local[forceTmp,:,:]
-        layerIn = input_forcings.final_forcings[forceTmp,:,:]
-        indSet = np.where(layerIn != ConfigOptions.globalNdv)
-        outLayerCurrent[indSet] = layerIn[indSet]
-        OutputObj.output_local[forceTmp,:,:] = outLayerCurrent
+    for force_idx in range(0,8):
+        if force_idx in input_forcings.input_map_output:
+            outLayerCurrent = OutputObj.output_local[force_idx,:,:]
+            layerIn = input_forcings.final_forcings[force_idx,:,:]
+            indSet = np.where(layerIn != ConfigOptions.globalNdv)
+            outLayerCurrent[indSet] = layerIn[indSet]
+            OutputObj.output_local[force_idx, :, :] = outLayerCurrent
 
-        # Reset for next iteration and memory efficiency.
-        indSet = None
+            # Reset for next iteration and memory efficiency.
+            indSet = None
     MpiConfig.comm.barrier()
 
 def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions,MpiConfig):
