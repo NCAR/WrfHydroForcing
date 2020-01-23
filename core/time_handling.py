@@ -1168,17 +1168,21 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
             str(next_arw_forecast_hour).zfill(2) + '.pr.grib2'
-    else:
-        tmp_file1 = tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
-            current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
-            current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-            str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
+    else:       # using ARW as primary forcing...
+        tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
+                    current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
+                    current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
+                    str(prev_arw_forecast_hour).zfill(2) + '.hi.grib2'
+        tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
+                    current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
+                    current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
+                    str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
 
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Previous ARW supplemental precipitation file: " + tmp_file1
+        config_options.statusMsg = "Previous ARW input file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
-        config_options.statusMsg = "Next ARW supplemental precipitation file: " + tmp_file2
+        config_options.statusMsg = "Next ARW input file: " + tmp_file2
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
