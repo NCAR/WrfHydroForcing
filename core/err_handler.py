@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import traceback
 
 import numpy as np
 from mpi4py import MPI
@@ -59,6 +60,8 @@ def check_program_status(ConfigOptions, MpiConfig):
     if MpiConfig.rank == 0:
         if ConfigOptions.errFlag:
             # print("any_error: ", any_error, type(any_error), flush=True)
+            stack = traceback.format_stack()[:-1]
+            [print(frame, flush=True, end='') for frame in stack]
             MpiConfig.comm.Abort()
             sys.exit(1)
 
@@ -267,6 +270,7 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         'PSFC': [6, 0.0, 2000000.0],
         'SWDOWN': [7, 0.0, 5000.0]
     }
+    vars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
 
     # If the regridded field is None type, return to the main program as this means no forcings
     # were found for this timestep.
@@ -276,12 +280,12 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
-        if varTmp not in input_forcings.regridded_forcings2:
+        if vars.index(varTmp) not in input_forcings.input_map_output:
             continue
 
         # First check to see if we have any data that is not missing.
-        indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
-                             != ConfigOptions.globalNdv)
+        # indCheck = np.where(input_forcings.regridded_forcings2[variable_range[varTmp][0]]
+        #                    != ConfigOptions.globalNdv)
 
         #if len(indCheck[0]) == 0:
         #    ConfigOptions.errMsg = "No valid data found for " + varTmp + " in " + input_forcings.file_in2
