@@ -128,7 +128,9 @@ class input_forcings:
             13: "NAM_Nest_3km_Hawaii",
             14: "NAM_Nest_3km_PuertoRico",
             15: "NAM_Nest_3km_Alaska",
-            16: "NAM_Next_3km_Hawaii_Radiation-Only"
+            16: "NAM_Nest_3km_Hawaii_Radiation-Only",
+            17: "NAM_Nest_3km_PuertoRico_Radiation-Only",
+            18: "WRF_ARW_PuertoRico_GRIB2"
         }
         self.productName = product_names[self.keyValue]
 
@@ -148,7 +150,9 @@ class input_forcings:
             13: GRIB2,
             14: GRIB2,
             15: GRIB2,
-            16: GRIB2
+            16: GRIB2,
+            17: GRIB2,
+            18: GRIB2
         }
         self.fileType = product_types[self.keyValue]
 
@@ -168,7 +172,9 @@ class input_forcings:
             13: 360,
             14: 360,
             15: 360,
-            16: 360
+            16: 360,
+            17: 360,
+            18: 1440
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
@@ -196,7 +202,9 @@ class input_forcings:
                  'DLWRF', 'PRES'],
             15: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
                  'DLWRF', 'PRES'],
-            16: ['DSWRF', 'DLWRF']
+            16: ['DSWRF', 'DLWRF'],
+            17: ['DSWRF', 'DLWRF'],
+            18: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -234,7 +242,11 @@ class input_forcings:
             15: ['2 m above ground', '2 m above ground',
                  '10 m above ground', '10 m above ground',
                  'surface', 'surface', 'surface', 'surface'],
-            16: ['surface', 'surface']
+            16: ['surface', 'surface'],
+            17: ['surface', 'surface'],
+            18: ['80 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface'],
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -283,7 +295,11 @@ class input_forcings:
                  'UGRD_10maboveground', 'VGRD_10maboveground',
                  'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
                  'PRES_surface'],
-            16: ['DSWRF_surface', 'DLWRF_surface']
+            16: ['DSWRF_surface', 'DLWRF_surface'],
+            17: ['DSWRF_surface', 'DLWRF_surface'],
+            18: ['TMP_80maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'APCP_surface', 'PRES_surface'],
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -303,7 +319,9 @@ class input_forcings:
             13: [4,5,0,1,3,7,2,6],
             14: [4,5,0,1,3,7,2,6],
             15: [4,5,0,1,3,7,2,6],
-            16: [7,2]
+            16: [7,2],
+            17: [7, 2],
+            18: [4, 5, 0, 1, 3, 6],
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
@@ -323,7 +341,7 @@ class input_forcings:
             5: time_handling.find_conus_hrrr_neighbors,
             6: time_handling.find_conus_rap_neighbors,
             7: time_handling.find_cfsv2_neighbors,
-            8: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors,
+            8: time_handling.find_hourly_wrf_arw_neighbors,
             9: time_handling.find_gfs_neighbors,
             10: time_handling.find_custom_hourly_neighbors,
             11: time_handling.find_custom_hourly_neighbors,
@@ -331,7 +349,9 @@ class input_forcings:
             13: time_handling.find_nam_nest_neighbors,
             14: time_handling.find_nam_nest_neighbors,
             15: time_handling.find_nam_nest_neighbors,
-            16: time_handling.find_nam_nest_neighbors
+            16: time_handling.find_nam_nest_neighbors,
+            17: time_handling.find_nam_nest_neighbors,
+            18: time_handling.find_hourly_wrf_arw_neighbors,
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -361,7 +381,9 @@ class input_forcings:
             13: regrid.regrid_nam_nest,
             14: regrid.regrid_nam_nest,
             15: regrid.regrid_nam_nest,
-            16: regrid.regrid_nam_nest
+            16: regrid.regrid_nam_nest,
+            17: regrid.regrid_nam_nest,
+            18: regrid.regrid_hourly_wrf_arw,
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 

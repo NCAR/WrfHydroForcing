@@ -131,8 +131,8 @@ class supplemental_precip:
         find_neighbor_files = {
             1: time_handling.find_hourly_mrms_radar_neighbors,
             2: time_handling.find_hourly_mrms_radar_neighbors,
-            3: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors,
-            4: time_handling.find_hourly_wrf_arw_hi_res_pcp_neighbors
+            3: time_handling.find_hourly_wrf_arw_neighbors,
+            4: time_handling.find_hourly_wrf_arw_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
