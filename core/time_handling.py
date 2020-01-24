@@ -583,7 +583,7 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
 
     if input_forcings.keyValue == 13 or input_forcings.keyValue == 16:
         domain_string = "hawaiinest"
-    elif input_forcings.keyValue == 14:
+    elif input_forcings.keyValue == 14 or input_forcings.keyValue == 17:
         domain_string = "priconest"
     elif input_forcings.keyValue == 15:
         domain_string = "alaskanest"
@@ -1045,7 +1045,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
 
 
-def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current, mpi_config):
     """
     Function to calculate the previous and next WRF-ARW Hi-Res Window files for the previous
     and next output timestep. These files will be used for supplemental precipitation.
@@ -1150,7 +1150,8 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
         prev_arw_forecast_hour = 1
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 3:
+    tmp_file1 = tmp_file2 = "(none)"
+    if supplemental_precip.keyValue == 3 or supplemental_precip.keyValue == 8:
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
@@ -1159,7 +1160,7 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
             str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
-    elif supplemental_precip.keyValue == 4:
+    elif supplemental_precip.keyValue == 4 or supplemental_precip.keyValue == 18:
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
@@ -1168,15 +1169,6 @@ def find_hourly_wrf_arw_hi_res_pcp_neighbors(supplemental_precip, config_options
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
             str(next_arw_forecast_hour).zfill(2) + '.pr.grib2'
-    else:       # using ARW as primary forcing...
-        tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
-                    current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
-                    current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-                    str(prev_arw_forecast_hour).zfill(2) + '.hi.grib2'
-        tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
-                    current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
-                    current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-                    str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
 
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:
