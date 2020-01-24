@@ -71,7 +71,7 @@ class supplemental_precip:
         """
         product_names = {
             1: "MRMS_1HR_Radar_Only",
-            2: "MRMS_1HR_Gage_Corrected",
+            2: "MRMS_1HR_MultiSensor",
             3: "WRF_ARW_Hawaii_2p5km_PCP",
             4: "WRF_ARW_PuertoRico_2p5km_PCP"
         }
@@ -103,7 +103,7 @@ class supplemental_precip:
 
         netcdf_variables = {
             1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
-            2: ['GaugeCorrQPE01H_0mabovemeansealevel'],
+            2: ['var209_6_30_0mabovemeansealevel'],
             3: ['APCP_surface'],
             4: ['APCP_surface']
         }

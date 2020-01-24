@@ -955,16 +955,16 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000.grib2.gz"
     elif supplemental_precip.keyValue == 2:
-        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-            "MRMS_GaugeCorr_QPE_01H_00.00_" + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-            "MRMS_GaugeCorr_QPE_01H_00.00_" + \
-            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-            "0000.grib2.gz"
+        tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                    "0000.grib2.gz"
+        tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                    "0000.grib2.gz"
     else:
         tmp_file1 = tmp_file2 = ""
 
