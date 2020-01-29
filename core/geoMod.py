@@ -37,6 +37,12 @@ class GeoMetaWrfHydro:
         self.y_coord_atts = None
         self.y_coords = None
         self.spatial_global_atts = None
+        
+        self.global_x_lower = None
+        self.global_y_lower = None
+        self.global_x_upper = None
+        self.global_y_upper = None
+        self.has_cache = False
 
     def get_processor_bounds(self):
         """
@@ -103,7 +109,7 @@ class GeoMetaWrfHydro:
                                        " in: " + ConfigOptions.geogrid
                 raise Exception
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         # Broadcast global dimensions to the other processors.
         self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
@@ -111,7 +117,7 @@ class GeoMetaWrfHydro:
         self.dx_meters = MpiConfig.broadcast_parameter(self.dx_meters,ConfigOptions)
         self.dy_meters = MpiConfig.broadcast_parameter(self.dy_meters,ConfigOptions)
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         try:
             self.esmf_grid = ESMF.Grid(np.array([self.ny_global,self.nx_global]),
@@ -122,12 +128,12 @@ class GeoMetaWrfHydro:
                                    "geogrid: " + ConfigOptions.geogrid
             raise Exception
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         self.esmf_lat = self.esmf_grid.get_coords(1)
         self.esmf_lon = self.esmf_grid.get_coords(0)
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         # Obtain the local boundaries for this processor.
         self.get_processor_bounds()
@@ -138,11 +144,11 @@ class GeoMetaWrfHydro:
         else:
             varTmp = None
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         # Place the local lat/lon grid slices from the parent geogrid file into
         # the ESMF lat/lon grids.
@@ -155,7 +161,7 @@ class GeoMetaWrfHydro:
             ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
             raise Exception
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         # Scatter global XLONG_M grid to processors..
         if MpiConfig.rank == 0:
@@ -163,11 +169,11 @@ class GeoMetaWrfHydro:
         else:
             varTmp = None
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         try:
             self.esmf_lon[:,:] = varSubTmp
@@ -178,17 +184,18 @@ class GeoMetaWrfHydro:
             ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
             raise Exception
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         # Scatter the COSALPHA,SINALPHA grids to the processors.
         if MpiConfig.rank == 0:
             varTmp = idTmp.variables['COSALPHA'][0,:,:]
         else:
             varTmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(self,varTmp,ConfigOptions)
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
+
         self.cosa_grid = varSubTmp[:,:]
         varSubTmp = None
         varTmp = None
@@ -197,10 +204,10 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['SINALPHA'][0, :, :]
         else:
             varTmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
         self.sina_grid = varSubTmp[:, :]
         varSubTmp = None
         varTmp = None
@@ -211,10 +218,10 @@ class GeoMetaWrfHydro:
             varTmp = idTmp.variables['HGT_M'][0, :, :]
         else:
             varTmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         varSubTmp = MpiConfig.scatter_array(self, varTmp, ConfigOptions)
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
         self.height = varSubTmp
         varSubTmp = None
         varTmp = None
@@ -229,17 +236,17 @@ class GeoMetaWrfHydro:
         else:
             slopeTmp = None
             slp_azi_tmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         slopeSubTmp = MpiConfig.scatter_array(self,slopeTmp,ConfigOptions)
         self.slope = slopeSubTmp[:,:]
         slopeSubTmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         slp_azi_sub = MpiConfig.scatter_array(self,slp_azi_tmp,ConfigOptions)
         self.slp_azi = slp_azi_sub[:,:]
         slp_azi_tmp = None
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
         if MpiConfig.rank == 0:
             # Close the geogrid file
@@ -342,7 +349,7 @@ class GeoMetaWrfHydro:
                     raise Exception
                 # Check to see if the Y coordinates are North-South. If so, flip them.
                 if self.y_coords[1] < self.y_coords[0]:
-                    self.y_coords[:] = np.flip(self.y_coords[:])
+                    self.y_coords[:] = np.flip(self.y_coords[:], axis=0)
 
             if len(idTmp.variables['x'].shape) == 2:
                 try:
@@ -367,7 +374,7 @@ class GeoMetaWrfHydro:
                 ConfigOptions.errMsg = "Unable to close spatial metadata file: " + ConfigOptions.spatial_meta
                 raise Exception
 
-        MpiConfig.comm.barrier()
+        #MpiConfig.comm.barrier()
 
     def calc_slope(self,idTmp,ConfigOptions):
         """

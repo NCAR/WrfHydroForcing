@@ -40,7 +40,7 @@ def check_program_status(ConfigOptions,MpiConfig):
     :return:
     """
     # Sync up processors to ensure everyone is on the same page.
-    MpiConfig.comm.barrier()
+    #MpiConfig.comm.barrier()
 
     # Collect values from each processor.
     data = MpiConfig.comm.gather(ConfigOptions.errFlag, root=0)
@@ -53,7 +53,7 @@ def check_program_status(ConfigOptions,MpiConfig):
         assert data is None
 
     # Sync up processors.
-    MpiConfig.comm.barrier()
+    #MpiConfig.comm.barrier()
 
 def init_log(ConfigOptions,MpiConfig):
     """
