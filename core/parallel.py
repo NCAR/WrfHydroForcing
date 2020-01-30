@@ -95,7 +95,6 @@ class MpiConfig:
             return None
         data_type_flag = tmp_dict['varTmp']
 
-
         # gather buffer offsets and bounds to rank 0
         if geoMeta.has_cache:
             x_lower = geoMeta.global_x_lower
@@ -171,7 +170,7 @@ class MpiConfig:
         try:
             self.comm.Scatterv( [sendbuf, counts, offsets, data_type], recvbuf, root=0)
         except:
-            config_options.errMsg("Failed to scatter from rank 0")
+            config_options.errMsg = "Failed to scatter from rank 0"
             err_handler.log_critical(config_options, MpiConfig)
             return None
 
@@ -179,9 +178,9 @@ class MpiConfig:
             subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]])
             return subarray
         except:
-            config_options.errMsg("Reshape failed for dimensions ["+
-                                  str(y_upper[self.rank]-y_lower[self.rank])+
-                                  ","+str(x_upper[self.rank]-x_upper[self.rank])+
-                                  "] at rank:" +str(self.rank))
+            config_options.errMsg = "Reshape failed for dimensions [" + \
+                                  str(y_upper[self.rank]-y_lower[self.rank]) + \
+                                  ","+str(x_upper[self.rank]-x_upper[self.rank]) + \
+                                  "] at rank:" +str(self.rank)
             err_handler.log_critical(config_options, MpiConfig)
             return None
