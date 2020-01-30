@@ -106,29 +106,29 @@ class MpiConfig:
             try:
                 x_lower = np.asarray(self.comm.allgather(np.int32(geoMeta.x_lower_bound)))
             except:
-               ConfigOptions.errMsg("Failed all gathering buffer x lower at rank " + str(self.comm.rank))
-               errMod.log_critical(ConfigOptions,MpiConfig)
+               config_options.errMs = "Failed all gathering buffer x lower at rank " + str(self.comm.rank)
+               err_handler.log_critical(config_options,MpiConfig)
                return None
 
             try:
                 y_lower = np.asarray(self.comm.allgather(np.int32(geoMeta.y_lower_bound)))
             except:
-                ConfigOptions.errMsg("Failed all gathering buffer y lower at rank " + str(self.comm.rank))
-                errMod.log_critical(ConfigOptions,MpiConfig)
+                config_options.errMsg = "Failed all gathering buffer y lower at rank " + str(self.comm.rank)
+                err_handler.log_critical(config_options,MpiConfig)
                 return None
 
             try:
                 x_upper = np.asarray(self.comm.allgather(np.int32(geoMeta.x_upper_bound)))
             except:
-                ConfigOptions.errMsg("Failed all gathering buffer x upper at rank " + str(self.comm.rank))
-                errMod.log_critical(ConfigOptions,MpiConfig)
+                config_options.errMsg = "Failed all gathering buffer x upper at rank " + str(self.comm.rank)
+                err_handler.log_critical(config_options,MpiConfig)
                 return None
 
             try:
                 y_upper = np.asarray(self.comm.allgather(np.int32(geoMeta.y_upper_bound)))
             except:
-                ConfigOptions.errMsg("Failed all gathering buffer x upper at rank " + str(self.comm.rank))
-                errMod.log_critical(ConfigOptions,MpiConfig)
+                config_options.errMsg = "Failed all gathering buffer x upper at rank " + str(self.comm.rank)
+                err_handler.log_critical(config_options,MpiConfig)
                 return None
 
             # all ranks records global intervals all ranks mark existance of cache
