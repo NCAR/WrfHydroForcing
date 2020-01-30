@@ -71,7 +71,7 @@ class OutputObj:
             regrid_att = "remapped via ESMF regrid_with_weights: Conservative Bilinear"
 
         # Ensure all processors are synced up before outputting.
-        #MpiConfig.comm.barrier()
+        MpiConfig.comm.barrier()
 
         if MpiConfig.rank == 0:
             while (True):
@@ -409,17 +409,15 @@ class OutputObj:
 
             # Collect data from the various processors, and place into the output file.
             try:
-                # TODO change communication call from comm.gather() to comm.Gather for efficency
                 final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
             except:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 errMod.log_critical(ConfigOptions, MpiConfig)
                 continue
-            #MpiConfig.comm.barrier()
+            MpiConfig.comm.barrier()
             if MpiConfig.rank == 0:
                 while (True):
                     try:
-                        # TODO this step will be unnessessary when comm.Gather() is the comunication call
                         dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
                     except:
                         ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
@@ -476,7 +474,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     :return:
     """
     # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
     if MpiConfig.rank == 0:
@@ -551,7 +549,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         idTmp = None
 
     # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -568,7 +566,7 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     :return:
     """
     # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     # Open the NetCDF file on the master processor and read in data.
     if MpiConfig.rank == 0:
@@ -611,7 +609,7 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     errMod.check_program_status(ConfigOptions, MpiConfig)
 
@@ -628,7 +626,7 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     :return:
     """
     # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     if MpiConfig.rank == 0:
         # Unzip the file in place.
@@ -659,7 +657,7 @@ def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMet
     :return:
     """
     # Ensure all processors are synced up before proceeding.
-    #MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
     # First check to see if the RQI grids have valid values in them. There should
     # be NO NDV values if the grids have properly been read in.
