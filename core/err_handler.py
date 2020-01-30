@@ -270,7 +270,7 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         'PSFC': [6, 0.0, 2000000.0],
         'SWDOWN': [7, 0.0, 5000.0]
     }
-    vars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
+    fvars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
 
     # If the regridded field is None type, return to the main program as this means no forcings
     # were found for this timestep.
@@ -280,7 +280,7 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
-        if vars.index(varTmp) not in input_forcings.input_map_output:
+        if fvars.index(varTmp) not in input_forcings.input_map_output:
             continue
 
         # First check to see if we have any data that is not missing.
