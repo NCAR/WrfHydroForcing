@@ -2,6 +2,8 @@
 Regridding module file for regridding input forcing files.
 """
 import os
+import sys
+import traceback
 
 import ESMF
 import numpy as np
@@ -9,6 +11,7 @@ import numpy as np
 from core import err_handler
 from core import ioMod
 from core import timeInterpMod
+
 
 def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
@@ -51,7 +54,6 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                 config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFile
                 err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
-
 
     for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
@@ -894,7 +896,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             config_options.statusMsg = "Processing 13km GFS Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
-        if force_tmp == "PRATE":
+        if grib_var == "PRATE":
             # By far the most complicated of output variables. We need to calculate
             # our 'average' PRATE based on our current hour.
             if input_forcings.fcst_hour2 <= 240:
@@ -2286,8 +2288,8 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     except (RuntimeError, ImportError, ESMF.ESMPyException) as esmf_error:
         config_options.errMsg = "Unable to regrid input data from ESMF: " + str(esmf_error)
         err_handler.log_critical(config_options, mpi_config)
-        type, value, tb = sys.exc_info()
-        traceback.print_exception(type, value, tb)
+        etype, value, tb = sys.exc_info()
+        traceback.print_exception(etype, value, tb)
         print(input_forcings.esmf_field_in)
         print(input_forcings.esmf_field_out)
         print(np.array([0]))  
@@ -2415,7 +2417,7 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
         config_options.errMsg = "Unable to locate latitude coordinate object within supplemental precip ESMF grid: " \
                                 + str(ge)
         err_handler.err_out(config_options)
-   # mpi_config.comm.barrier()
+    # mpi_config.comm.barrier()
 
     try:
         supplemental_precip.esmf_lons = supplemental_precip.esmf_grid_in.get_coords(0)
