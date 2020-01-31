@@ -328,7 +328,10 @@ class input_forcings:
             12: None,
             13: None,
             14: None,
-            15: None
+            15: None,
+            16: None,
+            17: None,
+            18: None
         }
         self.grib_mes_idx = grib_message_idx[self.keyValue] 
 
