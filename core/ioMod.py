@@ -542,7 +542,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 idTmp = None
                 pass
 
-        if idTmp is not None:
+        if idTmp is not None and inputVar is not None:
             # Loop through all the expected variables.
             if inputVar not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate expected variable: " + \
