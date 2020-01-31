@@ -63,6 +63,12 @@ class supplemental_precip:
         self.grib_vars = None
         self.tmpFile = None
 
+        self.global_x_lower = None
+        self.global_y_lower = None
+        self.global_x_upper = None
+        self.global_y_upper = None
+        self.has_cache = False
+
     def define_product(self):
         """
         Function to define the product name based on the mapping
