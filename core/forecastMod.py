@@ -40,8 +40,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         )
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
             ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
-        completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
-        #completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
+        # completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
+        completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
         if os.path.isfile(completeFlag):
             ConfigOptions.statusMsg = "Forecast Cycle: " + \
                                       ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M') + \
@@ -64,8 +64,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
         # Compose a path to a log file, which will contain information
         # about this forecast cycle.
-        #ConfigOptions.logFile = fcstCycleOutDir + "/LOG_" + \
-        ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
+        # ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
+        ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
             ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
             "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
