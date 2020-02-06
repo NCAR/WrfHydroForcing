@@ -103,13 +103,6 @@ class input_forcings:
         self.regridded_precip1 = None
         self.regridded_precip2 = None
 
-        self.global_x_lower = None
-        self.global_y_lower = None
-        self.global_x_upper = None
-        self.global_y_upper = None
-        self.has_cache = False
-
-
     def define_product(self):
         """
         Function to define the product name based on the mapping

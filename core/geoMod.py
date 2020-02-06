@@ -38,12 +38,6 @@ class GeoMetaWrfHydro:
         self.y_coords = None
         self.spatial_global_atts = None
         
-        self.global_x_lower = None
-        self.global_y_lower = None
-        self.global_x_upper = None
-        self.global_y_upper = None
-        self.has_cache = False
-
     def get_processor_bounds(self):
         """
         Calculate the local grid boundaries for this processor.
