@@ -208,6 +208,6 @@ class MpiConfig:
             err_handler.log_critical(ConfigOptions, MpiConfig)
             return None
 
-        subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]])
+        subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]]).copy()
         return subarray
-
+ am
