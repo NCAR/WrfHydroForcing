@@ -64,8 +64,8 @@ class MpiConfig:
         return tmp_dict['varTmp']
 
     def scatter_array(self, geoMeta, array_broadcast, ConfigOptions):
-        #return scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions)
-        return scatter_array_scatterv_no_cache(self, geoMeta, arrayOptions, ConfigOptions)
+        return self.scatter_array_logan(geoMeta, array_broadcast, ConfigOptions)
+        # return self.scatter_array_scatterv_no_cache(geoMeta, array_broadcast, ConfigOptions)
 
     def scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions):
         """
@@ -208,6 +208,6 @@ class MpiConfig:
             err_handler.log_critical(ConfigOptions, MpiConfig)
             return None
 
-        subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]])
+        subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]]).copy()
         return subarray
 
