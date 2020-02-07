@@ -296,7 +296,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                               config_options, mpi_config, inputVar=None)
     err_handler.check_program_status(config_options, mpi_config)
 
-    for force_count, grib_var in input_forcings.grib_vars:
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing Conus RAP Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
@@ -537,7 +537,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
             err_handler.log_msg(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         if calc_regrid_flag:
