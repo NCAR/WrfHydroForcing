@@ -59,13 +59,31 @@ class MpiConfig:
             tmp_dict = self.comm.bcast(tmp_dict, root=0)
         except MPI.Exception:
             config_options.errMsg = "Unable to broadcast single value from rank 0."
-            err_handler.log_critical(config_options, MpiConfig)
+            err_handler.log_critical(config_options, self)
             return None
         return tmp_dict['varTmp']
 
     def scatter_array(self, geoMeta, array_broadcast, ConfigOptions):
-        return self.scatter_array_logan(geoMeta, array_broadcast, ConfigOptions)
-        # return self.scatter_array_scatterv_no_cache(geoMeta, array_broadcast, ConfigOptions)
+        sub_array1 = self.scatter_array_logan(geoMeta, array_broadcast, ConfigOptions)
+        sub_array2 = self.scatter_array_scatterv_no_cache(geoMeta, array_broadcast, ConfigOptions)
+
+        if not np.array_equal(sub_array1,sub_array2):
+            ConfigOptions.errMsg = "Differnce in sub_arrays from array scatter at rank " + str(self.rank)
+            err_handler.log_critical(ConfigOptions, self)
+            ConfigOptions.errMsg = "Broad cast array: " + str(sub_array1)
+            err_handler.log_critical(ConfigOptions, self)
+            ConfigOptions.errMsg = "Scatterv array: " + str(sub_array2)
+            err_handler.log_critical(ConfigOptions, self)
+            ConfigOptions.errMsg = "Terminating due to array mis match"
+            
+            if self.rank == 100:
+                np.savetxt("rank100_subarray1.txt",sub_array1, fmt="%10.5f")
+                np.savetxt("rank100_subarray2.txt",sub_array2, fmt="%10.5f")
+            
+            err_handler.err_out(ConfigOptions)
+            return None
+        else:
+            return sub_array2
 
     def scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions):
         """
@@ -94,7 +112,7 @@ class MpiConfig:
             tmpDict = self.comm.bcast(tmpDict, root=0)
         except:
             ConfigOptions.errMsg = "Unable to broadcast numpy datatype value from rank 0"
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.log_critical(ConfigOptions, self)
             return None
         data_type_flag = tmpDict['varTmp']
 
@@ -114,7 +132,7 @@ class MpiConfig:
             self.comm.Bcast(arrayGlobalTmp, root=0)
         except:
             ConfigOptions.errMsg = "Unable to broadcast a global numpy array from rank 0"
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.log_critical(ConfigOptions, self)
             return None
         arraySub = arrayGlobalTmp[geoMeta.y_lower_bound:geoMeta.y_upper_bound,
                    geoMeta.x_lower_bound:geoMeta.x_upper_bound]
@@ -149,7 +167,7 @@ class MpiConfig:
             tmpDict = self.comm.bcast(tmpDict, root=0)
         except:
             ConfigOptions.errMsg = "Unable to broadcast numpy datatype value from rank 0"
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.err_out(ConfigOptions)
             return None
         data_type_flag = tmpDict['varTmp']
 
@@ -158,54 +176,57 @@ class MpiConfig:
         bounds = np.array(
             [np.int32(geoMeta.x_lower_bound), np.int32(geoMeta.y_lower_bound),
              np.int32(geoMeta.x_upper_bound), np.int32(geoMeta.y_upper_bound)])
-        global_bounds = np.zeros((self.comm.size*4),np.int32)
+        global_bounds = np.zeros((self.size*4),np.int32)
 
         try:
             self.comm.Allgather([bounds, MPI.INTEGER], [global_bounds, MPI.INTEGER])
         except:
-            ConfigOptions.errMsg = "Failed all gathering global bounds at rank" + str(self.comm.rank)
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            ConfigOptions.errMsg = "Failed all gathering global bounds at rank" + str(self.rank)
+            err_handler.err_out(ConfigOptions)
             return None
 
         # create slices for x and y bounds arrays
-        x_lower = global_bounds[0:(self.comm.size * 4) + 0:4]
-        y_lower = global_bounds[1:(self.comm.size * 4) + 1:4]
-        x_upper = global_bounds[2:(self.comm.size * 4) + 2:4]
-        y_upper = global_bounds[3:(self.comm.size * 4) + 3:4]
-
-        # we know know the local region for each rank
-        if self.rank == 0:
-            temp = []
-            for i in range(0,self.comm.size):
-                temp.append(src_array[y_lower[i]:y_upper[i],
-                                         x_lower[i]:x_upper[i]].flatten())
-            sendbuf = np.concatenate(tuple(temp))
-        else:
-            sendbuf = None
+        x_lower = global_bounds[0:(self.size * 4) + 0:4]
+        y_lower = global_bounds[1:(self.size * 4) + 1:4]
+        x_upper = global_bounds[2:(self.size * 4) + 2:4]
+        y_upper = global_bounds[3:(self.size * 4) + 3:4]
 
         # generate counts
         counts = [ (y_upper[i] - y_lower[i]) * (x_upper[i] - x_lower[i])
-                   for i in range(0,self.comm.size)]
+                   for i in range(0,self.size)]
 
         #generate offsets:
         offsets = [0]
-        for i in range(1, len(counts)):
-            offsets.append(offsets[i - 1] + counts[i])
+        for i in range(0, self.size - 1):
+            offsets.append(offsets[i] + counts[i])
+
+        # create the send buffer
+        if self.rank == 0:
+            sendbuf = np.empty([src_array.size],src_array.dtype)
+
+            # fill the send buffer
+            for i in range(0,self.size):
+                start = offsets[i]
+                stop  = offsets[i]+counts[i]
+                sendbuf[start:stop] = src_array[y_lower[i]:y_upper[i],
+                                                x_lower[i]:x_upper[i]].flatten()
+        else:
+            sendbuf = None
 
         #create the recvbuffer
         if data_type_flag == 1:
             data_type = MPI.FLOAT
-            recvbuf=np.empty([counts[self.comm.rank]],np.float32)
+            recvbuf=np.empty([counts[self.rank]],np.float32)
         else:
             data_type = MPI.DOUBLE
-            recvbuf = np.empty([counts[self.comm.rank]], np.float64)
+            recvbuf = np.empty([counts[self.rank]], np.float64)
 
         #scatter the data
         try:
             self.comm.Scatterv( [sendbuf, counts, offsets, data_type], recvbuf, root=0)
         except:
             ConfigOptions.errMsg = "Failed Scatterv from rank 0"
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.error_out(ConfigOptions)
             return None
 
         subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]]).copy()
