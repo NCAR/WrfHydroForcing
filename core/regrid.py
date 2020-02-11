@@ -77,7 +77,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             err_handler.log_msg(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         if calc_regrid_flag:
@@ -296,13 +296,13 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                               config_options, mpi_config, inputVar=None)
     err_handler.check_program_status(config_options, mpi_config)
 
-    for force_count, grib_var in input_forcings.grib_vars:
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing Conus RAP Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         if calc_regrid_flag:
@@ -537,7 +537,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
             err_handler.log_msg(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         if calc_regrid_flag:
@@ -778,7 +778,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
                                        nc_var
             err_handler.log_msg(config_options, mpi_config)
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, mpi_config, wrf_hydro_geo_meta)
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
 
         if calc_regrid_flag:
             calculate_weights(mpi_config, config_options,
@@ -1477,7 +1477,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_mrms, supplemental_precip, config_options,
-                                                    mpi_config, wrf_hydro_geo_meta)
+                                                    wrf_hydro_geo_meta, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     if calc_regrid_flag:
@@ -1937,7 +1937,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options,
-                                                    mpi_config, wrf_hydro_geo_meta)
+                                                    wrf_hydro_geo_meta, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     if calc_regrid_flag:
@@ -2081,7 +2081,7 @@ def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf
     return calc_regrid_flag
 
 
-def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, mpi_config, wrf_hydro_geo_meta):
+def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for checking to see if regridding weights need to be
     calculated (or recalculated).

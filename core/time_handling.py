@@ -40,7 +40,7 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-    config_options.n_fcsts = int(n_fcst_steps) + 1
+    config_options.n_fcsts = int(n_fcst_steps)
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
         seconds=n_fcst_steps * config_options.fcst_freq * 60)
 
