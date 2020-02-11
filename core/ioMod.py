@@ -491,16 +491,13 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
             err_handler.log_warning(ConfigOptions, MpiConfig)
         try:
-            print("conversion command: " + Wgrib2Cmd, flush=True)
+            # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
+            # Call WGRIB2 with subprocess.Popen
             #cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
             #                             stderr=subprocess.PIPE, shell=True)
             #out, err = cmdOutput.communicate()
             #exitcode = cmdOutput.returncode
-            print("conversion command rvalue: " + str(exitcode),flush=True)
-            #print("command output: " + out, flush=True)
-            #print("command err: " + err, flush=True)
-            #subprocess.run([Wgrib2Cmd],shell=True)
         except:
             ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                                    NetCdfFileOut
