@@ -63,28 +63,6 @@ class MpiConfig:
             return None
         return tmp_dict['varTmp']
 
-    def scatter_array(self, geoMeta, array_broadcast, ConfigOptions):
-        sub_array1 = self.scatter_array_logan(geoMeta, array_broadcast, ConfigOptions)
-        sub_array2 = self.scatter_array_scatterv_no_cache(geoMeta, array_broadcast, ConfigOptions)
-
-        if not np.array_equal(sub_array1,sub_array2):
-            ConfigOptions.errMsg = "Differnce in sub_arrays from array scatter at rank " + str(self.rank)
-            err_handler.log_critical(ConfigOptions, self)
-            ConfigOptions.errMsg = "Broad cast array: " + str(sub_array1)
-            err_handler.log_critical(ConfigOptions, self)
-            ConfigOptions.errMsg = "Scatterv array: " + str(sub_array2)
-            err_handler.log_critical(ConfigOptions, self)
-            ConfigOptions.errMsg = "Terminating due to array mis match"
-            
-            if self.rank == 100:
-                np.savetxt("rank100_subarray1.txt",sub_array1, fmt="%10.5f")
-                np.savetxt("rank100_subarray2.txt",sub_array2, fmt="%10.5f")
-            
-            err_handler.err_out(ConfigOptions)
-            return None
-        else:
-            return sub_array2
-
     def scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions):
         """
         Generic function for calling scatter functons based on
@@ -232,3 +210,5 @@ class MpiConfig:
         subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]]).copy()
         return subarray
 
+    # use scatterv based scatter_array
+    scatter_array = scatter_array_scatterv_no_cache
