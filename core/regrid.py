@@ -84,8 +84,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating HRRR regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(mpi_config, config_options,
-                              force_count, input_forcings, id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the HRRR height field, which is used for downscaling purposes.
@@ -309,8 +308,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating RAP regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(mpi_config, config_options,
-                              force_count, input_forcings, id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -545,8 +543,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
                 config_options.statusMsg = "Calculate CFSv2 regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
 
-            calculate_weights(mpi_config, config_options,
-                              force_count, input_forcings, id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -781,8 +778,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
                                                config_options, wrf_hydro_geo_meta, mpi_config)
 
         if calc_regrid_flag:
-            calculate_weights(mpi_config, config_options,
-                              force_count, input_forcings, id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
             if 'HGT_surface' not in id_tmp.variables.keys():
@@ -958,8 +954,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating 13km GFS regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(mpi_config=mpi_config, config_options=config_options,
-                              force_count=force_count, input_forcings=input_forcings, id_tmp=id_tmp)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the GFS height field, which is used for downscaling purposes.
