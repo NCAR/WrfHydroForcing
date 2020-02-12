@@ -1479,8 +1479,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         if mpi_config.rank == 0:
             config_options.statusMsg = "Calculating MRMS regridding weights."
             err_handler.log_msg(config_options, mpi_config)
-        calculate_supp_pcp_weights(mpi_config, config_options,
-                                   supplemental_precip, id_mrms, mrms_tmp_nc)
+        calculate_supp_pcp_weights(supplemental_precip, id_mrms, mrms_tmp_nc, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the RQI grid.
