@@ -1712,7 +1712,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
         # Create a temporary NetCDF file from the GRIB2 file.
         var_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
             if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
-        cmd = "wgrib2 " + input_forcings.file_in2 + " -match \":(" + \
+        cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match \":(" + \
               grib_var + "):(" + \
               input_forcings.grib_levels[force_count] + "):(" + var_str + \
               '):" -netcdf ' + input_forcings.tmpFile
@@ -1736,7 +1736,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Reading in WRF-ARW elevation data from GRIB2."
                 err_handler.log_msg(config_options, mpi_config)
-            cmd = "wgrib2 " + input_forcings.file_in2 + " -match " + \
+            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
                   "\":(HGT):(surface):\" " + \
                   " -netcdf " + input_forcings.tmpFileHeight
             id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
