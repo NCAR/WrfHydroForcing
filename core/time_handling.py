@@ -56,7 +56,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     """
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing Conus HRRR Data. Calculating neighboring " \
-                                  "files for this output timestep"
+                                   "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
     # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.

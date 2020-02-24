@@ -4,6 +4,7 @@ forcing variables. Calling tree will be guided based on user-specified
 options.
 """
 import math
+from math import tau as TWO_PI
 import os
 import random
 import time
@@ -387,6 +388,174 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
     del ha
     del sol_zen_ang
     del ind_valid
+
+
+def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+                                   "radiation fluxes for input: " + \
+                                   input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+    date_current = config_options.current_output_date
+    hh = float(date_current.hour)
+    MM= float(date_current.month)
+
+    # determine if we're in AnA or SR configuration
+    if (AA):
+        net_bias_AA = 0.13
+        diurnal_ampl_AA = -0.18
+        diurnal_offs_AA = 2.2
+        monthly_ampl_AA = -0.15
+        monthly_offs_AA = -2.0
+
+        bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) + \
+                    monthly_ampl_AA * math.sin(monthly_offs_AA + MM / 12 * 2*math.pi)
+
+    elif (SR):
+        net_bias_SR = 0.060
+        diurnal_ampl_SR = -0.31
+        diurnal_offs_SR = 2.2
+        monthly_ampl_SR = -0.21
+        monthly_offs_SR = -2.4
+        fhr_mult_SR = -0.016
+
+        fhr = config_options.current_output_step
+
+        bias_corr = net_bias_SR + fhr * fhr_mult_SR + \
+                    diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
+                    monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
+
+    else:
+        # throw error
+        pass
+
+
+def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+                                   "radiation fluxes for input: " + \
+                                   input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+    date_current = config_options.current_output_date
+    hh = float(date_current.hour)
+
+    net_bias_mr = -0.18
+    fhr_mult_mr = 0.002
+    diurnal_ampl_mr = -1.4
+    diurnal_offs_mr = -2.1
+
+    fhr = config_options.current_output_step
+
+    bias_corr = net_bias_mr + fhr_mult_mr * fhr + diurnal_ampl_mr * math.sin(diurnal_offs_mr + hh / 24 * TWO_PI)
+
+    temp_in = None
+    try:
+        temp_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to extract incoming temperature from forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    ind_valid = None
+    try:
+        ind_valid = np.where(temp_in != config_options.globalNdv)
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to calculate valid index in incoming temperature for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        temp_in[ind_valid] = temp_in[ind_valid] + bias_corr
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to perform temperature bias correction for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = temp_in[:, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to place temporary temperature array back into forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    del temp_in
+    del ind_valid
+
+
+def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+                                   "radiation fluxes for input: " + \
+                                   input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+    date_current = config_options.current_output_date
+    hh = float(date_current.hour)
+
+    fhr = config_options.current_output_step
+
+    lwdown_net_bias_mr = 9.9
+    lwdown_fhr_mult_mr = 0.00
+    lwdown_diurnal_ampl_mr = -1.5
+    lwdown_diurnal_offs_mr = 2.8
+
+    bias_corr = lwdown_net_bias_mr + lwdown_fhr_mult_mr * fhr + lwdown_diurnal_ampl_mr * \
+                math.sin(lwdown_diurnal_offs_mr + hh / 24 * TWO_PI)
+
+    lwdown_in = None
+    try:
+        lwdown_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to extract incoming longwave from forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    ind_valid = None
+    try:
+        ind_valid = np.where(lwdown_in != config_options.globalNdv)
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to calculate valid index in incoming longwave for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        lwdown_in[ind_valid] = lwdown_in[ind_valid] + bias_corr
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to perform longwave bias correction for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = lwdown_in[:, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to place temporary longwave array back into forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    del lwdown_in
+    del ind_valid
+
+
+def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+                                   "radiation fluxes for input: " + \
+                                   input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+    date_current = config_options.current_output_date
+    hh = float(date_current.hour)
+
 
 
 def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, force_num):
@@ -784,17 +953,17 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         try:
             id_nldas_param.close()
         except OSError as err:
-            config_options.errMsg = "Unable to close parameter file: " + nldas_param_file + " (" + err + ")"
+            config_options.errMsg = "Unable to close parameter file: " + nldas_param_file + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
         try:
             id_cfs_param1.close()
         except OSError as err:
-            config_options.errMsg = "Unable to close parameter file: " + cfs_param_path1 + " (" + err + ")"
+            config_options.errMsg = "Unable to close parameter file: " + cfs_param_path1 + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
         try:
             id_cfs_param2.close()
         except OSError as err:
-            config_options.errMsg = "Unable to close parameter file: " + cfs_param_path2 + " (" + err + ")"
+            config_options.errMsg = "Unable to close parameter file: " + cfs_param_path2 + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
 
     err_handler.check_program_status(config_options, mpi_config)
