@@ -364,7 +364,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         ConfigOptions.statusMsg = "Performing NWM Monthly PRISM Mountain Mapper " \
                                   "Downscaling of Precipitation"
         err_handler.log_msg(ConfigOptions, MpiConfig)
-        print(ConfigOptions.statusMsg)
 
     # Establish whether or not we need to read in new PRISM monthly climatology:
     # 1.) This is the first output timestep, and no grids have been initialized.
