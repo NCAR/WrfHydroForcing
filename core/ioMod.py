@@ -10,6 +10,7 @@ import math
 import os
 import shutil
 import subprocess
+import time
 
 import numpy as np
 from netCDF4 import Dataset
@@ -412,21 +413,25 @@ class OutputObj:
             # Collect data from the various processors, and place into the output file.
             try:
                 # TODO change communication call from comm.gather() to comm.Gather for efficency
-                final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
-            except:
+                # final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
+
+                # Use gatherv to merge the data slabs
+                dataOutTmp = MpiConfig.merge_slabs_gatherv(self.output_local[output_variable_attribute_dict[varTmp][0],:,:], ConfigOptions)
+            except Exception as e:
+                print(e)
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 continue
             #MpiConfig.comm.barrier()
             if MpiConfig.rank == 0:
                 while (True):
-                    try:
-                        # TODO this step will be unnessessary when comm.Gather() is the comunication call
-                        dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
-                    except:
-                        ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
-                        err_handler.log_critical(ConfigOptions, MpiConfig)
-                        break
+                    #try:
+                    #     # TODO this step will be unnessessary when comm.Gather() is the comunication call
+                    #    dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
+                    #except:
+                    #    ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
+                    #    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    #    break
                     # If we are using scale_factor/add_offset, create the integer values here.
                     #if ConfigOptions.useCompression == 1:
                     #    if varTmp != 'RAINRATE':
@@ -492,7 +497,10 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             err_handler.log_warning(ConfigOptions, MpiConfig)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
+            print("command: " + Wgrib2Cmd)
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
+
+            #print("exitcode: " + str(exitcode))
             # Call WGRIB2 with subprocess.Popen
             #cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
             #                             stderr=subprocess.PIPE, shell=True)

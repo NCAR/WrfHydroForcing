@@ -4,6 +4,7 @@ Regridding module file for regridding input forcing files.
 import os
 import sys
 import traceback
+import time
 
 import ESMF
 import numpy as np
@@ -939,6 +940,8 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                           input_forcings.grib_levels[force_count] + ':'
                           + str(input_forcings.fcst_hour2) + " hour fcst:")
 
+    #if calc_regrid_flag:
+    fields.append(":(HGT):(surface):")
     cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
           " -netcdf " + input_forcings.tmpFile
     id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
@@ -963,23 +966,24 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the GFS height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in 13km GFS elevation data."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                "\":(HGT):(surface):\" " + \
-                " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            #if mpi_config.rank == 0:
+            #    config_options.statusMsg = "Reading in 13km GFS elevation data."
+            #    err_handler.log_msg(config_options, mpi_config)
+            #cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #    "\":(HGT):(surface):\" " + \
+            #    " -netcdf " + input_forcings.tmpFileHeight
+            #time.sleep(1)
+            #id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                 cmd, config_options, mpi_config, 'HGT_surface')
+            #err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
-                    config_options.errMsg = "Unable to extract GFS elevation from: " + input_forcings.tmpFileHeight + \
+                    config_options.errMsg = "Unable to extract GFS elevation from: " + input_forcings.tmpFile + \
                                             " (" + str(err) + ")"
                     err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
@@ -1022,19 +1026,19 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
+            #if mpi_config.rank == 0:
+            #    try:
+            #        id_tmp_height.close()
+            #    except OSError:
+            #        config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #        err_handler.log_critical(config_options, mpi_config)
 
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            #    try:
+            #        os.remove(input_forcings.tmpFileHeight)
+            #    except OSError:
+            #        config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #        err_handler.log_critical(config_options, mpi_config)
+            #err_handler.check_program_status(config_options, mpi_config)
 
         # Regrid the input variables.
         var_tmp = None
