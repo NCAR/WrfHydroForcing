@@ -282,3 +282,4 @@ class MpiConfig:
         #err_handler.log_msg(options,self)
 
         return recvbuf
+

@@ -64,7 +64,7 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
         1: cfsv2_nldas_nwm_bias_correct,
         2: ncar_sw_hrrr_bias_correct
     }
-    if bias_correct_sw != 2:
+    if input_forcings.swBiasCorrectOpt != 2:
         bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, config_options, mpi_config, 5)
     else:
         bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, geo_meta_wrf_hydro,
