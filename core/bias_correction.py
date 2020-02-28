@@ -37,7 +37,9 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
     bias_correct_temperature = {
         0: no_bias_correct,
         1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_tbl_correction
+        2: ncar_tbl_correction,
+        3: ncar_temp_gfs_bias_correct,
+        4: ncar_temp_hrrr_bias_correct
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
     err_handler.check_program_status(config_options, mpi_config)
@@ -76,7 +78,8 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
     bias_correct_lw = {
         0: no_bias_correct,
         1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_blanket_adjustment_lw
+        2: ncar_blanket_adjustment_lw,
+        3: ncar_lwdown_gfs_bias_correct
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings, config_options, mpi_config, 6)
     err_handler.check_program_status(config_options, mpi_config)
@@ -85,7 +88,9 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
     bias_correct_wind = {
         0: no_bias_correct,
         1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_tbl_correction
+        2: ncar_tbl_correction,
+        3: ncar_temp_gfs_bias_correct,
+        4: ncar_temp_hrrr_bias_correct
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, config_options, mpi_config, 2)
@@ -402,7 +407,7 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     MM= float(date_current.month)
 
     # determine if we're in AnA or SR configuration
-    if (AA):
+    if config_options.ana_flag == 1:
         net_bias_AA = 0.13
         diurnal_ampl_AA = -0.18
         diurnal_offs_AA = 2.2
@@ -412,7 +417,7 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
         bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) + \
                     monthly_ampl_AA * math.sin(monthly_offs_AA + MM / 12 * 2*math.pi)
 
-    elif (SR):
+    else:
         net_bias_SR = 0.060
         diurnal_ampl_SR = -0.31
         diurnal_offs_SR = 2.2
@@ -426,9 +431,42 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
                     diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
                     monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
 
-    else:
-        # throw error
-        pass
+    temp_in = None
+    try:
+        temp_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to extract incoming temperature from forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    ind_valid = None
+    try:
+        ind_valid = np.where(temp_in != config_options.globalNdv)
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to calculate valid index in incoming temperature for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        temp_in[ind_valid] = temp_in[ind_valid] + bias_corr
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to perform temperature bias correction for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = temp_in[:, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to place temporary temperature array back into forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    del temp_in
+    del ind_valid
 
 
 def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
@@ -546,16 +584,162 @@ def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, for
     del ind_valid
 
 
-def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
+def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
-                                   "radiation fluxes for input: " + \
+        config_options.statusMsg = "Performing NCAR bias correction on incoming windspeed for input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
     date_current = config_options.current_output_date
     hh = float(date_current.hour)
 
+    fhr = config_options.current_output_step
+    wspd_net_bias_mr = -0.20
+    wspd_fhr_mult_mr = 0.00
+    wspd_diurnal_ampl_mr = -0.32
+    wspd_diurnal_offs_mr = -1.1
+
+    # need to get wind speed from U, V components
+    ugrd_idx = input_forcings.grib_vars.index('UGRD')
+    vgrd_idx = input_forcings.grib_vars.index('VGRD')
+
+    ugrid_in = input_forcings.final_forcings[ugrd_idx, :, :]
+    vgrid_in = input_forcings.final_forcings[vgrd_idx, :, :]
+
+    wdir = (270 - np.rad2deg(np.arctan2(vgrid_in, ugrid_in))) % 360
+    wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
+
+    if config_options.ana_flag:
+        wspd_bias_corr = 0.35       # fixed for AnA
+    else:
+        wspd_net_bias_sr = [0.18, 0.15, 0.13, 0.12, 0.11, 0.10, 0.08, 0.07, 0.06, 0.05,
+                            0.03, 0.02, 0.01, -0.01, -0.02, -0.03, -0.04, -0.05]
+        wspd_bias_corr = wspd_net_bias_sr[config_options.current_output_step - 1]
+
+    wspd = wspd + wspd_bias_corr
+    wspd = np.where(wspd < 0, 0, wspd)
+
+    rad = 4.0 * np.arctan(1) / 180.
+    ugrid_out = -wspd * np.sin(rad * wdir)
+    vgrid_out = -wspd * np.cos(rad * wdir)
+    # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
+
+    bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
+
+    wind_in = None
+    try:
+        wind_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to extract incoming windspeed from forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    ind_valid = None
+    try:
+        ind_valid = np.where(wind_in != config_options.globalNdv)
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to calculate valid index in incoming windspeed for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        wind_in[ind_valid] = bias_corrected[ind_valid]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to perform windspeed bias correction for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = wind_in[:, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to place temporary windspeed array back into forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+
+    err_handler.check_program_status(config_options, mpi_config)
+
+    del wind_in
+    del ind_valid
+
+
+def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Performing NCAR bias correction on incoming windspeed for input: " + \
+                                   input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+    date_current = config_options.current_output_date
+    hh = float(date_current.hour)
+
+    fhr = config_options.current_output_step
+    wspd_net_bias_mr = -0.20
+    wspd_fhr_mult_mr = 0.00
+    wspd_diurnal_ampl_mr = -0.32
+    wspd_diurnal_offs_mr = -1.1
+
+    # need to get wind speed from U, V components
+    ugrd_idx = input_forcings.grib_vars.index('UGRD')
+    vgrd_idx = input_forcings.grib_vars.index('VGRD')
+
+    ugrid_in = input_forcings.final_forcings[ugrd_idx, :, :]
+    vgrid_in = input_forcings.final_forcings[vgrd_idx, :, :]
+
+    wdir = (270 - np.rad2deg(np.arctan2(vgrid_in, ugrid_in))) % 360
+    wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
+
+    wspd_bias_corr = wspd_net_bias_mr + wspd_fhr_mult_mr * fhr + \
+                wspd_diurnal_ampl_mr * math.sin(wspd_diurnal_offs_mr + hh / 24 * TWO_PI)
+
+    wspd = wspd + wspd_bias_corr
+    wspd = np.where(wspd < 0, 0, wspd)
+
+    rad = 4.0 * np.arctan(1) / 180.
+    ugrid_out = -wspd * np.sin(rad * wdir)
+    vgrid_out = -wspd * np.cos(rad * wdir)
+    # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
+
+    bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
+
+    wind_in = None
+    try:
+        wind_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to extract incoming windspeed from forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    ind_valid = None
+    try:
+        ind_valid = np.where(wind_in != config_options.globalNdv)
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to calculate valid index in incoming windspeed for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        wind_in[ind_valid] = bias_corrected[ind_valid]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to perform windspeed bias correction for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = wind_in[:, :]
+    except NumpyExceptions as npe:
+        config_options.errMsg = "Unable to place temporary windspeed array back into forcing object for: " + \
+                                input_forcings.productName + " (" + str(npe) + ")"
+        err_handler.log_critical(config_options, mpi_config)
+
+    err_handler.check_program_status(config_options, mpi_config)
+
+    del wind_in
+    del ind_valid
 
 
 def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, force_num):

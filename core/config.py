@@ -37,6 +37,7 @@ class ConfigOptions:
         self.retro_flag = None
         self.realtime_flag = None
         self.refcst_flag = None
+        self.ana_flag = None
         self.b_date_proc = None
         self.e_date_proc = None
         self.current_fcst_cycle = None
@@ -686,6 +687,20 @@ class ConfigOptions:
             if param_flag[count_tmp] == 1:
                 self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
 
+        #   * Bias Correction Options *
+
+        # Read AnA flag option
+        try:
+            self.ana_flag = int(config['BiasCorrection']['AnAFlag'])
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except ValueError:
+            err_handler.err_out_screen('Improper AnAFlag value ')
+        if self.ana_flag < 0 or self.ana_flag > 1:
+            err_handler.err_out_screen('Please choose a AnAFlag value of 0 or 1.')
+
         # Read in temperature bias correction options
         try:
             self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
@@ -703,7 +718,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                            'configuration file.')
 
@@ -769,7 +784,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.windBiasCorrect:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid WindBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
@@ -814,7 +829,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.lwBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid LwBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
