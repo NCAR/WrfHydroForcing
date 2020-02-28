@@ -136,19 +136,21 @@ class MpiConfig:
             if src_array.dtype == np.float64:
                 data_type_flag = 2
 
-        # Broadcast the numpy datatype to the other processors.
+        # Broadcast the data_type_flag to other processors
         if self.rank == 0:
-            tmpDict = {'varTmp': data_type_flag}
-        else:
-            tmpDict = None
+            data_type_buffer = np.array([data_type_flag],np.int32)
+        else
+            data_type_buffer = np.empty(1,np.int32)
+
         try:
-            tmpDict = self.comm.bcast(tmpDict, root=0)
+            self.comm.Bcast(data_type_buffer, root=0)
         except:
             ConfigOptions.errMsg = "Unable to broadcast numpy datatype value from rank 0"
             err_handler.err_out(ConfigOptions)
             return None
-        data_type_flag = tmpDict['varTmp']
 
+        data_type_flag = data_type_buffer[0];
+        data_type_buffer = None;
 
         # gather buffer offsets and bounds to rank 0
         bounds = np.array(
