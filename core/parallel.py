@@ -43,25 +43,28 @@ class MpiConfig:
             config_options.errMsg = "Unable to retrieve the MPI processor rank."
             raise mpi_exception
 
-    def broadcast_parameter(self, value_broadcast, config_options):
+    def broadcast_parameter(self, value_broadcast, config_options, param_type=int):
         """
         Generic function for sending a parameter value out to the processors.
         :param value_broadcast:
         :param config_options:
         :return:
         """
-        # Create dictionary to hold value.
+
+        dtype = np.dtype(param_type)
+
         if self.rank == 0:
-            tmp_dict = {'varTmp': value_broadcast}
+            param = np.asarray(value_broadcast, dtype=dtype)
         else:
-            tmp_dict = None
+            param = np.empty(dtype=dtype, shape=())
+
         try:
-            tmp_dict = self.comm.bcast(tmp_dict, root=0)
+            self.comm.Bcast(param, root=0)
         except MPI.Exception:
             config_options.errMsg = "Unable to broadcast single value from rank 0."
             err_handler.log_critical(config_options, self)
             return None
-        return tmp_dict['varTmp']
+        return param.item(0)
 
     def scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions):
         """
@@ -102,7 +105,7 @@ class MpiConfig:
                 arrayGlobalTmp = np.empty([geoMeta.ny_global,
                                            geoMeta.nx_global],
                                           np.float32)
-            if data_type_flag == 2:
+            else:                                            #data_type_flag == 2:
                 arrayGlobalTmp = np.empty([geoMeta.ny_global,
                                            geoMeta.nx_global],
                                           np.float64)
@@ -139,7 +142,7 @@ class MpiConfig:
         # Broadcast the data_type_flag to other processors
         if self.rank == 0:
             data_type_buffer = np.array([data_type_flag],np.int32)
-        else
+        else:
             data_type_buffer = np.empty(1,np.int32)
 
         try:

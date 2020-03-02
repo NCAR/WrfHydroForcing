@@ -2092,7 +2092,7 @@ def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf
     # mpi_config.comm.barrier()
 
     # Broadcast the flag to the other processors.
-    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options)
+    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options, param_type=bool)
     err_handler.check_program_status(config_options, mpi_config)
 
     return calc_regrid_flag
@@ -2165,7 +2165,7 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
     # mpi_config.comm.barrier()
 
     # Broadcast the flag to the other processors.
-    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options)
+    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options, param_type=bool)
 
     mpi_config.comm.barrier()
     return calc_regrid_flag
@@ -2202,10 +2202,10 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
 
     # Broadcast the forcing nx/ny values
     input_forcings.ny_global = mpi_config.broadcast_parameter(input_forcings.ny_global,
-                                                              config_options)
+                                                              config_options, param_type=int)
     err_handler.check_program_status(config_options, mpi_config)
     input_forcings.nx_global = mpi_config.broadcast_parameter(input_forcings.nx_global,
-                                                              config_options)
+                                                              config_options, param_type=int)
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
@@ -2385,9 +2385,9 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
 
     # Broadcast the forcing nx/ny values
     supplemental_precip.ny_global = mpi_config.broadcast_parameter(supplemental_precip.ny_global,
-                                                                   config_options)
+                                                                   config_options, param_type=int)
     supplemental_precip.nx_global = mpi_config.broadcast_parameter(supplemental_precip.nx_global,
-                                                                   config_options)
+                                                                   config_options, param_type=int)
     # mpi_config.comm.barrier()
 
     try:
