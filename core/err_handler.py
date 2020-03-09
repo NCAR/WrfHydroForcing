@@ -66,7 +66,7 @@ def check_program_status(ConfigOptions, MpiConfig):
             sys.exit(1)
 
     # Sync up processors.
-    # MpiConfig.comm.barrier()
+    MpiConfig.comm.barrier()
 
 def init_log(ConfigOptions,MpiConfig):
     """
