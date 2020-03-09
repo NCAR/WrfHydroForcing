@@ -397,8 +397,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
 
 def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
-                                   "radiation fluxes for input: " + \
+        config_options.statusMsg = "Performing NCAR bias correction on incoming 2m temperature input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
@@ -471,8 +470,7 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
 def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
-                                   "radiation fluxes for input: " + \
+        config_options.statusMsg = "Performing NCAR bias correction on incoming 2m temperature input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
@@ -528,7 +526,7 @@ def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force
 
 def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+        config_options.statusMsg = "Performing NCAR bias correction on incoming longwave " \
                                    "radiation fluxes for input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)

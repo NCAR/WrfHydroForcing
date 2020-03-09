@@ -81,8 +81,8 @@ class OutputObj:
                 # Only output on the master processor.
                 try:
                     idOut = Dataset(self.outPath,'w')
-                except:
-                    ConfigOptions.errMsg = "Unable to create output file: " + self.outPath
+                except Exception as e:
+                    ConfigOptions.errMsg = "Unable to create output file: " + self.outPath + "\n" + str(e)
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
 
@@ -405,10 +405,10 @@ class OutputObj:
         # output grid, and place into the output file (if on processor 0).
         for varTmp in output_variable_attribute_dict:
             # First run a check for missing values. There should be none at this point.
-            err_handler.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0], :, :],
-                                            varTmp, MpiConfig)
-            if ConfigOptions.errFlag == 1:
-                continue
+            # err_handler.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0], :, :],
+            #                                 varTmp, MpiConfig)
+            # if ConfigOptions.errFlag == 1:
+            #     continue
 
             # Collect data from the various processors, and place into the output file.
             try:
