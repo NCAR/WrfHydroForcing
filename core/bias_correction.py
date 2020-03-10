@@ -89,8 +89,8 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
         0: no_bias_correct,
         1: cfsv2_nldas_nwm_bias_correct,
         2: ncar_tbl_correction,
-        3: ncar_temp_gfs_bias_correct,
-        4: ncar_temp_hrrr_bias_correct
+        3: ncar_wspd_gfs_bias_correct,
+        4: ncar_wspd_hrrr_bias_correct
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, config_options, mpi_config, 2)
@@ -397,7 +397,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
 
 def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming 2m temperature input: " + \
+        config_options.statusMsg = "Performing NCAR HRRR bias correction on incoming 2m temperature input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
@@ -429,6 +429,10 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
         bias_corr = net_bias_SR + fhr * fhr_mult_SR + \
                     diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
                     monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = f"\tAnAFlag = {config_options.ana_flag} {bias_corr}"
+        err_handler.log_msg(config_options, mpi_config)
 
     temp_in = None
     try:
@@ -470,7 +474,7 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
 def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming 2m temperature input: " + \
+        config_options.statusMsg = "Performing NCAR GFS bias correction on incoming 2m temperature input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
@@ -585,26 +589,22 @@ def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, for
 def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
         config_options.statusMsg = "Performing NCAR bias correction on incoming windspeed for input: " + \
-                                   input_forcings.productName
+                                   input_forcings.productName + " at step " + str(config_options.current_output_step)
         err_handler.log_msg(config_options, mpi_config)
 
     date_current = config_options.current_output_date
     hh = float(date_current.hour)
 
     fhr = config_options.current_output_step
-    wspd_net_bias_mr = -0.20
-    wspd_fhr_mult_mr = 0.00
-    wspd_diurnal_ampl_mr = -0.32
-    wspd_diurnal_offs_mr = -1.1
 
     # need to get wind speed from U, V components
     ugrd_idx = input_forcings.grib_vars.index('UGRD')
     vgrd_idx = input_forcings.grib_vars.index('VGRD')
 
-    ugrid_in = input_forcings.final_forcings[ugrd_idx, :, :]
-    vgrid_in = input_forcings.final_forcings[vgrd_idx, :, :]
+    ugrid_in = input_forcings.final_forcings[input_forcings.input_map_output[ugrd_idx], :, :]
+    vgrid_in = input_forcings.final_forcings[input_forcings.input_map_output[vgrd_idx], :, :]
 
-    wdir = (270 - np.rad2deg(np.arctan2(vgrid_in, ugrid_in))) % 360
+    wdir = np.arctan2(vgrid_in, ugrid_in)
     wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
 
     if config_options.ana_flag:
@@ -617,9 +617,8 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     wspd = wspd + wspd_bias_corr
     wspd = np.where(wspd < 0, 0, wspd)
 
-    rad = 4.0 * np.arctan(1) / 180.
-    ugrid_out = -wspd * np.sin(rad * wdir)
-    vgrid_out = -wspd * np.cos(rad * wdir)
+    ugrid_out = wspd * np.cos(wdir)
+    vgrid_out = wspd * np.sin(wdir)
     # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
 
     bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
@@ -682,10 +681,10 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     ugrd_idx = input_forcings.grib_vars.index('UGRD')
     vgrd_idx = input_forcings.grib_vars.index('VGRD')
 
-    ugrid_in = input_forcings.final_forcings[ugrd_idx, :, :]
-    vgrid_in = input_forcings.final_forcings[vgrd_idx, :, :]
+    ugrid_in = input_forcings.final_forcings[input_forcings.input_map_output[ugrd_idx], :, :]
+    vgrid_in = input_forcings.final_forcings[input_forcings.input_map_output[vgrd_idx], :, :]
 
-    wdir = (270 - np.rad2deg(np.arctan2(vgrid_in, ugrid_in))) % 360
+    wdir = np.arctan2(vgrid_in, ugrid_in)
     wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
 
     wspd_bias_corr = wspd_net_bias_mr + wspd_fhr_mult_mr * fhr + \
@@ -694,9 +693,9 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     wspd = wspd + wspd_bias_corr
     wspd = np.where(wspd < 0, 0, wspd)
 
-    rad = 4.0 * np.arctan(1) / 180.
-    ugrid_out = -wspd * np.sin(rad * wdir)
-    vgrid_out = -wspd * np.cos(rad * wdir)
+    ugrid_out = wspd * np.cos(wdir)
+    vgrid_out = wspd * np.sin(wdir)
+
     # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
 
     bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
