@@ -18,11 +18,14 @@ def calculate_lookback_window(config_options):
     :return: Updated abstract class with updated datetime variables.
     """
     # First calculate the current time in UTC.
-    d_current_utc = datetime.datetime.utcnow()
+    if config_options.realtime_flag:
+        d_current_utc = datetime.datetime.utcnow()
+    else:
+        d_current_utc = config_options.b_date_proc
 
     # Next, subtract the lookup window (specified in minutes) to get a crude window
     # of processing.
-    d_lookback = d_current_utc - datetime.timedelta(seconds=60 * config_options.look_back)
+    d_lookback = d_current_utc - datetime.timedelta(seconds=60 * (config_options.look_back - config_options.fcst_freq))
 
     # Determine the first forecast iteration that will be processed on this day
     # based on the forecast frequency and where in the day we are at.
@@ -40,7 +43,7 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-    config_options.nFcsts = int(n_fcst_steps)
+    config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
         seconds=n_fcst_steps * config_options.fcst_freq * 60)
 
@@ -68,8 +71,9 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
         six_hr_horizon = 18  # 18-hour forecasts every six hours.
 
     # First find the current HRRR forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
     current_hrrr_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-        seconds=input_forcings.userCycleOffset * 60.0)
+        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     if current_hrrr_cycle.hour % 6 != 0:
         hrrr_horizon = default_horizon
     else:
@@ -202,8 +206,10 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         extra_hr_horizon = 18  # 18-hour forecasts every six hours.
 
     # First find the current RAP forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-            seconds=input_forcings.userCycleOffset * 60.0)
+            seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+    print("current_rap_cycle={}, ana_offset={}".format(current_rap_cycle, ana_offset))
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
         rap_horizon = default_horizon
@@ -244,7 +250,8 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
-    if prev_rap_forecast_hour == 0:
+    if prev_rap_forecast_hour < 1:
+        print('reseting rap_forecast_hour from {} to 1'.format(prev_rap_forecast_hour))
         prev_rap_forecast_hour = 1
 
     # Calculate expected file paths.
@@ -256,6 +263,8 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         current_rap_cycle.strftime('%Y%m%d') + "/rap.t" + \
         current_rap_cycle.strftime('%H') + 'z.awp130bgrbf' + \
         str(next_rap_forecast_hour).zfill(2) + '.grib2'
+
+
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.

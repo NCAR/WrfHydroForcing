@@ -94,17 +94,22 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         # 3.) Regrid the forcings, and temporally interpolate.
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
-        for outStep in range(1,ConfigOptions.num_output_steps+1):
+        ana_factor = 1 if ConfigOptions.ana_flag is False else 0
+        for outStep in range(1, ConfigOptions.num_output_steps+1):
             # Reset out final grids to missing values.
-            OutputObj.output_local[:,:,:] = -9999.0
+            OutputObj.output_local[:, :, :] = -9999.0
 
             ConfigOptions.current_output_step = outStep
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
                 seconds=ConfigOptions.output_freq*60*outStep
             )
             ConfigOptions.current_output_date = OutputObj.outDate
+
+            # if AnA, adjust output date for analysis vs forecast
+            file_date = OutputObj.outDate - datetime.timedelta(seconds=ConfigOptions.output_freq*60*(ana_factor * 2))
+
             # Calculate the previous output timestep. This is used in potential downscaling routines.
-            if outStep == 1:
+            if outStep == ana_factor:
                 ConfigOptions.prev_output_date = ConfigOptions.current_output_date
             else:
                 ConfigOptions.prev_output_date = ConfigOptions.current_output_date - datetime.timedelta(
@@ -113,14 +118,14 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             if MpiConfig.rank == 0:
                 ConfigOptions.statusMsg = '========================================='
                 err_handler.log_msg(ConfigOptions, MpiConfig)
-                ConfigOptions.statusMsg =  "Processing for output timestep: " + \
-                                           OutputObj.outDate.strftime('%Y-%m-%d %H:%M')
+                ConfigOptions.statusMsg = "Processing for output timestep: " + \
+                                           file_date.strftime('%Y-%m-%d %H:%M')
                 err_handler.log_msg(ConfigOptions, MpiConfig)
             # MpiConfig.comm.barrier()
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
-            OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
+            OutputObj.outPath = fcstCycleOutDir + "/" + file_date.strftime('%Y%m%d%H%M') + \
                 ".LDASIN_DOMAIN1"
             #MpiConfig.comm.barrier()
 

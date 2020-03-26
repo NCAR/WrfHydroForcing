@@ -497,7 +497,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             err_handler.log_warning(ConfigOptions, MpiConfig)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
-            print("command: " + Wgrib2Cmd)
+            if not os.environ.get('MFE_SILENT'):
+                print("command: " + Wgrib2Cmd)
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
 
             #print("exitcode: " + str(exitcode))
