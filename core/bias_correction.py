@@ -430,9 +430,9 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
                     diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
                     monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
 
-    if mpi_config.rank == 0:
-        config_options.statusMsg = f"\tAnAFlag = {config_options.ana_flag} {bias_corr}"
-        err_handler.log_msg(config_options, mpi_config)
+    # if mpi_config.rank == 0:
+    #     config_options.statusMsg = f"\tAnAFlag = {config_options.ana_flag} {bias_corr}"
+    #     err_handler.log_msg(config_options, mpi_config)
 
     temp_in = None
     try:
