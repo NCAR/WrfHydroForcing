@@ -1078,6 +1078,12 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
     if config_options.ana_flag:
         # find nearest previous cycle
         shift = config_options.current_fcst_cycle.hour % 12
+
+        # use the ForecastInputOffsets from the configuration to offset non-00z cycling
+        if shift < supplemental_precip.userCycleOffset:
+            shift += supplemental_precip.userCycleOffset
+        else:
+            shift -= supplemental_precip.userCycleOffset
         current_arw_cycle = config_options.current_fcst_cycle - datetime.timedelta(seconds=3600*shift)
     else:
         current_arw_cycle = config_options.current_fcst_cycle
