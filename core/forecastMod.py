@@ -95,6 +95,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         ana_factor = 1 if ConfigOptions.ana_flag is False else 0
+        print("ana_factor=", ana_factor)
         for outStep in range(1, ConfigOptions.num_output_steps+1):
             # Reset out final grids to missing values.
             OutputObj.output_local[:, :, :] = -9999.0
@@ -105,8 +106,11 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             )
             ConfigOptions.current_output_date = OutputObj.outDate
 
-            # if AnA, adjust output date for analysis vs forecast
-            file_date = OutputObj.outDate - datetime.timedelta(seconds=ConfigOptions.output_freq*60*(ana_factor * 2))
+            # if AnA, adjust file date for analysis vs forecast
+            if ConfigOptions.ana_flag:
+                file_date = OutputObj.outDate - datetime.timedelta(seconds=ConfigOptions.output_freq*60)
+            else:
+                file_date = OutputObj.outDate
 
             # Calculate the previous output timestep. This is used in potential downscaling routines.
             if outStep == ana_factor:

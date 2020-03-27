@@ -68,7 +68,7 @@ def main():
     except:
         err_handler.err_out_screen(job_meta.errMsg)
 
-    ESMF.Manager(debug=True)
+    # ESMF.Manager(debug=True)
 
     # Initialize our WRF-Hydro geospatial object, which contains
     # information about the modeling domain, local processor
