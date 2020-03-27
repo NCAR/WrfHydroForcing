@@ -25,7 +25,8 @@ def calculate_lookback_window(config_options):
 
     # Next, subtract the lookup window (specified in minutes) to get a crude window
     # of processing.
-    d_lookback = d_current_utc - datetime.timedelta(seconds=60 * (config_options.look_back - config_options.fcst_freq))
+    d_lookback = d_current_utc - datetime.timedelta(
+        seconds=60 * (config_options.look_back - config_options.output_freq))
 
     # Determine the first forecast iteration that will be processed on this day
     # based on the forecast frequency and where in the day we are at.
@@ -542,8 +543,14 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     err_handler.check_program_status(config_options, mpi_config)
 
     # First find the current NAM nest forecast cycle that we are using.
-    current_nam_nest_cycle = config_options.current_fcst_cycle - \
-        datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+    if config_options.ana_flag:
+        # find nearest previous cycle
+        shift = config_options.current_fcst_cycle.hour % 6
+        current_nam_nest_cycle = config_options.current_fcst_cycle - datetime.timedelta(seconds=3600*shift)
+    else:
+        current_nam_nest_cycle = config_options.current_fcst_cycle - \
+            datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Current NAM nest cycle being used: " + \
                                    current_nam_nest_cycle.strftime('%Y-%m-%d %H')
@@ -1068,7 +1075,12 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         default_horizon = 48  # Current forecasts go out to 48 hours.
 
     # First find the current ARW forecast cycle that we are using.
-    current_arw_cycle = config_options.current_fcst_cycle
+    if config_options.ana_flag:
+        # find nearest previous cycle
+        shift = config_options.current_fcst_cycle.hour % 12
+        current_arw_cycle = config_options.current_fcst_cycle - datetime.timedelta(seconds=3600*shift)
+    else:
+        current_arw_cycle = config_options.current_fcst_cycle
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing WRF-ARW supplemental precipitation from " \
