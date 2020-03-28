@@ -263,8 +263,6 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         current_rap_cycle.strftime('%H') + 'z.awp130bgrbf' + \
         str(next_rap_forecast_hour).zfill(2) + '.grib2'
 
-
-
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
@@ -968,7 +966,20 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000.grib2.gz"
+
     elif supplemental_precip.keyValue == 2:
+        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
+                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+                   supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                   "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                   "0000.grib2.gz"
+        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
+                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+                   supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                   "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                   "0000.grib2.gz"
+
+    elif supplemental_precip.keyValue == 5:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
