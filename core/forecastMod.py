@@ -73,8 +73,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
             # Compose a path to a log file, which will contain information
             # about this forecast cycle.
-            # ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
-            ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
+            # ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
+            ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + ConfigOptions.nwmConfig + \
                 ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
                 "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
