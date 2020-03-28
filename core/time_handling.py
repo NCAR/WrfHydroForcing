@@ -122,14 +122,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + '.grib2'
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + '.grib2'
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -956,25 +956,25 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 1:
-        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date1.strftime('%H') + \
             "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000.grib2.gz"
 
     elif supplemental_precip.keyValue == 2:
-        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                    "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                    "0000.grib2.gz"
@@ -995,12 +995,12 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
 
     # Compose the RQI paths.
     tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "MRMS_RadarQualityIndex_00.00_" + \
+        "RadarQualityIndex_00.00_" + \
         supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
         "-" + supplemental_precip.pcp_date1.strftime('%H') + \
         "0000.grib2.gz"
     tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "MRMS_RadarQualityIndex_00.00_" + \
+        "RadarQualityIndex_00.00_" + \
         supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
         "-" + supplemental_precip.pcp_date2.strftime('%H') + \
         "0000.grib2.gz"
