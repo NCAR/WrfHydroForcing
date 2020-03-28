@@ -38,8 +38,16 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                                            datetime.timedelta(
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
+
         fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
             ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+
+        # put all AnA output in the same directory
+        if ConfigOptions.ana_flag:
+            if ConfigOptions.ana_out_dir is None:
+                ConfigOptions.ana_out_dir = fcstCycleOutDir
+            fcstCycleOutDir = ConfigOptions.ana_out_dir
+
         # completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
         completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
         if os.path.isfile(completeFlag):
@@ -51,30 +59,31 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             # move on.
             continue
 
-        if MpiConfig.rank == 0:
-            # If the cycle directory doesn't exist, create it.
-            if not os.path.isdir(fcstCycleOutDir):
-                try:
-                    os.mkdir(fcstCycleOutDir)
-                except:
-                    ConfigOptions.errMsg = "Unable to create output " \
-                                           "directory: " + fcstCycleOutDir
-                    err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+        if (not ConfigOptions.ana_flag) or (ConfigOptions.logFile is None):
+            if MpiConfig.rank == 0:
+                # If the cycle directory doesn't exist, create it.
+                if not os.path.isdir(fcstCycleOutDir):
+                    try:
+                        os.mkdir(fcstCycleOutDir)
+                    except:
+                        ConfigOptions.errMsg = "Unable to create output " \
+                                               "directory: " + fcstCycleOutDir
+                        err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        # Compose a path to a log file, which will contain information
-        # about this forecast cycle.
-        # ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
-        ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
-            ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
-            "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
+            # Compose a path to a log file, which will contain information
+            # about this forecast cycle.
+            # ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
+            ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
+                ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
+                "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
 
-        # Initialize the log file.
-        try:
-            err_handler.init_log(ConfigOptions, MpiConfig)
-        except:
-            err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+            # Initialize the log file.
+            try:
+                err_handler.init_log(ConfigOptions, MpiConfig)
+            except:
+                err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
         # Log information about this forecast cycle
         if MpiConfig.rank == 0:
@@ -95,7 +104,6 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         ana_factor = 1 if ConfigOptions.ana_flag is False else 0
-        print("ana_factor=", ana_factor)
         for outStep in range(1, ConfigOptions.num_output_steps+1):
             # Reset out final grids to missing values.
             OutputObj.output_local[:, :, :] = -9999.0
@@ -231,24 +239,25 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                 err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "Forcings complete for forecast cycle: " + \
-                                      ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
-            err_handler.log_msg(ConfigOptions, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+        if (not ConfigOptions.ana_flag) or (fcstCycleNum == (ConfigOptions.nFcsts-1)):
+            if MpiConfig.rank == 0:
+                ConfigOptions.statusMsg = "Forcings complete for forecast cycle: " + \
+                                          ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
+                err_handler.log_msg(ConfigOptions, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        if MpiConfig.rank == 0:
-            # Close the log file.
+            if MpiConfig.rank == 0:
+                # Close the log file.
+                try:
+                    err_handler.close_log(ConfigOptions, MpiConfig)
+                except:
+                    err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+
+            # Success.... Now touch an empty complete file for this forecast cycle to indicate
+            # completion in case the code is re-ran.
             try:
-                err_handler.close_log(ConfigOptions, MpiConfig)
+                open(completeFlag,'a').close()
             except:
-                err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-
-        # Success.... Now touch an empty complete file for this forecast cycle to indicate
-        # completion in case the code is re-ran.
-        try:
-            open(completeFlag,'a').close()
-        except:
-            ConfigOptions.errMsg = "Unable to create completion file: " + completeFlag
-            err_handler.log_critical(ConfigOptions, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+                ConfigOptions.errMsg = "Unable to create completion file: " + completeFlag
+                err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
