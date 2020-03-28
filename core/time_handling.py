@@ -210,7 +210,6 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     ana_offset = 1 if config_options.ana_flag else 0
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
             seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
-    print("current_rap_cycle={}, ana_offset={}".format(current_rap_cycle, ana_offset))
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
         rap_horizon = default_horizon
@@ -252,7 +251,6 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
     if prev_rap_forecast_hour < 1:
-        print('reseting rap_forecast_hour from {} to 1'.format(prev_rap_forecast_hour))
         prev_rap_forecast_hour = 1
 
     # Calculate expected file paths.

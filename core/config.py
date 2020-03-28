@@ -39,6 +39,7 @@ class ConfigOptions:
         self.realtime_flag = None
         self.refcst_flag = None
         self.ana_flag = None
+        self.ana_out_dir = None
         self.b_date_proc = None
         self.e_date_proc = None
         self.current_fcst_cycle = None
