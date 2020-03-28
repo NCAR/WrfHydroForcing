@@ -709,7 +709,12 @@ class ConfigOptions:
 
         # Read AnA flag option
         try:
-            self.ana_flag = int(config['BiasCorrection']['AnAFlag'])
+            # check both the Forecast section and if it's not there, the old BiasCorrection location
+            self.ana_flag = config['Forecast'].get('AnAFlag', config['BiasCorrection'].get('AnAFlag'))
+            if self.ana_flag is None:
+                raise KeyError
+            else:
+                self.ana_flag = int(self.ana_flag)
         except KeyError:
             err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
         except configparser.NoOptionError:
