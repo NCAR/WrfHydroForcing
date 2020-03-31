@@ -39,8 +39,10 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
         )
 
-        fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
-            ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+        if ConfigOptions.ana_flag:
+            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.e_date_proc.strftime('%Y%m%d%H')
+        else:
+            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
 
         # put all AnA output in the same directory
         if ConfigOptions.ana_flag:
@@ -74,9 +76,15 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             # Compose a path to a log file, which will contain information
             # about this forecast cycle.
             # ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
+
+            if ConfigOptions.ana_flag:
+                log_time = ConfigOptions.e_date_proc
+            else:
+                log_time = ConfigOptions.current_fcst_cycle
+
             ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + ConfigOptions.nwmConfig + \
                 ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
-                "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
+                "_" + log_time.strftime('%Y%m%d%H%M')
 
             # Initialize the log file.
             try:
@@ -236,6 +244,10 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                 # Call the output routines
+                #   adjust date for AnA if necessary
+                if ConfigOptions.ana_flag:
+                    OutputObj.outDate = file_date
+
                 OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
                 err_handler.check_program_status(ConfigOptions, MpiConfig)
 
