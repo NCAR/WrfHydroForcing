@@ -42,6 +42,7 @@ class ConfigOptions:
         self.ana_out_dir = None
         self.b_date_proc = None
         self.e_date_proc = None
+        self.first_fcst_cycle = None
         self.current_fcst_cycle = None
         self.current_output_step = None
         self.cycle_length_minutes = None
