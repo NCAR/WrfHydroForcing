@@ -1,6 +1,8 @@
 import argparse
 import os
 
+import ESMF
+
 from core import config
 from core import err_handler
 from core import forcingInputMod
@@ -66,6 +68,8 @@ def main():
     except:
         err_handler.err_out_screen(job_meta.errMsg)
 
+    # ESMF.Manager(debug=True)
+
     # Initialize our WRF-Hydro geospatial object, which contains
     # information about the modeling domain, local processor
     # grid boundaries, and ESMF grid objects/fields to be used
@@ -120,15 +124,15 @@ def main():
     # workflow into either retrospective or forecasts (realtime/reforecasts)
     #if jobMeta.retro_flag:
     #    # Place code into here for calling the retro run mod.
-    if job_meta.refcst_flag or job_meta.realtime_flag:
-        # Place code in here for calling the forecasting module.
-        forecastMod.process_forecasts(job_meta, WrfHydroGeoMeta,inputForcingMod,suppPcpMod,mpi_meta,OutputObj)
-        #try:
-        #    forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,
-        #                                  inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
-        #except Exception:
-        #    errMod.log_critical(jobMeta, mpiMeta)
-        err_handler.check_program_status(job_meta, mpi_meta)
+    #if job_meta.refcst_flag or job_meta.realtime_flag:
+    # Place code in here for calling the forecasting module.
+    forecastMod.process_forecasts(job_meta, WrfHydroGeoMeta,inputForcingMod,suppPcpMod,mpi_meta,OutputObj)
+    #try:
+    #    forecastMod.process_forecasts(jobMeta,WrfHydroGeoMeta,
+    #                                  inputForcingMod,suppPcpMod,mpiMeta,OutputObj)
+    #except Exception:
+    #    errMod.log_critical(jobMeta, mpiMeta)
+    err_handler.check_program_status(job_meta, mpi_meta)
 
 
 if __name__ == "__main__":
