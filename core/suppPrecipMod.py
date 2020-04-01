@@ -77,9 +77,10 @@ class supplemental_precip:
         """
         product_names = {
             1: "MRMS_1HR_Radar_Only",
-            2: "MRMS_1HR_MultiSensor",
+            2: "MRMS_1HR_Gage_Corrected",
             3: "WRF_ARW_Hawaii_2p5km_PCP",
-            4: "WRF_ARW_PuertoRico_2p5km_PCP"
+            4: "WRF_ARW_PuertoRico_2p5km_PCP",
+            5: "MRMS_1HR_MultiSensor" 
         }
         self.productName = product_names[self.keyValue]
 
@@ -87,7 +88,8 @@ class supplemental_precip:
             1: "GRIB2",
             2: "GRIB2",
             3: "GRIB2",
-            4: "GRIB2"
+            4: "GRIB2",
+            5: "GRIB2"
         }
         self.fileType = product_types[self.keyValue]
 
@@ -95,7 +97,8 @@ class supplemental_precip:
             1: None,
             2: None,
             3: None,
-            4: None
+            4: None,
+            5: None
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -103,15 +106,17 @@ class supplemental_precip:
             1: ['BLAH'],
             2: ['BLAH'],
             3: ['BLAH'],
-            4: ['BLAH']
+            4: ['BLAH'],
+            5: ['BLAH']
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
         netcdf_variables = {
             1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
-            2: ['var209_6_30_0mabovemeansealevel'],
+            2: ['GaugeCorrQPE01H_0mabovemeansealevel'],
             3: ['APCP_surface'],
-            4: ['APCP_surface']
+            4: ['APCP_surface'],
+            5: ['var209_6_30_0mabovemeansealevel']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -119,7 +124,8 @@ class supplemental_precip:
             1: ['RadarQualityIndex_0mabovemeansealevel'],
             2: ['RadarQualityIndex_0mabovemeansealevel'],
             3: None,
-            4: None
+            4: None,
+            5: None
         }
         self.rqi_netcdf_var_names = netcdf_rqi_variables[self.keyValue]
 

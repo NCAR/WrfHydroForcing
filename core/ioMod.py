@@ -120,7 +120,10 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                    if ConfigOptions.ana_flag:
+                        idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
+                    else:
+                        idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
@@ -153,7 +156,7 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.total_valid_times = float(ConfigOptions.num_output_steps)
+                    idOut.model_total_valid_times = float(ConfigOptions.num_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -497,7 +500,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             err_handler.log_warning(ConfigOptions, MpiConfig)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
-            print("command: " + Wgrib2Cmd)
+            if not os.environ.get('MFE_SILENT'):
+                print("command: " + Wgrib2Cmd)
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
 
             #print("exitcode: " + str(exitcode))
