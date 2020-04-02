@@ -544,8 +544,8 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
         shift = config_options.first_fcst_cycle.hour % 6
         current_nam_nest_cycle = config_options.first_fcst_cycle - datetime.timedelta(seconds=3600*shift)
 
-        # avoid hours 0-3, shift back if necessary
-        if config_options.first_fcst_cycle.hour < 4:
+        # avoid forecast hours 0-3, shift back if necessary
+        if config_options.first_fcst_cycle.hour % 6 < 4:
             current_nam_nest_cycle -= datetime.timedelta(seconds=21600)     # shift back 6 hours
     else:
         current_nam_nest_cycle = config_options.current_fcst_cycle - \
