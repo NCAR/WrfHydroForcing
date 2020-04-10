@@ -13,6 +13,14 @@ from core import err_handler
 from core import ioMod
 from core import timeInterpMod
 
+next_file_number = 0
+
+
+def mkfilename():
+    global next_file_number
+    next_file_number += 1
+    return '{}'.format(next_file_number)
+
 
 def static_vars(**kwargs):
     def decorate(func):
@@ -53,8 +61,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP-{}.nc".format(mkfilename())
 
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
@@ -275,8 +282,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "RAP_CONUS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "RAP_CONUS_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "RAP_CONUS_TMP-{}.nc".format(mkfilename())
 
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -510,8 +516,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "CFSv2_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "CFSv2_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "CFSv2_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -901,7 +906,6 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = config_options.scratch_dir + "/" + "GFS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "GFS_TMP_HEIGHT.nc"
     err_handler.check_program_status(config_options, mpi_config)
 
     # check / set previous file to see if we're going to reuse
@@ -1178,8 +1182,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "NAM_NEST_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "NAM_NEST_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "NAM_NEST_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -1408,10 +1411,10 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     # 4.) A temporary NetCDF file that stores the RQI grid.
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    mrms_tmp_grib2 = config_options.scratch_dir + "/MRMS_PCP_TMP.grib2"
-    mrms_tmp_nc = config_options.scratch_dir + "/MRMS_PCP_TMP.nc"
-    mrms_tmp_rqi_grib2 = config_options.scratch_dir + "/MRMS_RQI_TMP.grib2"
-    mrms_tmp_rqi_nc = config_options.scratch_dir + "/MRMS_RQI_TMP.nc"
+    mrms_tmp_grib2 = config_options.scratch_dir + "/MRMS_PCP_TMP-{}.grib2".format(mkfilename())
+    mrms_tmp_nc = config_options.scratch_dir + "/MRMS_PCP_TMP-{}.nc".format(mkfilename())
+    mrms_tmp_rqi_grib2 = config_options.scratch_dir + "/MRMS_RQI_TMP-{}.grib2".format(mkfilename())
+    mrms_tmp_rqi_nc = config_options.scratch_dir + "/MRMS_RQI_TMP-{}.nc".format(mkfilename())
     # mpi_config.comm.barrier()
 
     # If the input paths have been set to None, this means input is missing. We will
@@ -1711,8 +1714,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "ARW_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "ARW_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "ARW_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -1946,7 +1948,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    arw_tmp_nc = config_options.scratch_dir + "/ARW_PCP_TMP.nc"
+    arw_tmp_nc = config_options.scratch_dir + "/ARW_PCP_TMP-{}.nc".format(mkfilename())
 
     # These files shouldn't exist. If they do, remove them.
     if mpi_config.rank == 0:
@@ -2238,6 +2240,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
+        # noinspection PyTypeChecker
         input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global, input_forcings.nx_global]),
                                                 staggerloc=ESMF.StaggerLoc.CENTER,
                                                 coord_sys=ESMF.CoordSys.SPH_DEG)
@@ -2465,6 +2468,7 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     # mpi_config.comm.barrier()
 
     try:
+        # noinspection PyTypeChecker
         supplemental_precip.esmf_grid_in = ESMF.Grid(np.array([supplemental_precip.ny_global,
                                                                supplemental_precip.nx_global]),
                                                      staggerloc=ESMF.StaggerLoc.CENTER,
