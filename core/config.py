@@ -1040,6 +1040,28 @@ class ConfigOptions:
                     err_handler.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration file. '
                                                'Please choose a value of 0-2 for each corresponding input forcing')
 
+            # Read in the SuppPcpInputOffsets options.
+            try:
+                self.supp_input_offsets = json.loads(config['SuppForcing']['SuppPcpInputOffsets'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate SuppPcpInputOffsets under SuppForcing '
+                                           'section in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate SuppPcpInputOffsets under SuppForcing '
+                                           'section in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper SuppPcpInputOffsets option specified in '
+                                           'the configuration file.')
+            if len(self.fcst_input_offsets) != self.number_supp_pcp:
+                err_handler.err_out_screen('Please specify SuppPcpInputOffsets values for each '
+                                           'corresponding input forcings for SuppForcing.')
+            # Check to make sure the input offset options make sense. There will be additional
+            # checking later when input choices are mapped to input products.
+            for inputOffset in self.supp_input_offsets:
+                if inputOffset < 0:
+                    err_handler.err_out_screen(
+                            'Please specify SuppPcpInputOffsets values greater than or equal to zero.')
+
             # Read in the optional parameter directory for supplemental precipitation.
             try:
                 self.supp_precip_param_dir = config['SuppForcing']['SuppPcpParamDir']

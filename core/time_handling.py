@@ -173,7 +173,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(input_forcings.file_in2):
+        if not os.path.exists(input_forcings.file_in2):
             if input_forcings.enforce == 1:
                 config_options.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
                 err_handler.log_critical(config_options, mpi_config)
@@ -185,7 +185,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
-    if not os.path.isfile(input_forcings.file_in2):
+    if not os.path.exists(input_forcings.file_in2):
         if input_forcings.regridded_forcings2 is not None:
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 
@@ -1092,15 +1092,21 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
 
     # First find the current ARW forecast cycle that we are using.
     if config_options.ana_flag:
+        current_arw_cycle = config_options.current_fcst_cycle
+
         # find nearest previous cycle
         shift = config_options.current_fcst_cycle.hour % 12
-
         # use the ForecastInputOffsets from the configuration to offset non-00z cycling
         if shift < supplemental_precip.userCycleOffset:
             shift += supplemental_precip.userCycleOffset
         else:
             shift -= supplemental_precip.userCycleOffset
-        current_arw_cycle = config_options.current_fcst_cycle - datetime.timedelta(seconds=3600*shift)
+        current_arw_cycle -= datetime.timedelta(seconds=3600*shift)
+
+        # avoid forecast hours 0-3, shift back if necessary
+        if 3 < (config_options.first_fcst_cycle.hour % 12) <= 9 and shift < 6:
+            current_arw_cycle -= datetime.timedelta(seconds=43200)  # shift back 12 hours
+
     else:
         current_arw_cycle = config_options.current_fcst_cycle
 
@@ -1126,10 +1132,11 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         fcst_horizon = 48
     if supplemental_precip.keyValue == 4:
         # Data only available for 06/18 UTC cycles.
-        if current_arw_cycle.hour != 6 and current_arw_cycle.hour != 18:
+        cycle = current_arw_cycle
+        if cycle.hour != 6 and cycle.hour != 18:
             if mpi_config.rank == 0:
-                config_options.statusMsg = "No Puerto Rico WRF-ARW found for this cycle. " \
-                                           "No supplemental ARW precipitation will be used."
+                config_options.statusMsg = "No Puerto Rico WRF-ARW found for cycle {}. " \
+                                           "No supplemental ARW precipitation will be used.".format(cycle)
                 err_handler.log_msg(config_options, mpi_config)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
@@ -1263,3 +1270,5 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+
+    # supplemental_precip.file_in2 = supplemental_precip.file_in1
