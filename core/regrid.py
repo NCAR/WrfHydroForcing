@@ -1934,7 +1934,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     """
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
-    if not os.path.isfile(supplemental_precip.file_in2):
+    if not os.path.exists(supplemental_precip.file_in2):
         return
 
     # Check to see if the regrid complete flag for this

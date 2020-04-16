@@ -62,6 +62,7 @@ class supplemental_precip:
         self.grib_levels = None
         self.grib_vars = None
         self.tmpFile = None
+        self.userCycleOffset = None
 
         self.global_x_lower = None
         self.global_y_lower = None
@@ -236,6 +237,8 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                              np.float64)
         InputDict[supp_pcp_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
                                                            GeoMetaWrfHydro.nx_local], np.float32)
+
+        InputDict[supp_pcp_key].userCycleOffset = ConfigOptions.supp_input_offsets[supp_pcp_tmp]
 
     return InputDict
 
