@@ -1934,7 +1934,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     """
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
-    if not os.path.exists(supplemental_precip.file_in2):
+    if not os.path.exists(supplemental_precip.file_in1):
         return
 
     # Check to see if the regrid complete flag for this
@@ -1964,7 +1964,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    # if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    # if not supplemental_precip.file_in1 or not supplemental_precip.file_in1:
     #    if MpiConfig.rank == 0:
     #        "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
     #    supplemental_precip.regridded_precip2 = None
@@ -1973,12 +1973,12 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create a temporary NetCDF file from the GRIB2 file.
-    cmd = "$WGRIB2 " + supplemental_precip.file_in2 + " -match \":(" + \
-          "APCP):(surface):(" + str(supplemental_precip.fcst_hour1) + \
-          "-" + str(supplemental_precip.fcst_hour2) + " hour acc fcst):\"" + \
+    cmd = "$WGRIB2 " + supplemental_precip.file_in1 + " -match \":(" + \
+          "APCP):(surface):(" + str(supplemental_precip.fcst_hour1 - 1) + \
+          "-" + str(supplemental_precip.fcst_hour1) + " hour acc fcst):\"" + \
           " -netcdf " + arw_tmp_nc
 
-    id_tmp = ioMod.open_grib2(supplemental_precip.file_in2, arw_tmp_nc, cmd,
+    id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, arw_tmp_nc, cmd,
                               config_options, mpi_config, "APCP_surface")
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -2004,7 +2004,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
             var_tmp = id_tmp.variables['APCP_surface'][0, :, :]
         except (ValueError, KeyError, AttributeError) as err:
             config_options.errMsg = "Unable to extract precipitation from WRF ARW file: " + \
-                                    supplemental_precip.file_in2 + " (" + str(err) + ")"
+                                    supplemental_precip.file_in1 + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 

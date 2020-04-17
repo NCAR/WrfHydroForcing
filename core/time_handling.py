@@ -1222,7 +1222,7 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
 
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Previous ARW input file: " + tmp_file1
+        config_options.statusMsg = "Current ARW input file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next ARW input file: " + tmp_file2
         err_handler.log_msg(config_options, mpi_config)
