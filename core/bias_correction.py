@@ -1299,21 +1299,29 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                         # valid point, see if we need to adjust cfsv2 precip
                         nldas_cdf = 1 - np.exp(-(np.power((vals / nldas_nearest_1), nldas_nearest_2)))
 
-                    # compute adjusted value now using the CFSv2 forecast value and the two CDFs
-                    # find index in vals array
-                    diff_tmp = np.absolute(vals - (cfs_interp_fcst * 3600.0))
-                    cfs_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
-                    cfs_cdf_val = cfs_cdf[cfs_ind]
 
-                    # now whats the index of the closest cdf value in the nldas array?
-                    diff_tmp = np.absolute(cfs_cdf_val - nldas_cdf)
-                    cfs_nldas_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
-
-                    if cfs_interp_fcst == 0.0 and nldas_nearest_zero_pcp == 1.0:
+                    if cfs_interp_fcst == 0.0 or nldas_nearest_zero_pcp == 1.0:
                         # if no rain in cfsv2, no rain in bias corrected field
                         cfs_data[y_local, x_local] = 0.0
                     else:
                         # else there is rain in cfs forecast, so adjust it in some manner
+
+                        # compute adjusted value now using the CFSv2 forecast value and the two CDFs
+                        # find index in vals array
+                        try:
+                            diff_tmp = np.absolute(vals - (cfs_interp_fcst * 3600.0))
+                            cfs_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
+                            cfs_cdf_val = cfs_cdf[cfs_ind]
+
+                            # now whats the index of the closest cdf value in the nldas array?
+                            diff_tmp = np.absolute(cfs_cdf_val - nldas_cdf)
+                            cfs_nldas_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
+                        except IndexError:
+                            # something's wrong with the parameters, so log it and keep on keeping on...
+                            config_options.statusMsg = "Invalid input data for bias correction, continuing..."
+                            err_handler.log_msg(config_options, mpi_config)
+                            continue
+
                         pcp_pop_diff = nldas_nearest_zero_pcp - cfs_zero_pcp_interp
                         if cfs_zero_pcp_interp <= nldas_nearest_zero_pcp:
                             # if cfsv2 zero precip probability is less than nldas,
