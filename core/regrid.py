@@ -669,22 +669,30 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
         # bias correction. These grids are interpolated in a separate routine, AFTER bias
         # correction has taken place.
         if config_options.runCfsNldasBiasCorrect:
-            if input_forcings.coarse_input_forcings1 is None and input_forcings.coarse_input_forcings2 is None \
-                    and config_options.current_output_step == 1:
+            if input_forcings.coarse_input_forcings1 is None: # and config_options.current_output_step == 1:
+                # if not np.any(input_forcings.coarse_input_forcings1) and not \
+                #        np.any(input_forcings.coarse_input_forcings2) and \
+                #        ConfigOptions.current_output_step == 1:
+                # We need to create NumPy arrays to hold the CFSv2 global data.
+                input_forcings.coarse_input_forcings1 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
+                                                                 np.float64)
+
+            if input_forcings.coarse_input_forcings2 is None: # and config_options.current_output_step == 1:
                 # if not np.any(input_forcings.coarse_input_forcings1) and not \
                 #        np.any(input_forcings.coarse_input_forcings2) and \
                 #        ConfigOptions.current_output_step == 1:
                 # We need to create NumPy arrays to hold the CFSv2 global data.
                 input_forcings.coarse_input_forcings2 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
                                                                  np.float64)
-                input_forcings.coarse_input_forcings1 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
-                                                                 np.float64)
+
             try:
                 input_forcings.coarse_input_forcings2[input_forcings.input_map_output[force_count], :, :] = var_sub_tmp
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to place local CFSv2 input variable: " + \
                                         input_forcings.netcdf_var_names[force_count] + \
                                         " into local numpy array. (" + str(err) + ")"
+            # except TypeError:
+            #    print("DEBUG: ", input_forcings.coarse_input_forcings2, input_forcings.input_map_output, force_count)
 
             if config_options.current_output_step == 1:
                 input_forcings.coarse_input_forcings1[input_forcings.input_map_output[force_count], :, :] = \
