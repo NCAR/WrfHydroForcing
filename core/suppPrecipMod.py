@@ -145,7 +145,8 @@ class supplemental_precip:
             1: time_handling.find_hourly_mrms_radar_neighbors,
             2: time_handling.find_hourly_mrms_radar_neighbors,
             3: time_handling.find_hourly_wrf_arw_neighbors,
-            4: time_handling.find_hourly_wrf_arw_neighbors
+            4: time_handling.find_hourly_wrf_arw_neighbors,
+            5: time_handling.find_hourly_mrms_radar_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
@@ -174,7 +175,8 @@ class supplemental_precip:
             1: regrid.regrid_mrms_hourly,
             2: regrid.regrid_mrms_hourly,
             3: regrid.regrid_hourly_wrf_arw_hi_res_pcp,
-            4: regrid.regrid_hourly_wrf_arw_hi_res_pcp
+            4: regrid.regrid_hourly_wrf_arw_hi_res_pcp,
+            5: regrid.regrid_mrms_hourly
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:
