@@ -959,7 +959,8 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
         next_mrms_date = prev_mrms_date + datetime.timedelta(seconds=3600.0)
 
     supplemental_precip.pcp_date1 = prev_mrms_date
-    supplemental_precip.pcp_date2 = next_mrms_date
+    #supplemental_precip.pcp_date2 = next_mrms_date
+    supplemental_precip.pcp_date2 = prev_mrms_date
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 1:
@@ -1001,16 +1002,31 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
         tmp_file1 = tmp_file2 = ""
 
     # Compose the RQI paths.
-    tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "RadarQualityIndex_00.00_" + \
-        supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-        "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-        "0000.grib2.gz"
-    tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "RadarQualityIndex_00.00_" + \
-        supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-        "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-        "0000.grib2.gz"
+    if supplemental_precip.keyValue == 1 or supplemental_precip.keyValue == 2:
+       tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+           "0000.grib2.gz"
+       tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+           "0000.grib2.gz"
+    elif supplemental_precip.keyValue == 5:
+       tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "MRMS_EXP_RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+           "0000.grib2.gz"
+       tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "MRMS_EXP_RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+           "0000.grib2.gz"
+    else:
+       tmp_rqi_file1 = tmp_rqi_file2 = ""
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous MRMS supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
