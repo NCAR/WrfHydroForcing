@@ -34,12 +34,22 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
     # need to process any files.
 
     for fcstCycleNum in range(ConfigOptions.nFcsts):
-        ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + \
-                                           datetime.timedelta(
-            seconds=ConfigOptions.fcst_freq*60*fcstCycleNum
-        )
-        fcstCycleOutDir = ConfigOptions.output_dir + "/" + \
-            ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+        ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + datetime.timedelta(
+            seconds=ConfigOptions.fcst_freq * 60 * fcstCycleNum)
+        if ConfigOptions.first_fcst_cycle is None:
+            ConfigOptions.first_fcst_cycle = ConfigOptions.current_fcst_cycle
+
+        if ConfigOptions.ana_flag:
+            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.e_date_proc.strftime('%Y%m%d%H')
+        else:
+            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+
+        # put all AnA output in the same directory
+        if ConfigOptions.ana_flag:
+            if ConfigOptions.ana_out_dir is None:
+                ConfigOptions.ana_out_dir = fcstCycleOutDir
+            fcstCycleOutDir = ConfigOptions.ana_out_dir
+
         # completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
         completeFlag = fcstCycleOutDir + "/WrfHydroForcing.COMPLETE"
         if os.path.isfile(completeFlag):
@@ -51,30 +61,37 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             # move on.
             continue
 
-        if MpiConfig.rank == 0:
-            # If the cycle directory doesn't exist, create it.
-            if not os.path.isdir(fcstCycleOutDir):
-                try:
-                    os.mkdir(fcstCycleOutDir)
-                except:
-                    ConfigOptions.errMsg = "Unable to create output " \
-                                           "directory: " + fcstCycleOutDir
-                    err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+        if (not ConfigOptions.ana_flag) or (ConfigOptions.logFile is None):
+            if MpiConfig.rank == 0:
+                # If the cycle directory doesn't exist, create it.
+                if not os.path.isdir(fcstCycleOutDir):
+                    try:
+                        os.mkdir(fcstCycleOutDir)
+                    except:
+                        ConfigOptions.errMsg = "Unable to create output " \
+                                               "directory: " + fcstCycleOutDir
+                        err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        # Compose a path to a log file, which will contain information
-        # about this forecast cycle.
-        # ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + \
-        ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
-            ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
-            "_" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H%M')
+            # Compose a path to a log file, which will contain information
+            # about this forecast cycle.
+            # ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
 
-        # Initialize the log file.
-        try:
-            err_handler.init_log(ConfigOptions, MpiConfig)
-        except:
-            err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+            if ConfigOptions.ana_flag:
+                log_time = ConfigOptions.e_date_proc
+            else:
+                log_time = ConfigOptions.current_fcst_cycle
+
+            ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + ConfigOptions.nwmConfig + \
+                                    ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
+                                    "_" + log_time.strftime('%Y%m%d%H%M')
+
+            # Initialize the log file.
+            try:
+                err_handler.init_log(ConfigOptions, MpiConfig)
+            except:
+                err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
         # Log information about this forecast cycle
         if MpiConfig.rank == 0:
@@ -94,35 +111,43 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         # 3.) Regrid the forcings, and temporally interpolate.
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
-        for outStep in range(1,ConfigOptions.num_output_steps+1):
+        ana_factor = 1 if ConfigOptions.ana_flag is False else 0
+        for outStep in range(1, ConfigOptions.num_output_steps + 1):
             # Reset out final grids to missing values.
-            OutputObj.output_local[:,:,:] = -9999.0
+            OutputObj.output_local[:, :, :] = -9999.0
 
             ConfigOptions.current_output_step = outStep
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
-                seconds=ConfigOptions.output_freq*60*outStep
+                    seconds=ConfigOptions.output_freq * 60 * outStep
             )
             ConfigOptions.current_output_date = OutputObj.outDate
+
+            # if AnA, adjust file date for analysis vs forecast
+            if ConfigOptions.ana_flag:
+                file_date = OutputObj.outDate - datetime.timedelta(seconds=ConfigOptions.output_freq * 60)
+            else:
+                file_date = OutputObj.outDate
+
             # Calculate the previous output timestep. This is used in potential downscaling routines.
-            if outStep == 1:
+            if outStep == ana_factor:
                 ConfigOptions.prev_output_date = ConfigOptions.current_output_date
             else:
                 ConfigOptions.prev_output_date = ConfigOptions.current_output_date - datetime.timedelta(
-                    seconds=ConfigOptions.output_freq*60
+                        seconds=ConfigOptions.output_freq * 60
                 )
             if MpiConfig.rank == 0:
                 ConfigOptions.statusMsg = '========================================='
                 err_handler.log_msg(ConfigOptions, MpiConfig)
-                ConfigOptions.statusMsg =  "Processing for output timestep: " + \
-                                           OutputObj.outDate.strftime('%Y-%m-%d %H:%M')
+                ConfigOptions.statusMsg = "Processing for output timestep: " + \
+                                          file_date.strftime('%Y-%m-%d %H:%M')
                 err_handler.log_msg(ConfigOptions, MpiConfig)
             # MpiConfig.comm.barrier()
 
             # Compose the expected path to the output file. Check to see if the file exists,
             # if so, continue to the next time step. Also initialize our output arrays if necessary.
-            OutputObj.outPath = fcstCycleOutDir + "/" + OutputObj.outDate.strftime('%Y%m%d%H%M') + \
-                ".LDASIN_DOMAIN1"
-            #MpiConfig.comm.barrier()
+            OutputObj.outPath = fcstCycleOutDir + "/" + file_date.strftime('%Y%m%d%H%M') + \
+                                ".LDASIN_DOMAIN1"
+            # MpiConfig.comm.barrier()
 
             if os.path.isfile(OutputObj.outPath):
                 if MpiConfig.rank == 0:
@@ -137,11 +162,11 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
                     # Calculate the previous and next input cycle files from the inputs.
-                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate,MpiConfig)
+                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Regrid forcings.
-                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run check on regridded fields for reasonable values that are not missing values.
@@ -168,7 +193,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                         inputForcingMod[forceKey].rstFlag = 0
 
                     # Run temporal interpolation on the grids.
-                    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions,MpiConfig)
+                    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run bias correction.
@@ -182,7 +207,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Layer in forcings from this product.
-                    layeringMod.layer_final_forcings(OutputObj,inputForcingMod[forceKey],ConfigOptions,MpiConfig)
+                    layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
@@ -198,13 +223,13 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                         # Regrid the supplemental precipitation.
-                        suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                        suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                         if suppPcpMod[suppPcpKey].regridded_precip1 is not None \
                                 and suppPcpMod[suppPcpKey].regridded_precip2 is not None:
-                        #if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
-                        #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
+                            # if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
+                            #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
                             # Run check on regridded fields for reasonable values that are not missing values.
                             err_handler.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
@@ -214,32 +239,37 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                             # Layer in the supplemental precipitation into the current output object.
-                            layeringMod.layer_supplemental_precipitation(OutputObj,suppPcpMod[suppPcpKey],
-                                                                         ConfigOptions,MpiConfig)
+                            layeringMod.layer_supplemental_precipitation(OutputObj, suppPcpMod[suppPcpKey],
+                                                                         ConfigOptions, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                 # Call the output routines
-                OutputObj.output_final_ldasin(ConfigOptions,wrfHydroGeoMeta,MpiConfig)
+                #   adjust date for AnA if necessary
+                if ConfigOptions.ana_flag:
+                    OutputObj.outDate = file_date
+
+                OutputObj.output_final_ldasin(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                 err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "Forcings complete for forecast cycle: " + \
-                                      ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
-            err_handler.log_msg(ConfigOptions, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+        if (not ConfigOptions.ana_flag) or (fcstCycleNum == (ConfigOptions.nFcsts - 1)):
+            if MpiConfig.rank == 0:
+                ConfigOptions.statusMsg = "Forcings complete for forecast cycle: " + \
+                                          ConfigOptions.current_fcst_cycle.strftime('%Y-%m-%d %H:%M')
+                err_handler.log_msg(ConfigOptions, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-        if MpiConfig.rank == 0:
-            # Close the log file.
+            if MpiConfig.rank == 0:
+                # Close the log file.
+                try:
+                    err_handler.close_log(ConfigOptions, MpiConfig)
+                except:
+                    err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
+
+            # Success.... Now touch an empty complete file for this forecast cycle to indicate
+            # completion in case the code is re-ran.
             try:
-                err_handler.close_log(ConfigOptions, MpiConfig)
+                open(completeFlag, 'a').close()
             except:
-                err_handler.err_out_screen_para(ConfigOptions.errMsg, MpiConfig)
-
-        # Success.... Now touch an empty complete file for this forecast cycle to indicate
-        # completion in case the code is re-ran.
-        try:
-            open(completeFlag,'a').close()
-        except:
-            ConfigOptions.errMsg = "Unable to create completion file: " + completeFlag
-            err_handler.log_critical(ConfigOptions, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
+                ConfigOptions.errMsg = "Unable to create completion file: " + completeFlag
+                err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.check_program_status(ConfigOptions, MpiConfig)

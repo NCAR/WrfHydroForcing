@@ -10,6 +10,7 @@ import math
 import os
 import shutil
 import subprocess
+import time
 
 import numpy as np
 from netCDF4 import Dataset
@@ -80,14 +81,14 @@ class OutputObj:
                 # Only output on the master processor.
                 try:
                     idOut = Dataset(self.outPath,'w')
-                except:
-                    ConfigOptions.errMsg = "Unable to create output file: " + self.outPath
+                except Exception as e:
+                    ConfigOptions.errMsg = "Unable to create output file: " + self.outPath + "\n" + str(e)
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
 
                 # Create dimensions.
                 try:
-                    idOut.createDimension("time",1)
+                    idOut.createDimension("time", None)
                 except:
                     ConfigOptions.errMsg = "Unable to create time dimension in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -105,7 +106,7 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    idOut.createDimension("reference_time",1)
+                    idOut.createDimension("reference_time", None)
                 except:
                     ConfigOptions.errMsg = "Unable to create reference_time dimension in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -119,7 +120,10 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                    if ConfigOptions.ana_flag:
+                        idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
+                    else:
+                        idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
@@ -152,7 +156,7 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.total_valid_times = float(ConfigOptions.num_output_steps)
+                    idOut.model_total_valid_times = float(ConfigOptions.num_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -404,29 +408,33 @@ class OutputObj:
         # output grid, and place into the output file (if on processor 0).
         for varTmp in output_variable_attribute_dict:
             # First run a check for missing values. There should be none at this point.
-            err_handler.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0], :, :],
-                                            varTmp, MpiConfig)
-            if ConfigOptions.errFlag == 1:
-                continue
+            # err_handler.check_missing_final(self.outPath, ConfigOptions, self.output_local[output_variable_attribute_dict[varTmp][0], :, :],
+            #                                 varTmp, MpiConfig)
+            # if ConfigOptions.errFlag == 1:
+            #     continue
 
             # Collect data from the various processors, and place into the output file.
             try:
                 # TODO change communication call from comm.gather() to comm.Gather for efficency
-                final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
-            except:
+                # final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
+
+                # Use gatherv to merge the data slabs
+                dataOutTmp = MpiConfig.merge_slabs_gatherv(self.output_local[output_variable_attribute_dict[varTmp][0],:,:], ConfigOptions)
+            except Exception as e:
+                print(e)
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 continue
             #MpiConfig.comm.barrier()
             if MpiConfig.rank == 0:
                 while (True):
-                    try:
-                        # TODO this step will be unnessessary when comm.Gather() is the comunication call
-                        dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
-                    except:
-                        ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
-                        err_handler.log_critical(ConfigOptions, MpiConfig)
-                        break
+                    #try:
+                    #     # TODO this step will be unnessessary when comm.Gather() is the comunication call
+                    #    dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
+                    #except:
+                    #    ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
+                    #    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    #    break
                     # If we are using scale_factor/add_offset, create the integer values here.
                     #if ConfigOptions.useCompression == 1:
                     #    if varTmp != 'RAINRATE':
@@ -492,7 +500,11 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             err_handler.log_warning(ConfigOptions, MpiConfig)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
+            if not os.environ.get('MFE_SILENT'):
+                print("command: " + Wgrib2Cmd)
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
+
+            #print("exitcode: " + str(exitcode))
             # Call WGRIB2 with subprocess.Popen
             #cmdOutput = subprocess.Popen([Wgrib2Cmd], stdout=subprocess.PIPE,
             #                             stderr=subprocess.PIPE, shell=True)

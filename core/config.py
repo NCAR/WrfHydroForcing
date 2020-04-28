@@ -14,6 +14,7 @@ class ConfigOptions:
     Configuration abstract class for configuration options read in from the file
     specified by the user.
     """
+
     def __init__(self, config):
         """
         Initialize the configuration class to empty None attributes
@@ -37,8 +38,11 @@ class ConfigOptions:
         self.retro_flag = None
         self.realtime_flag = None
         self.refcst_flag = None
+        self.ana_flag = None
+        self.ana_out_dir = None
         self.b_date_proc = None
         self.e_date_proc = None
+        self.first_fcst_cycle = None
         self.current_fcst_cycle = None
         self.current_output_step = None
         self.cycle_length_minutes = None
@@ -54,6 +58,7 @@ class ConfigOptions:
         self.geogrid = None
         self.spatial_meta = None
         self.regrid_opt = None
+        self.weightsDir = None
         self.regrid_opt_supp_pcp = None
         self.config_path = config
         self.errMsg = None
@@ -229,7 +234,7 @@ class ConfigOptions:
             err_handler.err_out_screen('Improper RetroFlag value ')
         if self.retro_flag < 0 or self.retro_flag > 1:
             err_handler.err_out_screen('Please choose a RetroFlag value of 0 or 1.')
-            
+
         # Process the beginning date of forcings to process.
         if self.retro_flag == 1:
             self.realtime_flag = False
@@ -287,7 +292,7 @@ class ConfigOptions:
 
             # Calculate the number of output time steps
             dt_tmp = self.e_date_proc - self.b_date_proc
-            self.num_output_steps = int((dt_tmp.days*1440 + dt_tmp.seconds/60.0)/self.output_freq)
+            self.num_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.output_freq)
 
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
@@ -306,70 +311,73 @@ class ConfigOptions:
                 err_handler.err_out_screen('Unable to locate LookBack in the configuration '
                                            'file. Please verify entries exist.')
 
+            # Process the beginning date of reforecast forcings to process
+            try:
+                beg_date_tmp = config['Forecast']['RefcstBDateProc']
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in '
+                                           'configuration file.')
+                beg_date_tmp = None
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in '
+                                           'configuration file.')
+                beg_date_tmp = None
+            if beg_date_tmp != '-9999':
+                if len(beg_date_tmp) != 12:
+                    err_handler.err_out_screen('Improper RefcstBDateProc length entered into the '
+                                               'configuration file. Please check your entry.')
+                try:
+                    self.b_date_proc = datetime.datetime.strptime(beg_date_tmp, '%Y%m%d%H%M')
+                except ValueError:
+                    err_handler.err_out_screen('Improper RefcstBDateProc value entered into the '
+                                               'configuration file. Please check your entry.')
+            else:
+                self.b_date_proc = -9999
+
+            # Process the ending date of reforecast forcings to process
+            try:
+                end_date_tmp = config['Forecast']['RefcstEDateProc']
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in '
+                                           'configuration file.')
+                end_date_tmp = None
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in '
+                                           'configuration file.')
+                end_date_tmp = None
+            if end_date_tmp != '-9999':
+                if len(end_date_tmp) != 12:
+                    err_handler.err_out_screen('Improper RefcstEDateProc length entered into the'
+                                               'configuration file. Please check your entry.')
+                try:
+                    self.e_date_proc = datetime.datetime.strptime(end_date_tmp, '%Y%m%d%H%M')
+                except ValueError:
+                    err_handler.err_out_screen('Improper RefcstEDateProc value entered into the '
+                                               'configuration file. Please check your entry.')
+            else:
+                self.e_date_proc = -9999
+
+            if self.e_date_proc != -9999 and self.e_date_proc <= self.b_date_proc:
+                err_handler.err_out_screen('Please choose an ending RefcstEDateProc that is greater '
+                                           'than RefcstBDateProc.')
+
             # If the Retro flag is off, and lookback is off, then we assume we are
             # running a reforecast.
             if self.look_back == -9999:
                 self.realtime_flag = False
                 self.refcst_flag = True
-                try:
-                    beg_date_tmp = config['Forecast']['RefcstBDateProc']
-                except KeyError:
-                    err_handler.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in '
-                                               'configuration file.')
-                    beg_date_tmp = None
-                except configparser.NoOptionError:
-                    err_handler.err_out_screen('Unable to locate RefcstBDateProc under Logistics section in '
-                                               'configuration file.')
-                    beg_date_tmp = None
-                if beg_date_tmp != '-9999':
-                    if len(beg_date_tmp) != 12:
-                        err_handler.err_out_screen('Improper RefcstBDateProc length entered into the '
-                                                   'configuration file. Please check your entry.')
-                    try:
-                        self.b_date_proc = datetime.datetime.strptime(beg_date_tmp, '%Y%m%d%H%M')
-                    except ValueError:
-                        err_handler.err_out_screen('Improper RefcstBDateProc value entered into the '
-                                                   'configuration file. Please check your entry.')
-                else:
-                    # This is an error. The user MUST specify a date range if reforecasts.
-                    err_handler.err_out_screen('Please either specify a reforecast range, or change '
-                                               'the configuration to process refrospective or realtime.')
 
-                # Process the ending date of reforecast forcings to process
-                try:
-                    end_date_tmp = config['Forecast']['RefcstEDateProc']
-                except KeyError:
-                    err_handler.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in '
-                                               'configuration file.')
-                    end_date_tmp = None
-                except configparser.NoOptionError:
-                    err_handler.err_out_screen('Unable to locate RefcstEDateProc under Logistics section in '
-                                               'configuration file.')
-                    end_date_tmp = None
-                if end_date_tmp != '-9999':
-                    if len(end_date_tmp) != 12:
-                        err_handler.err_out_screen('Improper RefcstEDateProc length entered into the'
-                                                   'configuration file. Please check your entry.')
-                    try:
-                        self.e_date_proc = datetime.datetime.strptime(end_date_tmp, '%Y%m%d%H%M')
-                    except ValueError:
-                        err_handler.err_out_screen('Improper RefcstEDateProc value entered into the '
-                                                   'configuration file. Please check your entry.')
-                else:
-                    # This is an error. The user MUST specify a date range if reforecasts.
-                    err_handler.err_out_screen('Please either specify a reforecast range, or change '
-                                               'the configuration to process retrospective or realtime.')
-                if self.e_date_proc <= self.b_date_proc:
-                    err_handler.err_out_screen('Please choose an ending RefcstEDateProc that is greater '
-                                               'than RefcstBDateProc.')
+            elif self.b_date_proc == -9999 and self.e_date_proc == -9999:
+                self.realtime_flag = True
+                self.refcst_flag = True
 
             else:
                 # The processing window will be calculated based on current time and the
                 # lookback option since this is a realtime instance.
-                self.realtime_flag = True
+                self.realtime_flag = False
                 self.refcst_flag = False
-                self.b_date_proc = -9999
-                self.e_date_proc = -9999
+                # self.b_date_proc = -9999
+                # self.e_date_proc = -9999
 
             # Calculate the delta time between the beginning and ending time of processing.
             # self.process_window = self.e_date_proc - self.b_date_proc
@@ -397,7 +405,7 @@ class ConfigOptions:
 
             # Read in the ForecastShift option. This is ONLY done for the realtime instance as
             # it's used to calculate the beginning of the processing window.
-            if self.realtime_flag:
+            if True: # was: self.realtime_flag:
                 try:
                     self.fcst_shift = int(config['Forecast']['ForecastShift'])
                 except ValueError:
@@ -421,10 +429,13 @@ class ConfigOptions:
                 # Calculate the number of forecasts to issue, and verify the user has chosen a
                 # correct divider based on the dates
                 dt_tmp = self.e_date_proc - self.b_date_proc
-                if (dt_tmp.days*1440+dt_tmp.seconds/60.0) % self.fcst_freq != 0:
+                if (dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) % self.fcst_freq != 0:
                     err_handler.err_out_screen('Please choose an equal divider forecast frequency for your '
                                                'specified reforecast range.')
-                self.nFcsts = int((dt_tmp.days*1440+dt_tmp.seconds/60.0)/self.fcst_freq)
+                self.nFcsts = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.fcst_freq)
+
+            if self.look_back != -9999:
+                time_handling.calculate_lookback_window(self)
 
             # Read in the ForecastInputHorizons options.
             try:
@@ -468,7 +479,8 @@ class ConfigOptions:
             # checking later when input choices are mapped to input products.
             for inputOffset in self.fcst_input_offsets:
                 if inputOffset < 0:
-                    err_handler.err_out_screen('Please specify ForecastInputOffset values greater than or equal to zero.')
+                    err_handler.err_out_screen(
+                        'Please specify ForecastInputOffset values greater than or equal to zero.')
 
             # Calculate the length of the forecast cycle, based on the maximum
             # length of the input forcing length chosen by the user.
@@ -524,6 +536,14 @@ class ConfigOptions:
             if regridOpt < 1 or regridOpt > 3:
                 err_handler.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please choose a '
                                            'value of 1-3 for each corresponding input forcing.')
+
+        # Read weight file directory (optional)
+        self.weightsDir = config['Regridding'].get('RegridWeightsDir')
+        if self.weightsDir is not None:
+            # if we do have one specified, make sure it exists
+            if not os.path.exists(self.weightsDir):
+                err_handler.err_out_screen('ESMF Weights file directory specifed ({}) but does not exist').format(
+                    self.weightsDir)
 
         # Calculate the beginning/ending processing dates if we are running realtime
         if self.realtime_flag:
@@ -686,6 +706,25 @@ class ConfigOptions:
             if param_flag[count_tmp] == 1:
                 self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
 
+        #   * Bias Correction Options *
+
+        # Read AnA flag option
+        try:
+            # check both the Forecast section and if it's not there, the old BiasCorrection location
+            self.ana_flag = config['Forecast'].get('AnAFlag', config['BiasCorrection'].get('AnAFlag'))
+            if self.ana_flag is None:
+                raise KeyError
+            else:
+                self.ana_flag = int(self.ana_flag)
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except ValueError:
+            err_handler.err_out_screen('Improper AnAFlag value ')
+        if self.ana_flag < 0 or self.ana_flag > 1:
+            err_handler.err_out_screen('Please choose a AnAFlag value of 0 or 1.')
+
         # Read in temperature bias correction options
         try:
             self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
@@ -703,7 +742,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                            'configuration file.')
 
@@ -769,7 +808,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.windBiasCorrect:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid WindBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
@@ -814,7 +853,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.lwBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 4:
                 err_handler.err_out_screen('Invalid LwBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
@@ -1000,6 +1039,28 @@ class ConfigOptions:
                 if temporalInterpOpt < 0 or temporalInterpOpt > 2:
                     err_handler.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration file. '
                                                'Please choose a value of 0-2 for each corresponding input forcing')
+
+            # Read in the SuppPcpInputOffsets options.
+            try:
+                self.supp_input_offsets = json.loads(config['SuppForcing']['SuppPcpInputOffsets'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate SuppPcpInputOffsets under SuppForcing '
+                                           'section in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate SuppPcpInputOffsets under SuppForcing '
+                                           'section in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper SuppPcpInputOffsets option specified in '
+                                           'the configuration file.')
+            if len(self.fcst_input_offsets) != self.number_supp_pcp:
+                err_handler.err_out_screen('Please specify SuppPcpInputOffsets values for each '
+                                           'corresponding input forcings for SuppForcing.')
+            # Check to make sure the input offset options make sense. There will be additional
+            # checking later when input choices are mapped to input products.
+            for inputOffset in self.supp_input_offsets:
+                if inputOffset < 0:
+                    err_handler.err_out_screen(
+                            'Please specify SuppPcpInputOffsets values greater than or equal to zero.')
 
             # Read in the optional parameter directory for supplemental precipitation.
             try:

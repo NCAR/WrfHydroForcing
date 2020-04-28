@@ -4,6 +4,7 @@ Regridding module file for regridding input forcing files.
 import os
 import sys
 import traceback
+import time
 
 import ESMF
 import numpy as np
@@ -12,12 +13,21 @@ from core import err_handler
 from core import ioMod
 from core import timeInterpMod
 
+next_file_number = 0
+
+
+def mkfilename():
+    global next_file_number
+    next_file_number += 1
+    return '{}'.format(next_file_number)
+
 
 def static_vars(**kwargs):
     def decorate(func):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
+
     return decorate
 
 
@@ -33,6 +43,10 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.isfile(input_forcings.file_in2):
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "No HRRR in_2 file found for this timestep."
+            err_handler.log_msg(config_options, mpi_config)
+        err_handler.log_msg(config_options, mpi_config)
         return
 
     # Check to see if the regrid complete flag for this
@@ -47,8 +61,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "HRRR_CONUS_TMP-{}.nc".format(mkfilename())
 
     # This file shouldn't exist.... but if it does (previously failed
     # execution of the program), remove it.....
@@ -71,6 +84,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         fields.append(':' + grib_var + ':' +
                       input_forcings.grib_levels[force_count] + ':'
                       + str(input_forcings.fcst_hour2) + " hour fcst:")
+    fields.append(":(HGT):(surface):")
 
     # Create a temporary NetCDF file from the GRIB2 file.
     cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
@@ -95,25 +109,25 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
-            # Read in the HRRR height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in HRRR elevation data."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                "\":(HGT):(surface):\" " + \
-                " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # # Read in the HRRR height field, which is used for downscaling purposes.
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = "Reading in HRRR elevation data."
+            #     err_handler.log_msg(config_options, mpi_config)
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #       "\":(HGT):(surface):\" " + \
+            #       " -netcdf " + input_forcings.tmpFileHeight
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                  cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract HRRR elevation from " + \
-                                            input_forcings.tmpFileHeight + ": " + str(err)
+                                            input_forcings.tmpFile + ": " + str(err)
 
             err_handler.check_program_status(config_options, mpi_config)
 
@@ -155,18 +169,18 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     try:
+            #         id_tmp_height.close()
+            #     except OSError:
+            #         config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            #
+            #     try:
+            #         os.remove(input_forcings.tmpFileHeight)
+            #     except OSError:
+            #         config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
         # Regrid the input variables.
@@ -268,8 +282,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "RAP_CONUS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "RAP_CONUS_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "RAP_CONUS_TMP-{}.nc".format(mkfilename())
 
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -295,6 +308,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         fields.append(':' + grib_var + ':' +
                       input_forcings.grib_levels[force_count] + ':'
                       + str(input_forcings.fcst_hour2) + " hour fcst:")
+    fields.append(":(HGT):(surface):")
 
     # Create a temporary NetCDF file from the GRIB2 file.
     cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
@@ -320,23 +334,23 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in RAP elevation data."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                "\":(HGT):(surface):\" " + \
-                " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = "Reading in RAP elevation data."
+            #     err_handler.log_msg(config_options, mpi_config)
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #       "\":(HGT):(surface):\" " + \
+            #       " -netcdf " + input_forcings.tmpFileHeight
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                  cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
-                    config_options.errMsg = "Unable to extract HGT_surface from : " + id_tmp_height + \
+                    config_options.errMsg = "Unable to extract HGT_surface from : " + id_tmp + \
                                             " (" + str(err) + ")"
                     err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
@@ -379,19 +393,19 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     try:
+            #         id_tmp_height.close()
+            #     except OSError:
+            #         config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            #
+            #     try:
+            #         os.remove(input_forcings.tmpFileHeight)
+            #     except OSError:
+            #         config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
 
         # Regrid the input variables.
         var_tmp = None
@@ -502,8 +516,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "CFSv2_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "CFSv2_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "CFSv2_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -529,6 +542,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
         fields.append(':' + grib_var + ':' +
                       input_forcings.grib_levels[force_count] + ':'
                       + str(input_forcings.fcst_hour2) + " hour fcst:")
+    fields.append(":(HGT):(surface):")
 
     # Create a temporary NetCDF file from the GRIB2 file.
     cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
@@ -555,22 +569,22 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in CFSv2 elevation data."
-                err_handler.log_msg(config_options, mpi_config)
-
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                "\":(HGT):(surface):\" " + \
-                " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = "Reading in CFSv2 elevation data."
+            #     err_handler.log_msg(config_options, mpi_config)
+            #
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #       "\":(HGT):(surface):\" " + \
+            #       " -netcdf " + input_forcings.tmpFileHeight
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                  cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract HGT_surface from file: " \
                                             + input_forcings.file_in2 + " (" + str(err) + ")"
@@ -616,21 +630,21 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
-
-            if mpi_config.rank == 0:
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     try:
+            #         id_tmp_height.close()
+            #     except OSError:
+            #         config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
+            #
+            # if mpi_config.rank == 0:
+            #     try:
+            #         os.remove(input_forcings.tmpFileHeight)
+            #     except OSError:
+            #         config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
 
         # Regrid the input variables.
         var_tmp = None
@@ -643,7 +657,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
                 var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
-                                       " from file: " + input_forcings.tmpFile + " (" + str(err) + ")"
+                                        " from file: " + input_forcings.tmpFile + " (" + str(err) + ")"
                 err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
@@ -655,22 +669,30 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
         # bias correction. These grids are interpolated in a separate routine, AFTER bias
         # correction has taken place.
         if config_options.runCfsNldasBiasCorrect:
-            if input_forcings.coarse_input_forcings1 is None and input_forcings.coarse_input_forcings2 is None \
-                    and config_options.current_output_step == 1:
+            if input_forcings.coarse_input_forcings1 is None: # and config_options.current_output_step == 1:
+                # if not np.any(input_forcings.coarse_input_forcings1) and not \
+                #        np.any(input_forcings.coarse_input_forcings2) and \
+                #        ConfigOptions.current_output_step == 1:
+                # We need to create NumPy arrays to hold the CFSv2 global data.
+                input_forcings.coarse_input_forcings1 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
+                                                                 np.float64)
+
+            if input_forcings.coarse_input_forcings2 is None: # and config_options.current_output_step == 1:
                 # if not np.any(input_forcings.coarse_input_forcings1) and not \
                 #        np.any(input_forcings.coarse_input_forcings2) and \
                 #        ConfigOptions.current_output_step == 1:
                 # We need to create NumPy arrays to hold the CFSv2 global data.
                 input_forcings.coarse_input_forcings2 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
                                                                  np.float64)
-                input_forcings.coarse_input_forcings1 = np.empty([8, var_sub_tmp.shape[0], var_sub_tmp.shape[1]],
-                                                                 np.float64)
+
             try:
                 input_forcings.coarse_input_forcings2[input_forcings.input_map_output[force_count], :, :] = var_sub_tmp
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to place local CFSv2 input variable: " + \
                                         input_forcings.netcdf_var_names[force_count] + \
                                         " into local numpy array. (" + str(err) + ")"
+            # except TypeError:
+            #    print("DEBUG: ", input_forcings.coarse_input_forcings2, input_forcings.input_map_output, force_count)
 
             if config_options.current_output_step == 1:
                 input_forcings.coarse_input_forcings1[input_forcings.input_map_output[force_count], :, :] = \
@@ -863,6 +885,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
                 config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
                 err_handler.err_out(config_options)
 
+
 @static_vars(last_file=None)
 def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
@@ -891,7 +914,6 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
     input_forcings.tmpFile = config_options.scratch_dir + "/" + "GFS_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "GFS_TMP_HEIGHT.nc"
     err_handler.check_program_status(config_options, mpi_config)
 
     # check / set previous file to see if we're going to reuse
@@ -953,6 +975,8 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                               input_forcings.grib_levels[force_count] + ':'
                               + str(input_forcings.fcst_hour2) + " hour fcst:")
 
+        # if calc_regrid_flag:
+        fields.append(":(HGT):(surface):")
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
         id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
@@ -976,23 +1000,24 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the GFS height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in 13km GFS elevation data."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                "\":(HGT):(surface):\" " + \
-                " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #    config_options.statusMsg = "Reading in 13km GFS elevation data."
+            #    err_handler.log_msg(config_options, mpi_config)
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #    "\":(HGT):(surface):\" " + \
+            #    " -netcdf " + input_forcings.tmpFileHeight
+            # time.sleep(1)
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                 cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
-                    config_options.errMsg = "Unable to extract GFS elevation from: " + input_forcings.tmpFileHeight + \
+                    config_options.errMsg = "Unable to extract GFS elevation from: " + input_forcings.tmpFile + \
                                             " (" + str(err) + ")"
                     err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
@@ -1035,19 +1060,19 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #    try:
+            #        id_tmp_height.close()
+            #    except OSError:
+            #        config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #        err_handler.log_critical(config_options, mpi_config)
 
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            #    try:
+            #        os.remove(input_forcings.tmpFileHeight)
+            #    except OSError:
+            #        config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #        err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
 
         # Regrid the input variables.
         var_tmp = None
@@ -1056,7 +1081,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                 var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
-                                       " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
+                                        " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
                 err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
@@ -1085,8 +1110,13 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                                        input_forcings.netcdf_var_names[force_count]
             err_handler.log_msg(config_options, mpi_config)
         try:
+            begin = time.monotonic()
             input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
                                                                      input_forcings.esmf_field_out)
+            end = time.monotonic()
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Regridding took {} seconds".format(end-begin)
+                err_handler.log_msg(config_options, mpi_config)
         except ValueError as ve:
             config_options.errMsg = "Unable to regrid GFS variable: " + input_forcings.netcdf_var_names[force_count] \
                                     + " (" + str(ve) + ")"
@@ -1160,8 +1190,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "NAM_NEST_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "NAM_NEST_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "NAM_NEST_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -1177,6 +1206,23 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
                 err_handler.err_out(config_options)
     err_handler.check_program_status(config_options, mpi_config)
 
+    fields = []
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Converting NAM-Nest Variable: " + grib_var
+            err_handler.log_msg(config_options, mpi_config)
+        fields.append(':' + grib_var + ':' +
+                      input_forcings.grib_levels[force_count] + ':'
+                      + str(input_forcings.fcst_hour2) + " hour fcst:")
+    fields.append(":(HGT):(surface):")
+
+    # Create a temporary NetCDF file from the GRIB2 file.
+    cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
+          " -netcdf " + input_forcings.tmpFile
+    id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+                              config_options, mpi_config, inputVar=None)
+    err_handler.check_program_status(config_options, mpi_config)
+
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
     # array slice in the output arrays.
@@ -1184,15 +1230,6 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing NAM Nest Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
-        # Create a temporary NetCDF file from the GRIB2 file.
-        cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match \":(" + \
-              grib_var + "):(" + \
-              input_forcings.grib_levels[force_count] + "):(" + str(input_forcings.fcst_hour2) + \
-              " hour fcst):\" -netcdf " + input_forcings.tmpFile
-
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
-                                  config_options, mpi_config, input_forcings.netcdf_var_names[force_count])
-        err_handler.check_program_status(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
                                                config_options, wrf_hydro_geo_meta, mpi_config)
@@ -1206,19 +1243,19 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in NAM nest elevation data from GRIB2."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                  "\":(HGT):(surface):\" " + \
-                  " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = "Reading in NAM nest elevation data from GRIB2."
+            #     err_handler.log_msg(config_options, mpi_config)
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #       "\":(HGT):(surface):\" " + \
+            #       " -netcdf " + input_forcings.tmpFileHeight
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                  cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             if mpi_config.rank == 0:
-                var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
             else:
                 var_tmp = None
             err_handler.check_program_status(config_options, mpi_config)
@@ -1264,19 +1301,19 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     try:
+            #         id_tmp_height.close()
+            #     except OSError:
+            #         config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            #
+            #     try:
+            #         os.remove(input_forcings.tmpFileHeight)
+            #     except OSError:
+            #         config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
 
         err_handler.check_program_status(config_options, mpi_config)
 
@@ -1290,7 +1327,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
                 var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract " + input_forcings.netcdf_var_names[force_count] + \
-                                       " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
+                                        " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
                 err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
@@ -1336,19 +1373,19 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
         err_handler.check_program_status(config_options, mpi_config)
 
-        # Close the temporary NetCDF file and remove it.
-        if mpi_config.rank == 0:
-            try:
-                id_tmp.close()
-            except OSError:
-                config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                err_handler.log_critical(config_options, mpi_config)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except OSError:
-                config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                err_handler.log_critical(config_options, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+    # Close the temporary NetCDF file and remove it.
+    if mpi_config.rank == 0:
+        try:
+            id_tmp.close()
+        except OSError:
+            config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+            err_handler.log_critical(config_options, mpi_config)
+        try:
+            os.remove(input_forcings.tmpFile)
+        except OSError:
+            config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+            err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
 
 def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
@@ -1382,10 +1419,10 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     # 4.) A temporary NetCDF file that stores the RQI grid.
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    mrms_tmp_grib2 = config_options.scratch_dir + "/MRMS_PCP_TMP.grib2"
-    mrms_tmp_nc = config_options.scratch_dir + "/MRMS_PCP_TMP.nc"
-    mrms_tmp_rqi_grib2 = config_options.scratch_dir + "/MRMS_RQI_TMP.grib2"
-    mrms_tmp_rqi_nc = config_options.scratch_dir + "/MRMS_RQI_TMP.nc"
+    mrms_tmp_grib2 = config_options.scratch_dir + "/MRMS_PCP_TMP-{}.grib2".format(mkfilename())
+    mrms_tmp_nc = config_options.scratch_dir + "/MRMS_PCP_TMP-{}.nc".format(mkfilename())
+    mrms_tmp_rqi_grib2 = config_options.scratch_dir + "/MRMS_RQI_TMP-{}.grib2".format(mkfilename())
+    mrms_tmp_rqi_nc = config_options.scratch_dir + "/MRMS_RQI_TMP-{}.nc".format(mkfilename())
     # mpi_config.comm.barrier()
 
     # If the input paths have been set to None, this means input is missing. We will
@@ -1685,8 +1722,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "ARW_TMP.nc"
-    input_forcings.tmpFileHeight = config_options.scratch_dir + "/" + "ARW_TMP_HEIGHT.nc"
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "ARW_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
 
     # This file shouldn't exist.... but if it does (previously failed
@@ -1702,6 +1738,23 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
                 err_handler.err_out(config_options)
     err_handler.check_program_status(config_options, mpi_config)
 
+    fields = []
+    for force_count, grib_var in enumerate(input_forcings.grib_vars):
+        var_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
+            if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Converting WRF-ARW Variable: " + grib_var
+            err_handler.log_msg(config_options, mpi_config)
+        fields.append(':' + var_str + ":")
+    fields.append(":(HGT):(surface):")
+
+    # Create a temporary NetCDF file from the GRIB2 file.
+    cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
+          " -netcdf " + input_forcings.tmpFile
+    id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+                              config_options, mpi_config, inputVar=None)
+    err_handler.check_program_status(config_options, mpi_config)
+
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
     # array slice in the output arrays.
@@ -1709,17 +1762,6 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing WRF-ARW Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
-        # Create a temporary NetCDF file from the GRIB2 file.
-        var_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
-            if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
-        cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match \":(" + \
-              grib_var + "):(" + \
-              input_forcings.grib_levels[force_count] + "):(" + var_str + \
-              '):" -netcdf ' + input_forcings.tmpFile
-
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
-                                  config_options, mpi_config, input_forcings.netcdf_var_names[force_count])
-        err_handler.check_program_status(config_options, mpi_config)
 
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
                                                config_options, wrf_hydro_geo_meta, mpi_config)
@@ -1733,19 +1775,19 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if mpi_config.rank == 0:
-                config_options.statusMsg = "Reading in WRF-ARW elevation data from GRIB2."
-                err_handler.log_msg(config_options, mpi_config)
-            cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
-                  "\":(HGT):(surface):\" " + \
-                  " -netcdf " + input_forcings.tmpFileHeight
-            id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
-                                             cmd, config_options, mpi_config, 'HGT_surface')
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = "Reading in WRF-ARW elevation data from GRIB2."
+            #     err_handler.log_msg(config_options, mpi_config)
+            # cmd = "$WGRIB2 " + input_forcings.file_in2 + " -match " + \
+            #       "\":(HGT):(surface):\" " + \
+            #       " -netcdf " + input_forcings.tmpFileHeight
+            # id_tmp_height = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFileHeight,
+            #                                  cmd, config_options, mpi_config, 'HGT_surface')
+            # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
             if mpi_config.rank == 0:
-                var_tmp = id_tmp_height.variables['HGT_surface'][0, :, :]
+                var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
             else:
                 var_tmp = None
             err_handler.check_program_status(config_options, mpi_config)
@@ -1791,19 +1833,19 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
             err_handler.check_program_status(config_options, mpi_config)
 
             # Close the temporary NetCDF file and remove it.
-            if mpi_config.rank == 0:
-                try:
-                    id_tmp_height.close()
-                except OSError:
-                    config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-
-                try:
-                    os.remove(input_forcings.tmpFileHeight)
-                except OSError:
-                    config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            # if mpi_config.rank == 0:
+            #     try:
+            #         id_tmp_height.close()
+            #     except OSError:
+            #         config_options.errMsg = "Unable to close temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            #
+            #     try:
+            #         os.remove(input_forcings.tmpFileHeight)
+            #     except OSError:
+            #         config_options.errMsg = "Unable to remove temporary file: " + input_forcings.tmpFileHeight
+            #         err_handler.log_critical(config_options, mpi_config)
+            # err_handler.check_program_status(config_options, mpi_config)
 
         err_handler.check_program_status(config_options, mpi_config)
 
@@ -1874,19 +1916,19 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
         err_handler.check_program_status(config_options, mpi_config)
 
-        # Close the temporary NetCDF file and remove it.
-        if mpi_config.rank == 0:
-            try:
-                id_tmp.close()
-            except OSError:
-                config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                err_handler.log_critical(config_options, mpi_config)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except OSError:
-                config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                err_handler.log_critical(config_options, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+    # Close the temporary NetCDF file and remove it.
+    if mpi_config.rank == 0:
+        try:
+            id_tmp.close()
+        except OSError:
+            config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+            err_handler.log_critical(config_options, mpi_config)
+        try:
+            os.remove(input_forcings.tmpFile)
+        except OSError:
+            config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
+            err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
 
 def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
@@ -1900,7 +1942,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     """
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
-    if not os.path.isfile(supplemental_precip.file_in2):
+    if not os.path.exists(supplemental_precip.file_in1):
         return
 
     # Check to see if the regrid complete flag for this
@@ -1914,7 +1956,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
 
     # Create a path for a temporary NetCDF files that will
     # be created through the wgrib2 process.
-    arw_tmp_nc = config_options.scratch_dir + "/ARW_PCP_TMP.nc"
+    arw_tmp_nc = config_options.scratch_dir + "/ARW_PCP_TMP-{}.nc".format(mkfilename())
 
     # These files shouldn't exist. If they do, remove them.
     if mpi_config.rank == 0:
@@ -1930,7 +1972,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
 
     # If the input paths have been set to None, this means input is missing. We will
     # alert the user, and set the final output grids to be the global NDV and return.
-    # if not supplemental_precip.file_in1 or not supplemental_precip.file_in2:
+    # if not supplemental_precip.file_in1 or not supplemental_precip.file_in1:
     #    if MpiConfig.rank == 0:
     #        "NO ARW PRECIP AVAILABLE. SETTING FINAL SUPP GRIDS TO NDV"
     #    supplemental_precip.regridded_precip2 = None
@@ -1939,12 +1981,12 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Create a temporary NetCDF file from the GRIB2 file.
-    cmd = "$WGRIB2 " + supplemental_precip.file_in2 + " -match \":(" + \
-          "APCP):(surface):(" + str(supplemental_precip.fcst_hour1) + \
-          "-" + str(supplemental_precip.fcst_hour2) + " hour acc fcst):\"" + \
+    cmd = "$WGRIB2 " + supplemental_precip.file_in1 + " -match \":(" + \
+          "APCP):(surface):(" + str(supplemental_precip.fcst_hour1 - 1) + \
+          "-" + str(supplemental_precip.fcst_hour1) + " hour acc fcst):\"" + \
           " -netcdf " + arw_tmp_nc
 
-    id_tmp = ioMod.open_grib2(supplemental_precip.file_in2, arw_tmp_nc, cmd,
+    id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, arw_tmp_nc, cmd,
                               config_options, mpi_config, "APCP_surface")
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -1970,7 +2012,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
             var_tmp = id_tmp.variables['APCP_surface'][0, :, :]
         except (ValueError, KeyError, AttributeError) as err:
             config_options.errMsg = "Unable to extract precipitation from WRF ARW file: " + \
-                                    supplemental_precip.file_in2 + " (" + str(err) + ")"
+                                    supplemental_precip.file_in1 + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -2088,7 +2130,7 @@ def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf
     # mpi_config.comm.barrier()
 
     # Broadcast the flag to the other processors.
-    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options)
+    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options, param_type=bool)
     err_handler.check_program_status(config_options, mpi_config)
 
     return calc_regrid_flag
@@ -2161,7 +2203,7 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
     # mpi_config.comm.barrier()
 
     # Broadcast the flag to the other processors.
-    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options)
+    calc_regrid_flag = mpi_config.broadcast_parameter(calc_regrid_flag, config_options, param_type=bool)
 
     mpi_config.comm.barrier()
     return calc_regrid_flag
@@ -2179,6 +2221,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     :param force_count:
     :return:
     """
+
     if mpi_config.rank == 0:
         try:
             input_forcings.ny_global = id_tmp.variables[input_forcings.netcdf_var_names[force_count]].shape[1]
@@ -2198,13 +2241,14 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
 
     # Broadcast the forcing nx/ny values
     input_forcings.ny_global = mpi_config.broadcast_parameter(input_forcings.ny_global,
-                                                              config_options)
+                                                              config_options, param_type=int)
     err_handler.check_program_status(config_options, mpi_config)
     input_forcings.nx_global = mpi_config.broadcast_parameter(input_forcings.nx_global,
-                                                              config_options)
+                                                              config_options, param_type=int)
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
+        # noinspection PyTypeChecker
         input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global, input_forcings.nx_global]),
                                                 staggerloc=ESMF.StaggerLoc.CENTER,
                                                 coord_sys=ESMF.CoordSys.SPH_DEG)
@@ -2231,8 +2275,8 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     # to have a size of at least 2.
     if input_forcings.nx_local < 2 or input_forcings.ny_local < 2:
         config_options.errMsg = "You have either specified too many cores for: " + input_forcings.productName + \
-                               ", or  your input forcing grid is too small to process. Local grid must " \
-                               "have x/y dimension size of 2."
+                                ", or  your input forcing grid is too small to process. Local grid must " \
+                                "have x/y dimension size of 2."
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -2316,36 +2360,81 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
     # mpi_config.comm.barrier()
 
-    if mpi_config.rank == 0:
-        config_options.statusMsg = "Creating weight object from ESMF"
-        err_handler.log_msg(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
-    try:
-        input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
-                                               input_forcings.esmf_field_out,
-                                               src_mask_values=np.array([0]),
-                                               regrid_method=ESMF.RegridMethod.BILINEAR,
-                                               unmapped_action=ESMF.UnmappedAction.IGNORE)
-    except (RuntimeError, ImportError, ESMF.ESMPyException) as esmf_error:
-        config_options.errMsg = "Unable to regrid input data from ESMF: " + str(esmf_error)
-        err_handler.log_critical(config_options, mpi_config)
-        etype, value, tb = sys.exc_info()
-        traceback.print_exception(etype, value, tb)
-        print(input_forcings.esmf_field_in)
-        print(input_forcings.esmf_field_out)
-        print(np.array([0]))  
-        
-    err_handler.check_program_status(config_options, mpi_config)
+    # ## CALCULATE WEIGHT ## #
+    # Try to find a pre-existing weight file, if available
 
-    # Run the regridding object on this test dataset. Check the output grid for
-    # any 0 values.
-    try:
-        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                 input_forcings.esmf_field_out)
-    except ValueError as ve:
-        config_options.errMsg = "Unable to extract regridded data from ESMF regridded field: " + str(ve)
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+    weight_file = None
+    if config_options.weightsDir is not None:
+        grid_key = input_forcings.productName
+        weight_file = os.path.join(config_options.weightsDir, "ESMF_weight_{}.nc4".format(grid_key))
+        # check if file exists:
+        if os.path.exists(weight_file):
+            # read the data
+            try:
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Loading cached ESMF weight object for " + input_forcings.productName + \
+                                               " from " + weight_file
+                    err_handler.log_msg(config_options, mpi_config)
+                err_handler.check_program_status(config_options, mpi_config)
+
+                begin = time.monotonic()
+                input_forcings.regridObj = ESMF.RegridFromFile(input_forcings.esmf_field_in,
+                                                               input_forcings.esmf_field_out,
+                                                               weight_file)
+                end = time.monotonic()
+
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Finished loading weight object with ESMF, took {} seconds".format(
+                        end - begin)
+                    err_handler.log_msg(config_options, mpi_config)
+
+            except (IOError, ValueError, ESMF.ESMPyException) as esmf_error:
+                config_options.errMsg = "Unable to load cached ESMF weight file: " + str(esmf_error)
+                err_handler.log_warning(config_options, mpi_config)
+
+    if input_forcings.regridObj is None:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Creating weight object from ESMF"
+            err_handler.log_msg(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+        try:
+            begin = time.monotonic()
+            input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
+                                                   input_forcings.esmf_field_out,
+                                                   src_mask_values=np.array([0]),
+                                                   regrid_method=ESMF.RegridMethod.BILINEAR,
+                                                   unmapped_action=ESMF.UnmappedAction.IGNORE,
+                                                   filename=weight_file)
+            end = time.monotonic()
+
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Finished generating weight object with ESMF, took {} seconds".format(
+                        end - begin)
+                err_handler.log_msg(config_options, mpi_config)
+        except (RuntimeError, ImportError, ESMF.ESMPyException) as esmf_error:
+            config_options.errMsg = "Unable to regrid input data from ESMF: " + str(esmf_error)
+            err_handler.log_critical(config_options, mpi_config)
+            etype, value, tb = sys.exc_info()
+            traceback.print_exception(etype, value, tb)
+            print(input_forcings.esmf_field_in)
+            print(input_forcings.esmf_field_out)
+            print(np.array([0]))
+
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Run the regridding object on this test dataset. Check the output grid for
+        # any 0 values.
+        try:
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+        except ValueError as ve:
+            config_options.errMsg = "Unable to extract regridded data from ESMF regridded field: " + str(ve)
+            err_handler.log_critical(config_options, mpi_config)
+            # delete bad cached file if it exists
+            if weight_file is not None:
+                if os.path.exists(weight_file):
+                    os.remove(weight_file)
+        err_handler.check_program_status(config_options, mpi_config)
 
     input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]
 
@@ -2381,12 +2470,13 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
 
     # Broadcast the forcing nx/ny values
     supplemental_precip.ny_global = mpi_config.broadcast_parameter(supplemental_precip.ny_global,
-                                                                   config_options)
+                                                                   config_options, param_type=int)
     supplemental_precip.nx_global = mpi_config.broadcast_parameter(supplemental_precip.nx_global,
-                                                                   config_options)
+                                                                   config_options, param_type=int)
     # mpi_config.comm.barrier()
 
     try:
+        # noinspection PyTypeChecker
         supplemental_precip.esmf_grid_in = ESMF.Grid(np.array([supplemental_precip.ny_global,
                                                                supplemental_precip.nx_global]),
                                                      staggerloc=ESMF.StaggerLoc.CENTER,
@@ -2406,7 +2496,7 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
         supplemental_precip.ny_local = supplemental_precip.y_upper_bound - supplemental_precip.y_lower_bound
     except (ValueError, KeyError, AttributeError) as err:
         config_options.errMsg = "Unable to extract local X/Y boundaries from global grid from temporary " + \
-                               "file: " + tmp_file + " (" + str(err) + ")"
+                                "file: " + tmp_file + " (" + str(err) + ")"
         err_handler.err_out(config_options)
     # mpi_config.comm.barrier()
 
@@ -2414,8 +2504,8 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     # to have a size of at least 2.
     if supplemental_precip.nx_local < 2 or supplemental_precip.ny_local < 2:
         config_options.errMsg = "You have either specified too many cores for: " + supplemental_precip.productName + \
-                               ", or  your input forcing grid is too small to process. Local grid " \
-                               "must have x/y dimension size of 2."
+                                ", or  your input forcing grid is too small to process. Local grid " \
+                                "must have x/y dimension size of 2."
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 

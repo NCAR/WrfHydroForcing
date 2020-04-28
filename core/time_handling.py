@@ -18,11 +18,15 @@ def calculate_lookback_window(config_options):
     :return: Updated abstract class with updated datetime variables.
     """
     # First calculate the current time in UTC.
-    d_current_utc = datetime.datetime.utcnow()
+    if config_options.realtime_flag:
+        d_current_utc = datetime.datetime.utcnow()
+    else:
+        d_current_utc = config_options.b_date_proc
 
     # Next, subtract the lookup window (specified in minutes) to get a crude window
     # of processing.
-    d_lookback = d_current_utc - datetime.timedelta(seconds=60 * config_options.look_back)
+    d_lookback = d_current_utc - datetime.timedelta(
+        seconds=60 * (config_options.look_back - config_options.output_freq))
 
     # Determine the first forecast iteration that will be processed on this day
     # based on the forecast frequency and where in the day we are at.
@@ -40,7 +44,7 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-    config_options.nFcsts = int(n_fcst_steps)
+    config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
         seconds=n_fcst_steps * config_options.fcst_freq * 60)
 
@@ -56,7 +60,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     """
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing Conus HRRR Data. Calculating neighboring " \
-                                  "files for this output timestep"
+                                   "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
     # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.
@@ -68,8 +72,9 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
         six_hr_horizon = 18  # 18-hour forecasts every six hours.
 
     # First find the current HRRR forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
     current_hrrr_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-        seconds=input_forcings.userCycleOffset * 60.0)
+        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     if current_hrrr_cycle.hour % 6 != 0:
         hrrr_horizon = default_horizon
     else:
@@ -117,14 +122,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + '.grib2'
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + '.grib2'
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -168,7 +173,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(input_forcings.file_in2):
+        if not os.path.exists(input_forcings.file_in2):
             if input_forcings.enforce == 1:
                 config_options.errMsg = "Expected input HRRR file: " + input_forcings.file_in2 + " not found."
                 err_handler.log_critical(config_options, mpi_config)
@@ -180,7 +185,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
-    if not os.path.isfile(input_forcings.file_in2):
+    if not os.path.exists(input_forcings.file_in2):
         if input_forcings.regridded_forcings2 is not None:
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 
@@ -202,8 +207,9 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         extra_hr_horizon = 18  # 18-hour forecasts every six hours.
 
     # First find the current RAP forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-            seconds=input_forcings.userCycleOffset * 60.0)
+            seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
         rap_horizon = default_horizon
@@ -244,7 +250,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
-    if prev_rap_forecast_hour == 0:
+    if prev_rap_forecast_hour < 1:
         prev_rap_forecast_hour = 1
 
     # Calculate expected file paths.
@@ -533,8 +539,18 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     err_handler.check_program_status(config_options, mpi_config)
 
     # First find the current NAM nest forecast cycle that we are using.
-    current_nam_nest_cycle = config_options.current_fcst_cycle - \
-        datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+    if config_options.ana_flag:
+        # find nearest previous cycle, and always use the first cycle for consistency
+        shift = config_options.first_fcst_cycle.hour % 6
+        current_nam_nest_cycle = config_options.first_fcst_cycle - datetime.timedelta(seconds=3600*shift)
+
+        # avoid forecast hours 0-3, shift back if necessary
+        if config_options.first_fcst_cycle.hour % 6 < 4:
+            current_nam_nest_cycle -= datetime.timedelta(seconds=21600)     # shift back 6 hours
+    else:
+        current_nam_nest_cycle = config_options.current_fcst_cycle - \
+            datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Current NAM nest cycle being used: " + \
                                    current_nam_nest_cycle.strftime('%Y-%m-%d %H')
@@ -570,6 +586,9 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     # Calculate the output forecast hours needed based on the prev/next dates.
     dt_tmp = next_nam_nest_date - current_nam_nest_cycle
     next_nam_nest_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
+    if config_options.ana_flag:
+        next_nam_nest_forecast_hour -= 1    # for analysis vs forecast
+
     input_forcings.fcst_hour2 = next_nam_nest_forecast_hour
     dt_tmp = prev_nam_nest_date - current_nam_nest_cycle
     prev_nam_nest_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
@@ -940,21 +959,35 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
         next_mrms_date = prev_mrms_date + datetime.timedelta(seconds=3600.0)
 
     supplemental_precip.pcp_date1 = prev_mrms_date
-    supplemental_precip.pcp_date2 = next_mrms_date
+    #supplemental_precip.pcp_date2 = next_mrms_date
+    supplemental_precip.pcp_date2 = prev_mrms_date
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 1:
-        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date1.strftime('%H') + \
             "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000.grib2.gz"
+
     elif supplemental_precip.keyValue == 2:
+        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
+                   supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                   "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                   "0000.grib2.gz"
+        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
+                   supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                   "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                   "0000.grib2.gz"
+
+    elif supplemental_precip.keyValue == 5:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -969,16 +1002,31 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
         tmp_file1 = tmp_file2 = ""
 
     # Compose the RQI paths.
-    tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "MRMS_RadarQualityIndex_00.00_" + \
-        supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-        "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-        "0000.grib2.gz"
-    tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-        "MRMS_RadarQualityIndex_00.00_" + \
-        supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-        "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-        "0000.grib2.gz"
+    if supplemental_precip.keyValue == 1 or supplemental_precip.keyValue == 2:
+       tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+           "0000.grib2.gz"
+       tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+           "0000.grib2.gz"
+    elif supplemental_precip.keyValue == 5:
+       tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "MRMS_EXP_RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+           "0000.grib2.gz"
+       tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+           "MRMS_EXP_RadarQualityIndex_00.00_" + \
+           supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+           "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+           "0000.grib2.gz"
+    else:
+       tmp_rqi_file1 = tmp_rqi_file2 = ""
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous MRMS supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
@@ -1059,7 +1107,24 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         default_horizon = 48  # Current forecasts go out to 48 hours.
 
     # First find the current ARW forecast cycle that we are using.
-    current_arw_cycle = config_options.current_fcst_cycle
+    if config_options.ana_flag:
+        current_arw_cycle = config_options.current_fcst_cycle
+
+        # find nearest previous cycle
+        shift = config_options.current_fcst_cycle.hour % 12
+        # use the ForecastInputOffsets from the configuration to offset non-00z cycling
+        if shift < supplemental_precip.userCycleOffset:
+            shift += supplemental_precip.userCycleOffset
+        else:
+            shift -= supplemental_precip.userCycleOffset
+        current_arw_cycle -= datetime.timedelta(seconds=3600*shift)
+
+        # avoid forecast hours 0-3, shift back if necessary
+        if 3 < (config_options.first_fcst_cycle.hour % 12) <= 9 and shift < 6:
+            current_arw_cycle -= datetime.timedelta(seconds=43200)  # shift back 12 hours
+
+    else:
+        current_arw_cycle = config_options.current_fcst_cycle
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing WRF-ARW supplemental precipitation from " \
@@ -1083,10 +1148,11 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         fcst_horizon = 48
     if supplemental_precip.keyValue == 4:
         # Data only available for 06/18 UTC cycles.
-        if current_arw_cycle.hour != 6 and current_arw_cycle.hour != 18:
+        cycle = current_arw_cycle
+        if cycle.hour != 6 and cycle.hour != 18:
             if mpi_config.rank == 0:
-                config_options.statusMsg = "No Puerto Rico WRF-ARW found for this cycle. " \
-                                           "No supplemental ARW precipitation will be used."
+                config_options.statusMsg = "No Puerto Rico WRF-ARW found for cycle {}. " \
+                                           "No supplemental ARW precipitation will be used.".format(cycle)
                 err_handler.log_msg(config_options, mpi_config)
             supplemental_precip.file_in1 = None
             supplemental_precip.file_in2 = None
@@ -1172,7 +1238,7 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
 
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Previous ARW input file: " + tmp_file1
+        config_options.statusMsg = "Current ARW input file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next ARW input file: " + tmp_file2
         err_handler.log_msg(config_options, mpi_config)
@@ -1220,3 +1286,5 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+
+    # supplemental_precip.file_in2 = supplemental_precip.file_in1

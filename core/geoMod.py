@@ -106,10 +106,10 @@ class GeoMetaWrfHydro:
         #MpiConfig.comm.barrier()
 
         # Broadcast global dimensions to the other processors.
-        self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions)
-        self.ny_global = MpiConfig.broadcast_parameter(self.ny_global,ConfigOptions)
-        self.dx_meters = MpiConfig.broadcast_parameter(self.dx_meters,ConfigOptions)
-        self.dy_meters = MpiConfig.broadcast_parameter(self.dy_meters,ConfigOptions)
+        self.nx_global = MpiConfig.broadcast_parameter(self.nx_global,ConfigOptions, param_type=int)
+        self.ny_global = MpiConfig.broadcast_parameter(self.ny_global,ConfigOptions, param_type=int)
+        self.dx_meters = MpiConfig.broadcast_parameter(self.dx_meters,ConfigOptions, param_type=float)
+        self.dy_meters = MpiConfig.broadcast_parameter(self.dy_meters,ConfigOptions, param_type=float)
 
         #MpiConfig.comm.barrier()
 

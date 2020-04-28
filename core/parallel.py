@@ -1,4 +1,6 @@
 import numpy as np
+import mpi4py
+mpi4py.rc.threaded = False
 from mpi4py import MPI
 
 from core import err_handler
@@ -43,25 +45,28 @@ class MpiConfig:
             config_options.errMsg = "Unable to retrieve the MPI processor rank."
             raise mpi_exception
 
-    def broadcast_parameter(self, value_broadcast, config_options):
+    def broadcast_parameter(self, value_broadcast, config_options, param_type=int):
         """
         Generic function for sending a parameter value out to the processors.
         :param value_broadcast:
         :param config_options:
         :return:
         """
-        # Create dictionary to hold value.
+
+        dtype = np.dtype(param_type)
+
         if self.rank == 0:
-            tmp_dict = {'varTmp': value_broadcast}
+            param = np.asarray(value_broadcast, dtype=dtype)
         else:
-            tmp_dict = None
+            param = np.empty(dtype=dtype, shape=())
+
         try:
-            tmp_dict = self.comm.bcast(tmp_dict, root=0)
+            self.comm.Bcast(param, root=0)
         except MPI.Exception:
             config_options.errMsg = "Unable to broadcast single value from rank 0."
             err_handler.log_critical(config_options, self)
             return None
-        return tmp_dict['varTmp']
+        return param.item(0)
 
     def scatter_array_logan(self, geoMeta, array_broadcast, ConfigOptions):
         """
@@ -102,7 +107,7 @@ class MpiConfig:
                 arrayGlobalTmp = np.empty([geoMeta.ny_global,
                                            geoMeta.nx_global],
                                           np.float32)
-            if data_type_flag == 2:
+            else:                                            #data_type_flag == 2:
                 arrayGlobalTmp = np.empty([geoMeta.ny_global,
                                            geoMeta.nx_global],
                                           np.float64)
@@ -136,19 +141,21 @@ class MpiConfig:
             if src_array.dtype == np.float64:
                 data_type_flag = 2
 
-        # Broadcast the numpy datatype to the other processors.
+        # Broadcast the data_type_flag to other processors
         if self.rank == 0:
-            tmpDict = {'varTmp': data_type_flag}
+            data_type_buffer = np.array([data_type_flag],np.int32)
         else:
-            tmpDict = None
+            data_type_buffer = np.empty(1,np.int32)
+
         try:
-            tmpDict = self.comm.bcast(tmpDict, root=0)
+            self.comm.Bcast(data_type_buffer, root=0)
         except:
             ConfigOptions.errMsg = "Unable to broadcast numpy datatype value from rank 0"
             err_handler.err_out(ConfigOptions)
             return None
-        data_type_flag = tmpDict['varTmp']
 
+        data_type_flag = data_type_buffer[0];
+        data_type_buffer = None;
 
         # gather buffer offsets and bounds to rank 0
         bounds = np.array(
@@ -212,3 +219,74 @@ class MpiConfig:
 
     # use scatterv based scatter_array
     scatter_array = scatter_array_scatterv_no_cache
+
+    def merge_slabs_gatherv(self, local_slab, options):
+
+        # gather buffer offsets and bounds to rank 0
+        shapes = np.array([np.int32(local_slab.shape[0]), np.int32(local_slab.shape[1])])
+        global_shapes = np.zeros((self.size * 2), np.int32)
+
+        try:
+            self.comm.Allgather([shapes, MPI.INTEGER], [global_shapes, MPI.INTEGER])
+        except:
+            options.errMsg ="Failed all gathering slab shapes at rank" + str(self.rank)
+            err_handler.log_critical(options,self)
+            global_bounds = None
+        
+        #options.errMsg = "All gather for global shapes complete"
+        #err_handler.log_msg(options,self)
+
+        width = global_shapes[1]
+
+        # check that all slabes are the same width and sum the number of rows
+        total_rows = 0
+        for i in range(0,self.size):
+            total_rows += global_shapes[2*i]
+            if global_shapes[(2*i)+1] != width:
+                options.errMsg = "Error: slabs with differing widths detected on slab for rank" + str(i)
+                err_handler.log_critical(options,self)
+                self.comm.abort()
+
+        #options.errMsg = "Checking of Rows and Columns complete"
+        #err_handler.log_msg(options,self)
+
+        # generate counts
+        counts = [ global_shapes[i*2] * global_shapes[(i*2)+1]
+                   for i in range(0,self.size)]
+
+        #generate offsets:
+        offsets = [0]
+        for i in range(0, len(counts) -1 ):
+            offsets.append(offsets[i] + counts[i])
+
+        #options.errMsg = "Counts and Offsets generated"
+        #err_handler.log_msg(options,self)
+
+        # create the receive buffer
+        if self.rank == 0:
+            recvbuf = np.empty([total_rows, width], local_slab.dtype)
+        else:
+            recvbuf = None
+
+        # set the MPI data type
+        data_type = MPI.BYTE
+        if local_slab.dtype == np.float32:
+            data_type = MPI.FLOAT
+        elif local_slab.dtype == np.float64:
+            data_type = MPI.DOUBLE
+        elif data_type == np.int32:
+            data_type = MPI.INT
+
+        # get the data with Gatherv
+        try:
+            self.comm.Gatherv(sendbuf=local_slab, recvbuf=[recvbuf, counts, offsets, data_type], root=0)
+        except:
+            options.errMsg = "Failed to Gatherv to rank 0 from rank " + str(self.rank)
+            err_handler.log_critical(options,self)
+            return None
+
+        #options.errMsg = "Gatherv complete"
+        #err_handler.log_msg(options,self)
+
+        return recvbuf
+
