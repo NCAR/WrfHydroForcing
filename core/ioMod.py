@@ -106,7 +106,7 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    idOut.createDimension("reference_time", None)
+                    idOut.createDimension("reference_time", 1)
                 except:
                     ConfigOptions.errMsg = "Unable to create reference_time dimension in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
