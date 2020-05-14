@@ -161,53 +161,54 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 ConfigOptions.currentCustomForceNum = 0
                 # Loop over each of the input forcings specifed.
                 for forceKey in ConfigOptions.input_forcings:
+                    input_forcings = inputForcingMod[forceKey]
                     # Calculate the previous and next input cycle files from the inputs.
-                    inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
+                    input_forcings.calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Regrid forcings.
-                    inputForcingMod[forceKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
+                    input_forcings.regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run check on regridded fields for reasonable values that are not missing values.
-                    err_handler.check_forcing_bounds(ConfigOptions, inputForcingMod[forceKey], MpiConfig)
+                    err_handler.check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # If we are restarting a forecast cycle, re-calculate the neighboring files, and regrid the
                     # next set of forcings as the previous step just regridded the previous forcing.
-                    if inputForcingMod[forceKey].rstFlag == 1:
-                        if inputForcingMod[forceKey].regridded_forcings1 is not None and \
-                                inputForcingMod[forceKey].regridded_forcings2 is not None:
+                    if input_forcings.rstFlag == 1:
+                        if input_forcings.regridded_forcings1 is not None and \
+                                input_forcings.regridded_forcings2 is not None:
                             # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
-                            inputForcingMod[forceKey].regridded_forcings1[:, :, :] = \
-                                inputForcingMod[forceKey].regridded_forcings2[:, :, :]
+                            input_forcings.regridded_forcings1[:, :, :] = \
+                                input_forcings.regridded_forcings2[:, :, :]
 
                         # Re-calculate the neighbor files.
-                        inputForcingMod[forceKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
+                        input_forcings.calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                         # Regrid the forcings for the end of the window.
-                        inputForcingMod[forceKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
+                        input_forcings.regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                        inputForcingMod[forceKey].rstFlag = 0
+                        input_forcings.rstFlag = 0
 
                     # Run temporal interpolation on the grids.
-                    inputForcingMod[forceKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                    input_forcings.temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run bias correction.
-                    bias_correction.run_bias_correction(inputForcingMod[forceKey], ConfigOptions,
+                    bias_correction.run_bias_correction(input_forcings, ConfigOptions,
                                                         wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Run downscaling on grids for this output timestep.
-                    downscale.run_downscaling(inputForcingMod[forceKey], ConfigOptions,
+                    downscale.run_downscaling(input_forcings, ConfigOptions,
                                               wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     # Layer in forcings from this product.
-                    layeringMod.layer_final_forcings(OutputObj, inputForcingMod[forceKey], ConfigOptions, MpiConfig)
+                    layeringMod.layer_final_forcings(OutputObj, input_forcings, ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
