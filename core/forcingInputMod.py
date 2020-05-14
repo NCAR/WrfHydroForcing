@@ -102,6 +102,7 @@ class input_forcings:
         self.rstFlag = 0
         self.regridded_precip1 = None
         self.regridded_precip2 = None
+        self.border = None
 
     def define_product(self):
         """
@@ -479,6 +480,8 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
+
+        InputDict[force_key].border = ConfigOptions.ignored_border_widths[force_tmp]
 
         # If we have specified specific humidity downscaling, establish arrays to hold
         # temporary temperature arrays that are un-downscaled.

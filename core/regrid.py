@@ -2280,6 +2280,28 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
+    # check if we're doing border trimming and set up mask
+    border = input_forcings.border  # // 5  # HRRR is a 3 km product
+    if border > 0:
+        try:
+            mask = input_forcings.esmf_grid_in.add_item(ESMF.GridItem.MASK, ESMF.StaggerLoc.CENTER)
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Trimming input forcing `{}` by {} grid cells".format(
+                        input_forcings.productName,
+                        border)
+                err_handler.log_msg(config_options, mpi_config)
+
+            gmask = np.ones([input_forcings.ny_global, input_forcings.nx_global])
+            gmask[:+border, :] = 0.  # top edge
+            gmask[-border:, :] = 0.  # bottom edge
+            gmask[:, :+border] = 0.  # left edge
+            gmask[:, -border:] = 0.  # right edge
+
+            mask[:, :] = mpi_config.scatter_array(input_forcings, gmask, config_options)
+            err_handler.check_program_status(config_options, mpi_config)
+        except Exception as e:
+            print(e, flush=True)
+
     lat_tmp = None
     lon_tmp = None
     if mpi_config.rank == 0:
@@ -2366,7 +2388,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     weight_file = None
     if config_options.weightsDir is not None:
         grid_key = input_forcings.productName
-        weight_file = os.path.join(config_options.weightsDir, "ESMF_weight_{}.nc4".format(grid_key))
+        weight_file = os.path.join(config_options.weightsDir, "ESMF_weight_{}_b{}.nc4".format(grid_key, border))
         # check if file exists:
         if os.path.exists(weight_file):
             # read the data
