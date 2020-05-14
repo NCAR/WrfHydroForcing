@@ -57,6 +57,7 @@ class ConfigOptions:
         self.process_window = None
         self.geogrid = None
         self.spatial_meta = None
+        self.ignored_border_widths = None
         self.regrid_opt = None
         self.weightsDir = None
         self.regrid_opt_supp_pcp = None
@@ -516,6 +517,23 @@ class ConfigOptions:
             if not os.path.isfile(self.spatial_meta):
                 err_handler.err_out_screen('Unable to locate optional spatial metadata file: ' +
                                            self.spatial_meta)
+
+        # Check for the IgnoredBorderWidths
+        try:
+            self.ignored_border_widths = json.loads(config['Geospatial']['IgnoredBorderWidths'])
+        except (KeyError, configparser.NoOptionError):
+            # if didn't specify, no worries, just set to 0
+            self.ignored_border_widths = [0.0]*self.number_inputs
+        except json.decoder.JSONDecodeError:
+            err_handler.err_out_screen('Improper IgnoredBorderWidths option specified in the configuration file.'
+                                       '({} was supplied'.format(config['Geospatial']['IgnoredBorderWidths']))
+        if len(self.ignored_border_widths) != self.number_inputs:
+            err_handler.err_out_screen('Please specify IgnoredBorderWidths values for each '
+                                       'corresponding input forcings for SuppForcing.'
+                                       '({} was supplied'.format(self.ignored_border_widths))
+        if any(map(lambda x: x < 0, self.ignored_border_widths)):
+            err_handler.err_out_screen('Please specify IgnoredBorderWidths values greater than or equal to zero:'
+                                       '({} was supplied'.format(self.ignored_border_widths))
 
         # Process regridding options.
         try:
