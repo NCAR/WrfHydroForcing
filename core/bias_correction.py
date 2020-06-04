@@ -9,10 +9,14 @@ import os
 import random
 import time
 
+import ESMF
 import numpy as np
 from netCDF4 import Dataset
 
 from core import err_handler
+
+PARAM_NX = 384
+PARAM_NY = 190
 
 NumpyExceptions = (IndexError, ValueError, AttributeError, ArithmeticError)
 
@@ -859,13 +863,13 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
             config_options.errMsg = "Expected to find lon_0 dimension in: " + nldas_param_file
             err_handler.log_critical(config_options, mpi_config)
 
-        if id_nldas_param.dimensions['lat_0'].size != 190:
-            config_options.errMsg = "Expected lat_0 size is 190 - found size of: " + \
+        if id_nldas_param.dimensions['lat_0'].size != PARAM_NY:
+            config_options.errMsg = "Expected lat_0 size is {} - found size of: ".format(PARAM_NY) + \
                                     str(id_nldas_param.dimensions['lat_0'].size) + " in: " + nldas_param_file
             err_handler.log_critical(config_options, mpi_config)
 
-        if id_nldas_param.dimensions['lon_0'].size != 384:
-            config_options.errMsg = "Expected lon_0 size is 384 - found size of: " + \
+        if id_nldas_param.dimensions['lon_0'].size != PARAM_NX:
+            config_options.errMsg = "Expected lon_0 size is {} - found size of: ".format(PARAM_NX) + \
                                     str(id_nldas_param.dimensions['lon_0'].size) + " in: " + nldas_param_file
             err_handler.log_critical(config_options, mpi_config)
 
@@ -901,14 +905,14 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                                    " from: " + nldas_param_file + " (" + str(npe) + ")"
             err_handler.log_critical(config_options, mpi_config)
 
-        if nldas_param_1.shape[0] != 190 or nldas_param_1.shape[1] != 384:
+        if nldas_param_1.shape[0] != PARAM_NY or nldas_param_1.shape[1] != PARAM_NX:
             config_options.errMsg = "Parameter variable: " + nldas_param1_vars[force_num] + " from: " + \
-                                    nldas_param_file + " not of shape [190,384]."
+                                    nldas_param_file + " not of shape [{},{}].".format(PARAM_NY, PARAM_NX)
             err_handler.log_critical(config_options, mpi_config)
 
-        if nldas_param_2.shape[0] != 190 or nldas_param_2.shape[1] != 384:
+        if nldas_param_2.shape[0] != PARAM_NY or nldas_param_2.shape[1] != PARAM_NX:
             config_options.errMsg = "Parameter variable: " + nldas_param2_vars[force_num] + " from: " + \
-                                    nldas_param_file + " not of shape [190,384]."
+                                    nldas_param_file + " not of shape [{},{}].".format(PARAM_NY, PARAM_NX)
             err_handler.log_critical(config_options, mpi_config)
 
         # Extract the fill value
@@ -932,9 +936,9 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                                         " (" + str(npe) + ")"
                 err_handler.log_critical(config_options, mpi_config)
 
-            if nldas_zero_pcp.shape[0] != 190 or nldas_zero_pcp.shape[1] != 384:
+            if nldas_zero_pcp.shape[0] != PARAM_NY or nldas_zero_pcp.shape[1] != PARAM_NX:
                 config_options.errMsg = "Parameter variable: ZERO_PRECIP_PROB from: " + nldas_param_file + \
-                                       " not of shape [190,384]."
+                                        " not of shape [{},{}].".format(PARAM_NY, PARAM_NX)
                 err_handler.log_critical(config_options, mpi_config)
 
         # Set missing values accordingly.
@@ -942,6 +946,12 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         nldas_param_2[np.where(nldas_param_1 == fill_tmp)] = config_options.globalNdv
         if force_num == 4:
             nldas_zero_pcp[np.where(nldas_zero_pcp == fill_tmp)] = config_options.globalNdv
+
+        # Params are y-mirrored compared to the way WGRIB2 produces output
+        nldas_param_1 = np.flip(nldas_param_1, axis=0)
+        nldas_param_2 = np.flip(nldas_param_2, axis=0)
+        if nldas_zero_pcp is not None:
+            nldas_zero_pcp = np.flip(nldas_zero_pcp, axis=0)
 
     else:
         nldas_param_1 = None
@@ -1048,17 +1058,17 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                                     " (" + str(npe) + ")"
             err_handler.log_critical(config_options, mpi_config)
 
-        if param_1.shape[0] != 190 and param_1.shape[1] != 384:
+        if param_1.shape[0] != PARAM_NY and param_1.shape[1] != PARAM_NX:
             config_options.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path2
             err_handler.log_critical(config_options, mpi_config)
-        if param_2.shape[0] != 190 and param_2.shape[1] != 384:
+        if param_2.shape[0] != PARAM_NY and param_2.shape[1] != PARAM_NX:
             config_options.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path2
             err_handler.log_critical(config_options, mpi_config)
 
-        if prev_param_1.shape[0] != 190 and prev_param_1.shape[1] != 384:
+        if prev_param_1.shape[0] != PARAM_NY and prev_param_1.shape[1] != PARAM_NX:
             config_options.errMsg = "Unexpected DISTRIBUTION_PARAM_1 found in: " + cfs_param_path1
             err_handler.log_critical(config_options, mpi_config)
-        if prev_param_2.shape[0] != 190 and prev_param_2.shape[1] != 384:
+        if prev_param_2.shape[0] != PARAM_NY and prev_param_2.shape[1] != PARAM_NX:
             config_options.errMsg = "Unexpected DISTRIBUTION_PARAM_2 found in: " + cfs_param_path1
             err_handler.log_critical(config_options, mpi_config)
 
@@ -1080,10 +1090,10 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                                         " (" + str(npe) + ")"
                 err_handler.log_critical(config_options, mpi_config)
 
-            if zero_pcp.shape[0] != 190 and zero_pcp.shape[1] != 384:
+            if zero_pcp.shape[0] != PARAM_NY and zero_pcp.shape[1] != PARAM_NX:
                 config_options.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path2
                 err_handler.log_critical(config_options, mpi_config)
-            if prev_zero_pcp.shape[0] != 190 and prev_zero_pcp.shape[1] != 384:
+            if prev_zero_pcp.shape[0] != PARAM_NY and prev_zero_pcp.shape[1] != PARAM_NX:
                 config_options.errMsg = "Unexpected ZERO_PRECIP_PROB found in: " + cfs_param_path1
                 err_handler.log_critical(config_options, mpi_config)
 
@@ -1096,6 +1106,15 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         if force_num == 4:
             zero_pcp[np.where(zero_pcp > 500000.0)] = config_options.globalNdv
             prev_zero_pcp[np.where(prev_zero_pcp > 500000.0)] = config_options.globalNdv
+
+        # Params are y-mirrored compared to the way WGRIB2 produces output
+        param_1 = np.flip(param_1, axis=0)
+        param_2 = np.flip(param_2, axis=0)
+        prev_param_1 = np.flip(prev_param_1, axis=0)
+        prev_param_2 = np.flip(prev_param_2, axis=0)
+        if force_num == 4:
+            zero_pcp = np.flip(zero_pcp, axis=0)
+            prev_zero_pcp = np.flip(prev_zero_pcp, axis=0)
 
     else:
         param_1 = None
@@ -1299,7 +1318,6 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                         # valid point, see if we need to adjust cfsv2 precip
                         nldas_cdf = 1 - np.exp(-(np.power((vals / nldas_nearest_1), nldas_nearest_2)))
 
-
                     if cfs_interp_fcst == 0.0 or nldas_nearest_zero_pcp == 1.0:
                         # if no rain in cfsv2, no rain in bias corrected field
                         cfs_data[y_local, x_local] = 0.0
@@ -1367,9 +1385,9 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                 # No adjustment for this CFS pixel cell as we have missing parameter values.
                 cfs_data[y_local, x_local] = cfs_interp_fcst
 
-    # Regrid the local CFS slap to the output array
+    # Regrid the local CFS slab to the output array
     try:
-        input_forcings.esmf_field_in.data[:, :] = cfs_data
+        input_forcings.esmf_field_in.data[...] = cfs_data
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place CFSv2 forcing data into temporary ESMF field: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
