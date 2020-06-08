@@ -1580,7 +1580,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-    if config_options.rqiMethod == 0:
+    if not config_options.rqiMethod:
         # We will set the RQI field to 1.0 here so no MRMS data gets masked out.
         supplemental_precip.regridded_rqi2[:, :] = 1.0
 
