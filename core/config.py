@@ -725,8 +725,11 @@ class ConfigOptions:
                 self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
 
         # if the directory was specified but not downscaling, set it anyway for bias correction etc.
-        if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
-            self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]]
+        try:
+            if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
+                self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]]
+        except KeyError:
+            pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
 
         #   * Bias Correction Options *
 
