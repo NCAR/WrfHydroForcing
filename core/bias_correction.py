@@ -1285,15 +1285,20 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
                     # compute adjusted value now using the CFSv2 forecast value and the two CDFs
                     # find index in vals array
                     diff_tmp = np.absolute(vals - cfs_interp_fcst)
-                    cfs_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
+                    cfs_ind = np.argmin(diff_tmp)
                     cfs_cdf_val = cfs_cdf[cfs_ind]
 
                     # now whats the index of the closest cdf value in the nldas array?
                     diff_tmp = np.absolute(cfs_cdf_val - nldas_cdf)
-                    cfs_nldas_ind = np.where(diff_tmp == diff_tmp.min())[0][0]
+                    cfs_nldas_ind = np.argmin(diff_tmp)
 
                     # Adjust the CFS data
                     cfs_data[y_local, x_local] = vals[cfs_nldas_ind] / 1000.0  # convert back to kg/kg
+                    if cfs_data[y_local, x_local] == 0:
+                        config_options.statusMsg = "Invalid Q2D bias correction parameter; using original value"
+                        err_handler.log_msg(config_options, mpi_config)
+                        cfs_data[y_local, x_local] = cfs_interp_fcst
+
                 if force_num == 4:
                     # Precipitation
                     # precipitation is estimated using a Weibull distribution
