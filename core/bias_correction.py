@@ -809,18 +809,18 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         0: 330.0,
         1: 40.0,
         7: 1100000.0,
-        5: 1000.0
+        5: 0.0
     }
 
-    val_step = {
-        2: 0.1,
-        3: 0.1,
-        6: 0.19975,
-        4: 0.049995,
-        0: 0.1,
-        1: 3.9999,
-        7: 350.0,
-        5: 10.0
+    val_bins = {
+        2: 1000,
+        3: 1000,
+        6: 4000,
+        4: 2000,
+        0: 1300,
+        1: 1000,
+        7: 3000,
+        5: 0
     }
 
     if mpi_config.rank == 0:
@@ -1185,7 +1185,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
     cfs_data = np.empty([input_forcings.ny_local, input_forcings.nx_local], np.float64)
 
     # Establish parameters of the CDF matching.
-    vals = np.arange(val_range1[force_num], val_range2[force_num], val_step[force_num])
+    vals = np.linspace(val_range1[force_num], val_range2[force_num], val_bins[force_num])
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Looping over local arrays to calculate bias corrections."
