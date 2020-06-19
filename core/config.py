@@ -33,7 +33,8 @@ class ConfigOptions:
         self.output_freq = None
         self.output_dir = None
         self.scratch_dir = None
-        self.useCompression = None
+        self.useCompression = 0
+        self.useFloats = 0
         self.num_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
@@ -223,6 +224,20 @@ class ConfigOptions:
             err_handler.err_out_screen('Improper compressOut value.')
         if self.useCompression < 0 or self.useCompression > 1:
             err_handler.err_out_screen('Please choose a compressOut value of 0 or 1.')
+
+        # Read in floating-point option
+        try:
+            self.useFloats = int(config['Output']['floatOutput'])
+        except KeyError:
+            # err_handler.err_out_screen('Unable to locate floatOutput in the configuration file.')
+            self.useFloats = 0
+        except configparser.NoOptionError:
+            # err_handler.err_out_screen('Unable to locate floatOutput in the configuration file.')
+            self.useFloats = 0
+        except ValueError:
+            err_handler.err_out_screen('Improper floatOutput value: {}'.format(config['Output']['floatOutput']))
+        if self.useFloats < 0 or self.useFloats > 1:
+            err_handler.err_out_screen('Please choose a floatOutput value of 0 or 1.')
 
         # Read in retrospective options
         try:

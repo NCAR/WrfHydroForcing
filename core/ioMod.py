@@ -76,6 +76,7 @@ class OutputObj:
         # Ensure all processors are synced up before outputting.
         #MpiConfig.comm.barrier()
 
+        idOut = None
         if MpiConfig.rank == 0:
             while (True):
                 # Only output on the master processor.
@@ -245,7 +246,7 @@ class OutputObj:
                         if ConfigOptions.useCompression == 1:
                             idOut.createVariable('x', 'f8', ('x'), zlib=True, complevel=2)
                         else:
-                            idOut.createVariable('x','f8',('x'))
+                            idOut.createVariable('x','f8', ('x'))
                     except:
                         ConfigOptions.errMsg = "Unable to create x variable in: " + self.outPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -303,21 +304,29 @@ class OutputObj:
                 # Loop through and create each variable, along with expected attributes.
                 for varTmp in output_variable_attribute_dict:
                     try:
-                        if ConfigOptions.useCompression == 1:
-                            if varTmp != 'RAINRATE':
-                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
-                                                     fill_value=ConfigOptions.globalNdv,
-                                                     zlib=True, complevel=2,
-                                                     least_significant_digit=output_variable_attribute_dict[varTmp][7])
-                                #idOut.createVariable(varTmp, 'i4', ('time', 'y', 'x'),
-                                #                     fill_value=int(ConfigOptions.globalNdv/
-                                #                                    output_variable_attribute_dict[varTmp][5]),
-                                #                     zlib=True, complevel=2)
-                            else:
-                                idOut.createVariable(varTmp, 'f4', ('time', 'y', 'x'),
-                                                     fill_value=ConfigOptions.globalNdv, zlib=True, complevel=2)
+                        if ConfigOptions.useCompression:
+                            zlib = True
+                            complevel = 2
+                            least_significant_digit = None if varTmp == 'RAINRATE' else \
+                                output_variable_attribute_dict[varTmp][7]       # use all digits in RAINRATE
                         else:
-                            idOut.createVariable(varTmp,'f4',('time','y','x'),fill_value=ConfigOptions.globalNdv)
+                            zlib = False
+                            complevel = 0
+                            least_significant_digit = None
+
+                        if ConfigOptions.useFloats or varTmp == 'RAINRATE':     # RAINRATE always a float
+                            fill_value = ConfigOptions.globalNdv
+                            dtype = 'f4'
+                        else:
+                            fill_value = int(ConfigOptions.globalNdv / output_variable_attribute_dict[varTmp][5])
+                            dtype = 'i4'
+
+                        idOut.createVariable(varTmp, dtype, ('time', 'y', 'x'),
+                                             fill_value=fill_value,
+                                             zlib=zlib,
+                                             complevel=complevel,
+                                             least_significant_digit=least_significant_digit)
+
                     except:
                         ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.outPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -384,22 +393,22 @@ class OutputObj:
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
                     # If we are using scale_factor / add_offset, create here.
-                    #if ConfigOptions.useCompression == 1:
-                    #    if varTmp != 'RAINRATE':
-                    #        try:
-                    #            idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
-                    #        except:
-                    #            ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
-                    #                                   " in: " + self.outPath
-                    #            errMod.log_critical(ConfigOptions, MpiConfig)
-                    #            break
-                    #        try:
-                    #            idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
-                    #        except:
-                    #            ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
-                    #                                   " in: " + self.outPath
-                    #            errMod.log_critical(ConfigOptions, MpiConfig)
-                    #            break
+                    if not ConfigOptions.useFloats:
+                        if varTmp != 'RAINRATE':
+                            try:
+                                idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
+                            except (ValueError, IOError):
+                                ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
+                                                       " in: " + self.outPath
+                                err_handler.log_critical(ConfigOptions, MpiConfig)
+                                break
+                            try:
+                                idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
+                            except (ValueError, IOError):
+                                ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
+                                                       " in: " + self.outPath
+                                err_handler.log_critical(ConfigOptions, MpiConfig)
+                                break
                 break
 
         err_handler.check_program_status(ConfigOptions, MpiConfig)
@@ -425,36 +434,15 @@ class OutputObj:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 continue
-            #MpiConfig.comm.barrier()
+
             if MpiConfig.rank == 0:
-                while (True):
-                    #try:
-                    #     # TODO this step will be unnessessary when comm.Gather() is the comunication call
-                    #    dataOutTmp = np.concatenate([final[i] for i in range(MpiConfig.size)],axis=0)
-                    #except:
-                    #    ConfigOptions.errMsg = "Unable to finalize collection of output grids for: " + varTmp
-                    #    err_handler.log_critical(ConfigOptions, MpiConfig)
-                    #    break
-                    # If we are using scale_factor/add_offset, create the integer values here.
-                    #if ConfigOptions.useCompression == 1:
-                    #    if varTmp != 'RAINRATE':
-                    #        try:
-                    #            dataOutTmp = dataOutTmp - output_variable_attribute_dict[varTmp][6]
-                    #            dataOutTmp[:,:] = dataOutTmp[:,:] / output_variable_attribute_dict[varTmp][5]
-                    #            dataOutTmp = dataOutTmp.astype(int)
-                    #        except:
-                    #            ConfigOptions.errMsg = "Unable to convert final output grid to integer type for: " + varTmp
-                    #            errMod.log_critical(ConfigOptions, MpiConfig)
-                    #            break
-                    try:
-                        idOut.variables[varTmp][0,:,:] = dataOutTmp
-                    except:
-                        ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
-                        err_handler.log_critical(ConfigOptions, MpiConfig)
-                        break
-                    # Reset temporary data objects to keep memory usage down.
-                    dataOutTmp = None
-                    break
+                try:
+                    idOut.variables[varTmp][0, :, :] = dataOutTmp
+                except (ValueError, IOError):
+                    ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                # Reset temporary data objects to keep memory usage down.
+                del dataOutTmp
 
             # Reset temporary data objects to keep memory usage down.
             final = None
@@ -466,7 +454,7 @@ class OutputObj:
                 # Close the NetCDF file
                 try:
                     idOut.close()
-                except:
+                except (ValueError, IOError):
                     ConfigOptions.errMsg = "Unable to close output file: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
