@@ -974,25 +974,25 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 1:
-        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date1.strftime('%H') + \
             "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE_01H/" + \
-            "MRMS_RadarOnly_QPE_01H_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
+            "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000.grib2.gz"
 
     elif supplemental_precip.keyValue == 2:
-        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+        tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                    "0000.grib2.gz"
-        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE_01H/" + \
-                   "MRMS_GaugeCorr_QPE_01H_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
+                   "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                    "0000.grib2.gz"
@@ -1014,12 +1014,12 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
     # Compose the RQI paths.
     if supplemental_precip.keyValue == 1 or supplemental_precip.keyValue == 2:
        tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-           "MRMS_RadarQualityIndex_00.00_" + \
+           "RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
            "0000.grib2.gz"
        tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-           "MRMS_RadarQualityIndex_00.00_" + \
+           "RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date2.strftime('%H') + \
            "0000.grib2.gz"
