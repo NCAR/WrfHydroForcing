@@ -7,6 +7,8 @@ import os
 import numpy as np
 
 from core import err_handler
+from core.forcingInputMod import input_forcings
+NETCDF = input_forcings.NETCDF
 
 
 def calculate_lookback_window(config_options):
@@ -123,14 +125,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
         '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
-        str(prev_hrrr_forecast_hour).zfill(2) + '.grib2'
+        str(prev_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
         '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
-        + str(next_hrrr_forecast_hour).zfill(2) + '.grib2'
+        + str(next_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
             config_options.statusMsg = "Next HRRR file being used: " + tmp_file2
@@ -257,11 +259,11 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     tmp_file1 = input_forcings.inDir + '/rap.' + \
         current_rap_cycle.strftime('%Y%m%d') + "/rap.t" + \
         current_rap_cycle.strftime('%H') + 'z.awp130bgrbf' + \
-        str(prev_rap_forecast_hour).zfill(2) + '.grib2'
+        str(prev_rap_forecast_hour).zfill(2) + input_forcings.file_ext
     tmp_file2 = input_forcings.inDir + '/rap.' + \
         current_rap_cycle.strftime('%Y%m%d') + "/rap.t" + \
         current_rap_cycle.strftime('%H') + 'z.awp130bgrbf' + \
-        str(next_rap_forecast_hour).zfill(2) + '.grib2'
+        str(next_rap_forecast_hour).zfill(2) + input_forcings.file_ext
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
@@ -428,23 +430,23 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d%H') + "/gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(prev_gfs_forecast_hour).zfill(3) + '.grib2'
+            str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d%H') + "/gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(next_gfs_forecast_hour).zfill(3) + '.grib2'
+            str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
     else:
         # FV3 change on June 12th, 2019
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + "/gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(prev_gfs_forecast_hour).zfill(3) + '.grib2'
+            str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + "/gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
-            str(next_gfs_forecast_hour).zfill(3) + '.grib2'
+            str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
 
     # If needed, initialize the globalPcpRate1 array (this is for when we have the initial grid, or we need to change
     # grids.
@@ -623,11 +625,11 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     tmp_file1 = input_forcings.inDir + '/nam.' + \
         current_nam_nest_cycle.strftime('%Y%m%d') + "/nam.t" + \
         current_nam_nest_cycle.strftime('%H') + 'z.' + domain_string + '.hiresf' + \
-        str(prev_nam_nest_forecast_hour).zfill(2) + '.tm00.grib2'
+        str(prev_nam_nest_forecast_hour).zfill(2) + '.tm00' + input_forcings.file_ext
     tmp_file2 = input_forcings.inDir + '/nam.' + \
         current_nam_nest_cycle.strftime('%Y%m%d') + "/nam.t" + \
         current_nam_nest_cycle.strftime('%H') + 'z.' + domain_string + '.hiresf' + \
-        str(next_nam_nest_forecast_hour).zfill(2) + '.tm00.grib2'
+        str(next_nam_nest_forecast_hour).zfill(2) + '.tm00' + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous NAM nest file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
@@ -765,14 +767,14 @@ def find_cfsv2_neighbors(input_forcings, config_options, d_current, mpi_config):
         "6hrly_grib_" + ens_str + "/flxf" + \
         prev_cfs_date.strftime('%Y%m%d%H') + "." + \
         ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + \
-        ".grb2"
+        input_forcings.file_ext
     tmp_file2 = input_forcings.inDir + "/cfs." + \
         current_cfs_cycle.strftime('%Y%m%d') + "/" + \
         current_cfs_cycle.strftime('%H') + "/" + \
         "6hrly_grib_" + ens_str + "/flxf" + \
         next_cfs_date.strftime('%Y%m%d%H') + "." + \
         ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + \
-        ".grb2"
+        input_forcings.file_ext
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
@@ -978,36 +980,36 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.grib2.gz"
+            "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
             "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-            "0000.grib2.gz"
+            "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
 
     elif supplemental_precip.keyValue == 2:
         tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
                    "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-                   "0000.grib2.gz"
+                   "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
                    "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-                   "0000.grib2.gz"
+                   "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
 
     elif supplemental_precip.keyValue == 5:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-                    "0000.grib2.gz"
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-                    "0000.grib2.gz"
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1017,23 +1019,23 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
            "RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-           "0000.grib2.gz"
+           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
        tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
            "RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-           "0000.grib2.gz"
+           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     elif supplemental_precip.keyValue == 5:
        tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
            "MRMS_EXP_RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-           "0000.grib2.gz"
+           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
        tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
            "MRMS_EXP_RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-           "0000.grib2.gz"
+           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
        tmp_rqi_file1 = tmp_rqi_file2 = ""
 
@@ -1231,20 +1233,20 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-            str(prev_arw_forecast_hour).zfill(2) + '.hi.grib2'
+            str(prev_arw_forecast_hour).zfill(2) + '.hi' + supplemental_precip.file_ext
         tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-            str(next_arw_forecast_hour).zfill(2) + '.hi.grib2'
+            str(next_arw_forecast_hour).zfill(2) + '.hi' + supplemental_precip.file_ext
     elif supplemental_precip.keyValue == 4 or supplemental_precip.keyValue == 18:
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-            str(prev_arw_forecast_hour).zfill(2) + '.pr.grib2'
+            str(prev_arw_forecast_hour).zfill(2) + '.pr' + supplemental_precip.file_ext
         tmp_file2 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
-            str(next_arw_forecast_hour).zfill(2) + '.pr.grib2'
+            str(next_arw_forecast_hour).zfill(2) + '.pr' + supplemental_precip.file_ext
 
     err_handler.check_program_status(config_options, mpi_config)
     if mpi_config.rank == 0:

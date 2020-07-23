@@ -23,7 +23,9 @@ class ConfigOptions:
         self.input_forcings = None
         self.supp_precip_forcings = None
         self.input_force_dirs = None
+        self.input_force_types = None
         self.supp_precip_dirs = None
+        self.supp_precip_file_types = None
         self.supp_precip_param_dir = None
         self.input_force_mandatory = None
         self.supp_precip_mandatory = None
@@ -126,6 +128,24 @@ class ConfigOptions:
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
+
+        # Read in the input forcings types (GRIB[1|2], NETCDF)
+        try:
+            self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
+            self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                       'in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                       'in the configuration file.')
+        if len(self.input_force_types) != self.number_inputs:
+            err_handler.err_out_screen('Number of InputForcingTypes must match the number '
+                                       'of InputForcings in the configuration file.')
+        for fileType in self.input_force_types:
+            if fileType not in ['GRIB1', 'GRIB2', 'NETCDF']:
+                err_handler.err_out_screen('Invalid forcing file type "{}" specified. '
+                                           'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
 
         # Read in the input directories for each forcing option.
         try:
@@ -961,6 +981,24 @@ class ConfigOptions:
         except json.decoder.JSONDecodeError:
             err_handler.err_out_screen('Improper SuppPcp option specified in configuration file')
         self.number_supp_pcp = len(self.supp_precip_forcings)
+
+        # Read in the supp pcp types (GRIB[1|2], NETCDF)
+        try:
+            self.supp_precip_file_types = config.get('SuppForcing', 'SuppPcpForcingTypes').strip("[]").split(',')
+            self.supp_precip_file_types = [stype.strip() for stype in self.supp_precip_file_types]
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate SuppPcpForcingTypes in SuppForcing section '
+                                       'in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate SuppPcpForcingTypes in SuppForcing section '
+                                       'in the configuration file.')
+        if len(self.supp_precip_file_types) != self.number_supp_pcp:
+            err_handler.err_out_screen('Number of SuppPcpForcingTypes must match the number '
+                                       'of SuppPcpForcingTypes in the configuration file.')
+        for fileType in self.supp_precip_file_types:
+            if fileType not in ['GRIB1', 'GRIB2', 'NETCDF']:
+                err_handler.err_out_screen('Invalid SuppForcing file type "{}" specified. '
+                                   'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
 
         if self.number_supp_pcp > 0:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold

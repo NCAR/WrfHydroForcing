@@ -85,14 +85,21 @@ class supplemental_precip:
         }
         self.productName = product_names[self.keyValue]
 
-        product_types = {
-            1: "GRIB2",
-            2: "GRIB2",
-            3: "GRIB2",
-            4: "GRIB2",
-            5: "GRIB2"
-        }
-        self.fileType = product_types[self.keyValue]
+        ## DEFINED IN CONFIG
+        # product_types = {
+        #     1: "GRIB2",
+        #     2: "GRIB2",
+        #     3: "GRIB2",
+        #     4: "GRIB2",
+        #     5: "GRIB2"
+        # }
+        # self.fileType = product_types[self.keyValue]
+        if self.fileType == 'GRIB1':
+            self.file_ext = '.grb'
+        elif self.fileType == 'GRIB2':
+            self.file_ext = '.grib2'
+        elif self.fileType == 'NETCDF':
+            self.file_ext = '.nc'
 
         grib_vars_in = {
             1: None,
@@ -231,6 +238,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[supp_pcp_key].timeInterpOpt = ConfigOptions.suppTemporalInterp[supp_pcp_tmp]
 
         InputDict[supp_pcp_key].inDir = ConfigOptions.supp_precip_dirs[supp_pcp_tmp]
+        InputDict[supp_pcp_key].fileType = ConfigOptions.supp_precip_file_types[supp_pcp_tmp]
         InputDict[supp_pcp_key].define_product()
 
         # Initialize the local final grid of values

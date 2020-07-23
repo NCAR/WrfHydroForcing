@@ -34,6 +34,7 @@ class input_forcings:
         self.userCycleOffset = None
         self.productName = None
         self.fileType = None
+        self.file_ext = None
         self.nx_global = None
         self.ny_global = None
         self.nx_local = None
@@ -136,27 +137,34 @@ class input_forcings:
         }
         self.productName = product_names[self.keyValue]
 
-        product_types = {
-            1: GRIB1,
-            2: GRIB1,
-            3: GRIB2,
-            4: GRIB2,
-            5: GRIB2,
-            6: GRIB2,
-            7: GRIB2,
-            8: GRIB2,
-            9: GRIB2,
-            10: NETCDF,
-            11: NETCDF,
-            12: NETCDF,
-            13: GRIB2,
-            14: GRIB2,
-            15: GRIB2,
-            16: GRIB2,
-            17: GRIB2,
-            18: GRIB2
-        }
-        self.fileType = product_types[self.keyValue]
+        ## DEFINED BY CONFIG
+        # product_types = {
+        #     1: GRIB1,
+        #     2: GRIB1,
+        #     3: GRIB2,
+        #     4: GRIB2,
+        #     5: GRIB2,
+        #     6: GRIB2,
+        #     7: GRIB2,
+        #     8: GRIB2,
+        #     9: GRIB2,
+        #     10: NETCDF,
+        #     11: NETCDF,
+        #     12: NETCDF,
+        #     13: GRIB2,
+        #     14: GRIB2,
+        #     15: GRIB2,
+        #     16: GRIB2,
+        #     17: GRIB2,
+        #     18: GRIB2
+        # }
+        # self.fileType = product_types[self.keyValue]
+        if self.fileType == 'GRIB1':
+            self.file_ext = '.grb'
+        elif self.fileType == 'GRIB2':
+            self.file_ext = '.grib2'
+        elif self.fileType == 'NETCDF':
+            self.file_ext = '.nc'
 
         cycle_freq_minutes = {
             1: 60,
@@ -477,6 +485,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
 
         InputDict[force_key].inDir = ConfigOptions.input_force_dirs[force_tmp]
         InputDict[force_key].paramDir = ConfigOptions.dScaleParamDirs[force_tmp]
+        InputDict[force_key].fileType = ConfigOptions.input_force_types[force_tmp]
         InputDict[force_key].define_product()
         InputDict[force_key].userFcstHorizon = ConfigOptions.fcst_input_horizons[force_tmp]
         InputDict[force_key].userCycleOffset = ConfigOptions.fcst_input_offsets[force_tmp]
