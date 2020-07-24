@@ -133,6 +133,8 @@ class ConfigOptions:
         try:
             self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
             self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
+            if self.input_force_types == ['']:
+                self.input_force_types = []
         except KeyError:
             err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
                                        'in the configuration file.')
@@ -986,6 +988,8 @@ class ConfigOptions:
         try:
             self.supp_precip_file_types = config.get('SuppForcing', 'SuppPcpForcingTypes').strip("[]").split(',')
             self.supp_precip_file_types = [stype.strip() for stype in self.supp_precip_file_types]
+            if self.supp_precip_file_types == ['']:
+                self.supp_precip_file_types = []
         except KeyError:
             err_handler.err_out_screen('Unable to locate SuppPcpForcingTypes in SuppForcing section '
                                        'in the configuration file.')
@@ -993,8 +997,8 @@ class ConfigOptions:
             err_handler.err_out_screen('Unable to locate SuppPcpForcingTypes in SuppForcing section '
                                        'in the configuration file.')
         if len(self.supp_precip_file_types) != self.number_supp_pcp:
-            err_handler.err_out_screen('Number of SuppPcpForcingTypes must match the number '
-                                       'of SuppPcpForcingTypes in the configuration file.')
+            err_handler.err_out_screen('Number of SuppPcpForcingTypes ({}) must match the number '
+                                       'of SuppPcp inputs ({}) in the configuration file.'.format(len(self.supp_precip_file_types), self.number_supp_pcp))
         for fileType in self.supp_precip_file_types:
             if fileType not in ['GRIB1', 'GRIB2', 'NETCDF']:
                 err_handler.err_out_screen('Invalid SuppForcing file type "{}" specified. '
@@ -1130,7 +1134,7 @@ class ConfigOptions:
             except json.decoder.JSONDecodeError:
                 err_handler.err_out_screen('Improper SuppPcpInputOffsets option specified in '
                                            'the configuration file.')
-            if len(self.fcst_input_offsets) != self.number_supp_pcp:
+            if len(self.supp_input_offsets) != self.number_supp_pcp:
                 err_handler.err_out_screen('Please specify SuppPcpInputOffsets values for each '
                                            'corresponding input forcings for SuppForcing.')
             # Check to make sure the input offset options make sense. There will be additional
