@@ -1569,8 +1569,11 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     else:
         create_link("MRMS", supplemental_precip.file_in2, mrms_tmp_nc, config_options, mpi_config)
         id_mrms = ioMod.open_netcdf_forcing(mrms_tmp_nc, config_options, mpi_config)
-        create_link("RQI", supplemental_precip.rqi_file_in2, mrms_tmp_rqi_nc, config_options, mpi_config)
-        id_mrms_rqi = ioMod.open_netcdf_forcing(mrms_tmp_rqi_nc, config_options, mpi_config)
+        if config_options.rqiMethod == 1:
+            create_link("RQI", supplemental_precip.rqi_file_in2, mrms_tmp_rqi_nc, config_options, mpi_config)
+            id_mrms_rqi = ioMod.open_netcdf_forcing(mrms_tmp_rqi_nc, config_options, mpi_config)
+        else:
+            id_mrms_rqi = None
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_mrms, supplemental_precip, config_options,
