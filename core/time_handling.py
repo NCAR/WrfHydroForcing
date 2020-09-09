@@ -999,14 +999,14 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
 
-    elif supplemental_precip.keyValue == 5:
+    elif supplemental_precip.keyValue == 5 or supplemental_precip.keyValue == 6:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
-                    "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-        tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
-                    "MRMS_EXP_MultiSensor_QPE_01H_Pass1_00.00_" + \
+        tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass2/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
@@ -1025,17 +1025,17 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
            "-" + supplemental_precip.pcp_date2.strftime('%H') + \
            "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-    elif supplemental_precip.keyValue == 5:
-       tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-           "MRMS_EXP_RadarQualityIndex_00.00_" + \
-           supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-           "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-       tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
-           "MRMS_EXP_RadarQualityIndex_00.00_" + \
-           supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-           "-" + supplemental_precip.pcp_date2.strftime('%H') + \
-           "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+    #elif supplemental_precip.keyValue == 5:
+    #   tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+    #       "MRMS_EXP_RadarQualityIndex_00.00_" + \
+    #       supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+    #       "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+    #       "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+    #   tmp_rqi_file2 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
+    #       "MRMS_EXP_RadarQualityIndex_00.00_" + \
+    #       supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+    #       "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+    #       "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
        tmp_rqi_file1 = tmp_rqi_file2 = ""
 

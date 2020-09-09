@@ -1441,7 +1441,11 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.isfile(supplemental_precip.file_in2):
-        return
+        # does file_in1 exist? (Pass1 vs Pass2 for MRMS, for example)
+        if os.path.isfile(supplemental_precip.file_in1):
+            supplemental_precip.file_in2 = supplemental_precip.file_in1
+        else:
+            return
 
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
