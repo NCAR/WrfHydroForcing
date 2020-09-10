@@ -127,8 +127,8 @@ class supplemental_precip:
             2: ['GaugeCorrQPE01H_0mabovemeansealevel'],
             3: ['APCP_surface'],
             4: ['APCP_surface'],
-            5: ['MultiSensorQPE01H'],
-            6: ['MultiSensorQPE01H']
+            5: ['MultiSensorQPE01H_0mabovemeansealevel'],
+            6: ['MultiSensorQPE01H_0mabovemeansealevel']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
