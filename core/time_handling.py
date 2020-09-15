@@ -761,20 +761,22 @@ def find_cfsv2_neighbors(input_forcings, config_options, d_current, mpi_config):
         prev_cfs_date = next_cfs_date
 
     # Calculate expected file paths.
-    tmp_file1 = input_forcings.inDir + "/cfs." + \
-        current_cfs_cycle.strftime('%Y%m%d') + "/" + \
-        current_cfs_cycle.strftime('%H') + "/" + \
-        "6hrly_grib_" + ens_str + "/flxf" + \
+    tmp_file1 = input_forcings.inDir + "/flxf" + \
         prev_cfs_date.strftime('%Y%m%d%H') + "." + \
-        ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + \
-        input_forcings.file_ext
-    tmp_file2 = input_forcings.inDir + "/cfs." + \
-        current_cfs_cycle.strftime('%Y%m%d') + "/" + \
-        current_cfs_cycle.strftime('%H') + "/" + \
-        "6hrly_grib_" + ens_str + "/flxf" + \
+        ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + '.grb2'
+        # input_forcings.file_ext
+        #"/cfs." + \
+        #current_cfs_cycle.strftime('%Y%m%d') + "/" + \
+        #current_cfs_cycle.strftime('%H') + "/" + \
+        #"6hrly_grib_" + ens_str + "/flxf" + \
+    tmp_file2 = input_forcings.inDir + "/flxf" + \
         next_cfs_date.strftime('%Y%m%d%H') + "." + \
-        ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + \
-        input_forcings.file_ext
+        ens_str + "." + current_cfs_cycle.strftime('%Y%m%d%H') + '.grb2'
+        # input_forcings.file_ext
+        # "/cfs." + \
+        # current_cfs_cycle.strftime('%Y%m%d') + "/" + \
+        # current_cfs_cycle.strftime('%H') + "/" + \
+        # "6hrly_grib_" + ens_str + "/flxf" + \
 
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
@@ -823,6 +825,7 @@ def find_cfsv2_neighbors(input_forcings, config_options, d_current, mpi_config):
                 config_options.statusMsg = "Expected input CFSv2 file: " + \
                                            input_forcings.file_in2 + " not found. Will not use in final layering."
                 err_handler.log_warning(config_options, mpi_config)
+
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
