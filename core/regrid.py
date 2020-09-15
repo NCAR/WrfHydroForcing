@@ -570,14 +570,22 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Converting CFSv2 Variable: " + grib_var
                 err_handler.log_msg(config_options, mpi_config)
-            fields.append(':' + grib_var + ':' +
-                          input_forcings.grib_levels[force_count] + ':'
-                          + str(input_forcings.fcst_hour2) + " hour fcst:")
+            fields.append(':' + grib_var + ':')
+            # +
+            # input_forcings.grib_levels[force_count] + ':' +
+            # str(input_forcings.fcst_hour2) + " hour fcst:")
+
+        # Does this field not have a time? I guess it is just the surface height.
         fields.append(":(HGT):(surface):")
 
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
+
+        #with open('/glade/u/home/jamesmcc/wgrib_cmd.txt', 'w') as opened_file:
+        #    opened_file.write(cmd)
+        print(cmd)
+
         id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
