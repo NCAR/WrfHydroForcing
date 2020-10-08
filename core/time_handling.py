@@ -1145,46 +1145,6 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
     #       "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
        tmp_rqi_file1 = tmp_rqi_file2 = ""
-    # compose the Liquid fraction paths
-    if supplemental_precip.keyValue == 1:
-        tmp_lqfrac_file1 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-        tmp_lqfrac_file2 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-
-    elif supplemental_precip.keyValue == 2:
-        tmp_lqfrac_file1 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-        tmp_lqfrac_file2 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-
-    elif supplemental_precip.keyValue == 5:
-        tmp_lqfrac_file1 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-        tmp_lqfrac_file2 = supplemental_precip.inDir + "/SBC_LWF/" + \
-            "SBCV2_LWF." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "0000.netcdf"
-
-    else:
-        tmp_file1 = tmp_file2 = ""
-
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous MRMS supplemental file: " + tmp_file1
@@ -1447,3 +1407,96 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
 
     # supplemental_precip.file_in2 = supplemental_precip.file_in1
+
+
+def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and after hourly MRMS SBCV2_LWF files for use in processing.
+    :param input_forcings:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+
+    # Set the input file frequency to be hourly.
+    input_forcings.input_frequency = 60.0
+
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next MRMS files we will be using.
+
+    prev_date1 = datetime.datetime(d_current.year, d_current.month, d_current.day, d_current.hour)
+    dt_tmp = d_current - prev_date1
+
+    if dt_tmp.total_seconds() == 0:
+        # We are on the hour, we can set this date to the be the "next" date.
+        next_mrms_date = d_current
+        prev_mrms_date = d_current - datetime.timedelta(seconds=3600.0)
+    else:
+        # We are between two MRMS hours.
+        prev_mrms_date = prev_date1
+        next_mrms_date = prev_mrms_date + datetime.timedelta(seconds=3600.0)
+
+    input_forcings.fcst_date1 = prev_mrms_date
+    # supplemental_precip.pcp_date2 = next_mrms_date
+    input_forcings.fcst_date2 = prev_mrms_date
+
+    # Calculate expected file paths.
+    tmp_file1 = input_forcings.inDir + "/SBC_LWF/" + \
+                "SBCV2_LWF." + \
+                input_forcings.fcst_date1.strftime('%Y%m%d') + \
+                "-" + input_forcings.fcst_date1.strftime('%H') + \
+                "0000.netcdf"
+    tmp_file2 = tmp_file1  # NO TEMPORAL INTERPOLATION HERE, YO!
+
+    if mpi_config.rank == 0:
+        # Check to see if files are already set. If not, then reset, grids and
+        # regridding objects to communicate things need to be re-established.
+        if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+            if config_options.current_output_step == 1:
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.file_in2 = tmp_file2
+            else:
+                # Check to see if we are restarting from a previously failed instance. In this case,
+                # We are not on the first timestep, but no previous forcings have been processed.
+                # We need to process the previous input timestep for temporal interpolation purposes.
+                # if not np.any(input_forcings.regridded_forcings1):
+                if input_forcings.regridded_forcings1 is None:
+                    if mpi_config.rank == 0:
+                        config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                                   input_forcings.productName
+                        err_handler.log_msg(config_options, mpi_config)
+                    input_forcings.rstFlag = 1
+                    input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                    input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                    input_forcings.file_in2 = tmp_file1
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.fcst_date2 = input_forcings.fcst_date1
+                    input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+                else:
+                    # The forcing window has shifted. Reset fields 2 to
+                    # be fields 1.
+                    input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.file_in2 = tmp_file2
+            input_forcings.regridComplete = False
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Ensure we have the necessary new file
+        if mpi_config.rank == 0:
+            if not os.path.isfile(input_forcings.file_in2):
+                if input_forcings.enforce == 1:
+                    config_options.errMsg = "Expected input SBCV2_LWF file: " + input_forcings.file_in2 + " not found."
+                    err_handler.log_critical(config_options, mpi_config)
+                else:
+                    config_options.statusMsg = "Expected input SBCV2_LWF file: " + \
+                                               input_forcings.file_in2 + " not found. Will not use in final layering."
+                    err_handler.log_warning(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(input_forcings.file_in2):
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
