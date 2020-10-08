@@ -69,3 +69,31 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     indSet = None
 
     #MpiConfig.comm.barrier()
+
+def layer_supplemental_liquidfrac(OutputObj,supplemental_liquidfrac,ConfigOptions,MpiConfig):
+    """
+    Function to layer in supplemental liquid fraction where we have valid values. Any pixel
+    cells that contain missing values will not be layered in, and background input forcings
+    will be used instead.
+    :param OutputObj:
+    :param supplemental_liquidfrac:
+    :param ConfigOptions:
+    :param MpiConfig:
+    :return:
+    """
+    indSet = np.where(supplemental_liquidfrac.final_supp_precip != ConfigOptions.globalNdv)
+    layerIn = supplemental_liquidfrac.final_supp_precip
+    layerOut = OutputObj.output_local[0,:,:]
+    if len(indSet[0]) != 0:
+        layerOut[indSet] = layerIn[indSet]
+    else:
+        # We have all missing data for the supplemental precip for this step.
+        layerOut = layerOut
+
+    OutputObj.output_local[3,:,:] = layerOut
+
+    # Reset local variables to reduce memory usage.
+    layerIn = None
+    layerOut = None
+    indSet = None
+
