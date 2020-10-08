@@ -2140,6 +2140,84 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     err_handler.check_program_status(config_options, mpi_config)
 
 
+def regrid_sbcv2_liquid_water_fraction(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
+    """
+    Function for handling regridding of SBCv2 Liquid Water Precip forcing files.
+    :param input_forcings:
+    :param config_options:
+    :param wrf_hydro_geo_meta:
+    :param mpi_config:
+    :return:
+    """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        return
+
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    if input_forcings.regridComplete:
+        return
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "No SBCv2 Liquid Water Fraction regridding required for this timestep."
+        err_handler.log_msg(config_options, mpi_config)
+
+    # Open the input NetCDF file containing necessary data.
+    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Processing SBCv2 Liquid Water Fraction variable `sbcv2_lwf`"
+        err_handler.log_msg(config_options, mpi_config)
+
+    force_count = 1   # there's only one variable of interest in the SBCV2 files
+    calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
+                                           config_options, wrf_hydro_geo_meta, mpi_config)
+
+    if calc_regrid_flag:
+        calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
+                          lat_var="Lat", lon_var="Lon")
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Read in the RAP height field, which is used for downscaling purposes.
+    if 'sbcv2_lwf' not in id_tmp.variables.keys():
+        config_options.errMsg = "Unable to locate `sbcv2_lwf` in: " + input_forcings.file_in2
+        raise Exception()
+
+    # Regrid the sbcv2_lwf variable.
+    if mpi_config.rank == 0:
+        var_tmp = id_tmp.variables['sbcv2_lwf'][0, :, :]
+    else:
+        var_tmp = None
+
+    var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                             input_forcings.esmf_field_out)
+    # Set any pixel cells outside the input domain to the global missing value.
+    input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+        config_options.globalNdv
+
+    input_forcings.height[:, :] = input_forcings.esmf_field_out.data
+
+    # If we are on the first timestep, set the previous regridded field to be
+    # the latest as there are no states for time 0.
+    if config_options.current_output_step == 1:
+        input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
+
+    # Close the  NetCDF file and remove it.
+    if mpi_config.rank == 0:
+        try:
+            id_tmp.close()
+        except OSError:
+            config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+            err_handler.err_out(config_options)
+
+
 def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for checking to see if regridding weights need to be
@@ -2271,7 +2349,8 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
     return calc_regrid_flag
 
 
-def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config):
+def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
+                      lat_var="latitude", lon_var="longitude"):
     """
     Function to calculate ESMF weights based on the output ESMF
     field previously calculated, along with input lat/lon grids,
@@ -2368,19 +2447,19 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if len(id_tmp.variables['latitude'].shape) == 3:
+        if len(id_tmp.variables[lat_var].shape) == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][0, :, :]
-            lon_tmp = id_tmp.variables['longitude'][0, :, :]
-        elif len(id_tmp.variables['longitude'].shape) == 2:
+            lat_tmp = id_tmp.variables[lat_var][0, :, :]
+            lon_tmp = id_tmp.variables[lon_var][0, :, :]
+        elif len(id_tmp.variables[lon_var].shape) == 2:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][:, :]
-            lon_tmp = id_tmp.variables['longitude'][:, :]
-        elif len(id_tmp.variables['latitude'].shape) == 1:
+            lat_tmp = id_tmp.variables[lat_var][:, :]
+            lon_tmp = id_tmp.variables[lon_var][:, :]
+        elif len(id_tmp.variables[lat_var].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
-            lat_tmp = np.repeat(id_tmp.variables['latitude'][:][:, np.newaxis], input_forcings.nx_global, axis=1)
-            lon_tmp = np.tile(id_tmp.variables['longitude'][:], (input_forcings.ny_global, 1))
+            lat_tmp = np.repeat(id_tmp.variables[lat_var][:][:, np.newaxis], input_forcings.nx_global, axis=1)
+            lon_tmp = np.tile(id_tmp.variables[lon_var][:], (input_forcings.ny_global, 1))
     err_handler.check_program_status(config_options, mpi_config)
 
     # Scatter global GFS latitude grid to processors..
@@ -2523,7 +2602,8 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]
 
 
-def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_options, mpi_config):
+def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_options, mpi_config,
+                               lat_var="latitude", lon_var="longitude"):
     """
     Function to calculate ESMF weights based on the output ESMF
     field previously calculated, along with input lat/lon grids,
@@ -2596,19 +2676,19 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     lat_tmp = lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if len(id_tmp.variables['latitude'].shape) == 3:
+        if len(id_tmp.variables[lat_var].shape) == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][0, :, :]
-            lon_tmp = id_tmp.variables['longitude'][0, :, :]
-        elif len(id_tmp.variables['longitude'].shape) == 2:
+            lat_tmp = id_tmp.variables[lat_var][0, :, :]
+            lon_tmp = id_tmp.variables[lon_var][0, :, :]
+        elif len(id_tmp.variables[lon_var].shape) == 2:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][:, :]
-            lon_tmp = id_tmp.variables['longitude'][:, :]
-        elif len(id_tmp.variables['latitude'].shape) == 1:
+            lat_tmp = id_tmp.variables[lat_var][:, :]
+            lon_tmp = id_tmp.variables[lon_var][:, :]
+        elif len(id_tmp.variables[lat_var].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
-            lat_tmp = np.repeat(id_tmp.variables['latitude'][:][:, np.newaxis], supplemental_precip.nx_global, axis=1)
-            lon_tmp = np.tile(id_tmp.variables['longitude'][:], (supplemental_precip.ny_global, 1))
+            lat_tmp = np.repeat(id_tmp.variables[lat_var][:][:, np.newaxis], supplemental_precip.nx_global, axis=1)
+            lon_tmp = np.tile(id_tmp.variables[lon_var][:], (supplemental_precip.ny_global, 1))
     # mpi_config.comm.barrier()
 
     # Scatter global GFS latitude grid to processors..
