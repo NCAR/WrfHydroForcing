@@ -2140,7 +2140,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
     err_handler.check_program_status(config_options, mpi_config)
 
 
-def regrid_sbcv2_liquid_water_fraction(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
+def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for handling regridding of SBCv2 Liquid Water Precip forcing files.
     :param input_forcings:
@@ -2151,71 +2151,99 @@ def regrid_sbcv2_liquid_water_fraction(input_forcings, config_options, wrf_hydro
     """
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
-    if not os.path.isfile(input_forcings.file_in2):
+    if not os.path.exists(supplemental_forcings.file_in1):
         return
 
     # Check to see if the regrid complete flag for this
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
-    if input_forcings.regridComplete:
+    if supplemental_forcings.regridComplete:
         return
 
-    if mpi_config.rank == 0:
-        config_options.statusMsg = "No SBCv2 Liquid Water Fraction regridding required for this timestep."
-        err_handler.log_msg(config_options, mpi_config)
+    id_tmp = ioMod.open_netcdf_forcing(supplemental_forcings.file_in1, config_options, mpi_config)
 
-    # Open the input NetCDF file containing necessary data.
-    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
-
-    if mpi_config.rank == 0:
-        config_options.statusMsg = "Processing SBCv2 Liquid Water Fraction variable `sbcv2_lwf`"
-        err_handler.log_msg(config_options, mpi_config)
-
-    force_count = 1   # there's only one variable of interest in the SBCV2 files
-    calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                           config_options, wrf_hydro_geo_meta, mpi_config)
+    # Check to see if we need to calculate regridding weights.
+    calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_forcings, config_options,
+                                                    wrf_hydro_geo_meta, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     if calc_regrid_flag:
-        calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
-                          lat_var="Lat", lon_var="Lon")
-    err_handler.check_program_status(config_options, mpi_config)
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Calculating SBCv2 Liquid Water Fraction regridding weights."
+            err_handler.log_msg(config_options, mpi_config)
+        calculate_supp_pcp_weights(supplemental_forcings, id_tmp, supplemental_forcings.file_in1,
+                                   config_options, mpi_config, lat_var="Lat", lon_var="Lon")
+        err_handler.check_program_status(config_options, mpi_config)
 
-    # Read in the RAP height field, which is used for downscaling purposes.
-    if 'sbcv2_lwf' not in id_tmp.variables.keys():
-        config_options.errMsg = "Unable to locate `sbcv2_lwf` in: " + input_forcings.file_in2
-        raise Exception()
-
-    # Regrid the sbcv2_lwf variable.
+    # Regrid the input variable
+    var_tmp = None
     if mpi_config.rank == 0:
-        var_tmp = id_tmp.variables['sbcv2_lwf'][0, :, :]
-    else:
-        var_tmp = None
-
-    var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Regridding SBCv2 Liquid Water Fraction."
+            err_handler.log_msg(config_options, mpi_config)
+        try:
+            var_tmp = id_tmp.variables[supplemental_forcings.netcdf_var_names[0]][0, :, :]
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to extract Liquid Water Fraction from SBCv2 file: " + \
+                                    supplemental_forcings.file_in1 + " (" + str(err) + ")"
+            err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
-    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                             input_forcings.esmf_field_out)
-    # Set any pixel cells outside the input domain to the global missing value.
-    input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-        config_options.globalNdv
+    var_sub_tmp = mpi_config.scatter_array(supplemental_forcings, var_tmp, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
 
-    input_forcings.height[:, :] = input_forcings.esmf_field_out.data
+    try:
+        supplemental_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+    except (ValueError, KeyError, AttributeError) as err:
+        config_options.errMsg = "Unable to place SBCv2 Liquid Water Fraction into local ESMF field: " + str(err)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        supplemental_forcings.esmf_field_out = supplemental_forcings.regridObj(supplemental_forcings.esmf_field_in,
+                                                                               supplemental_forcings.esmf_field_out)
+    except ValueError as ve:
+        config_options.errMsg = "Unable to regrid SBCv2 Liquid Water Fraction: " + str(ve)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Set any pixel cells outside the input domain to the global missing value.
+    try:
+        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.regridded_mask == 0)] = \
+            config_options.globalNdv
+    except (ValueError, ArithmeticError) as npe:
+        config_options.errMsg = "Unable to run mask search on SBCv2 Liquid Water Fraction: " + str(npe)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    supplemental_forcings.regridded_precip2[:, :] = supplemental_forcings.esmf_field_out.data
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Convert the hourly precipitation total to a rate of mm/s
+    try:
+        ind_valid = np.where(supplemental_forcings.regridded_precip2 != config_options.globalNdv)
+        supplemental_forcings.regridded_precip2[ind_valid] = supplemental_forcings.regridded_precip2[ind_valid] / 3600.0
+        del ind_valid
+    except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+        config_options.errMsg = "Unable to run NDV search on SBCv2 Liquid Water Fraction: " + str(npe)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # If we are on the first timestep, set the previous regridded field to be
     # the latest as there are no states for time 0.
     if config_options.current_output_step == 1:
-        input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
-            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
+        supplemental_forcings.regridded_precip1[:, :] = \
+            supplemental_forcings.regridded_precip2[:, :]
+    err_handler.check_program_status(config_options, mpi_config)
 
-    # Close the  NetCDF file and remove it.
+    # Close the NetCDF file
     if mpi_config.rank == 0:
         try:
             id_tmp.close()
         except OSError:
-            config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-            err_handler.err_out(config_options)
+            config_options.errMsg = "Unable to close NetCDF file: " + supplemental_forcings.file_in1
+            err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
 
 def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
