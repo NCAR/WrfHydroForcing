@@ -54,7 +54,7 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
     """
     indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.final_supp_precip
-    layerOut = OutputObj.output_local[supplemental_precip.supp_var_idx, :, :]
+    layerOut = OutputObj.output_local[supplemental_precip.output_var_idx, :, :]
 
     if len(indSet[0]) != 0:
         layerOut[indSet] = layerIn[indSet]
@@ -63,5 +63,5 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
         layerOut = layerOut
 
     # TODO: test that even does anything...?s
-    OutputObj.output_local[supplemental_precip.supp_var_idx, :, :] = layerOut
+    OutputObj.output_local[supplemental_precip.output_var_idx, :, :] = layerOut
 

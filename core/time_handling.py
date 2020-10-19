@@ -1448,60 +1448,59 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + "/SBC_LWF/" + \
-                "SBCV2_LWF." + \
-                input_forcings.fcst_date1.strftime('%Y%m%d') + \
+                input_forcings.fcst_date1.strftime("%Y%m") + "/" + input_forcings.fcst_date1.strftime('%Y%m%d') +\
+                "/SBCV2_LWF." + input_forcings.fcst_date1.strftime('%Y%m%d') + \
                 "-" + input_forcings.fcst_date1.strftime('%H') + \
                 "0000.netcdf"
     tmp_file2 = tmp_file1  # NO TEMPORAL INTERPOLATION HERE, YO!
 
-    if mpi_config.rank == 0:
-        # Check to see if files are already set. If not, then reset, grids and
-        # regridding objects to communicate things need to be re-established.
-        if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
-            if config_options.current_output_step == 1:
-                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+        if config_options.current_output_step == 1:
+            input_forcings.regridded_precip1 = input_forcings.regridded_precip1
+            input_forcings.regridded_precip2 = input_forcings.regridded_precip2
+            input_forcings.file_in1 = tmp_file1
+            input_forcings.file_in2 = tmp_file2
+        else:
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            # if not np.any(input_forcings.regridded_forcings1):
+            if input_forcings.regridded_precip1 is None:
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                               input_forcings.productName
+                    err_handler.log_msg(config_options, mpi_config)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_precip1 = input_forcings.regridded_precip1
+                input_forcings.regridded_precip2 = input_forcings.regridded_precip2
+                input_forcings.file_in2 = tmp_file1
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+            else:
+                # The forcing window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_precip1[:, :] = input_forcings.regridded_precip2[:, :]
                 input_forcings.file_in1 = tmp_file1
                 input_forcings.file_in2 = tmp_file2
-            else:
-                # Check to see if we are restarting from a previously failed instance. In this case,
-                # We are not on the first timestep, but no previous forcings have been processed.
-                # We need to process the previous input timestep for temporal interpolation purposes.
-                # if not np.any(input_forcings.regridded_forcings1):
-                if input_forcings.regridded_forcings1 is None:
-                    if mpi_config.rank == 0:
-                        config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
-                                                   input_forcings.productName
-                        err_handler.log_msg(config_options, mpi_config)
-                    input_forcings.rstFlag = 1
-                    input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
-                    input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
-                    input_forcings.file_in2 = tmp_file1
-                    input_forcings.file_in1 = tmp_file1
-                    input_forcings.fcst_date2 = input_forcings.fcst_date1
-                    input_forcings.fcst_hour2 = input_forcings.fcst_hour1
-                else:
-                    # The forcing window has shifted. Reset fields 2 to
-                    # be fields 1.
-                    input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
-                    input_forcings.file_in1 = tmp_file1
-                    input_forcings.file_in2 = tmp_file2
-            input_forcings.regridComplete = False
-        err_handler.check_program_status(config_options, mpi_config)
+        input_forcings.regridComplete = False
+    err_handler.check_program_status(config_options, mpi_config)
 
-        # Ensure we have the necessary new file
-        if mpi_config.rank == 0:
-            if not os.path.isfile(input_forcings.file_in2):
-                if input_forcings.enforce == 1:
-                    config_options.errMsg = "Expected input SBCV2_LWF file: " + input_forcings.file_in2 + " not found."
-                    err_handler.log_critical(config_options, mpi_config)
-                else:
-                    config_options.statusMsg = "Expected input SBCV2_LWF file: " + \
-                                               input_forcings.file_in2 + " not found. Will not use in final layering."
-                    err_handler.log_warning(config_options, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input SBCV2_LWF file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input SBCV2_LWF file: " + \
+                                           input_forcings.file_in2 + " not found. Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
-        if input_forcings.regridded_forcings2 is not None:
-            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
+        if input_forcings.regridded_precip2 is not None:
+            input_forcings.regridded_precip2[:, :] = config_options.globalNdv

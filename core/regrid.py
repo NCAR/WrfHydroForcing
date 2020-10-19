@@ -2182,7 +2182,7 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
             config_options.statusMsg = "Regridding SBCv2 Liquid Water Fraction."
             err_handler.log_msg(config_options, mpi_config)
         try:
-            var_tmp = id_tmp.variables[supplemental_forcings.netcdf_var_names[0]][0, :, :]
+            var_tmp = id_tmp.variables[supplemental_forcings.netcdf_var_names[0]][:]
         except (ValueError, KeyError, AttributeError) as err:
             config_options.errMsg = "Unable to extract Liquid Water Fraction from SBCv2 file: " + \
                                     supplemental_forcings.file_in1 + " (" + str(err) + ")"
@@ -2211,29 +2211,22 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
     try:
         supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.regridded_mask == 0)] = \
             config_options.globalNdv
+        # fix up missing values
+        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.esmf_field_out.data < 0)] = \
+            config_options.globalNdv
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on SBCv2 Liquid Water Fraction: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    supplemental_forcings.regridded_precip2[:, :] = supplemental_forcings.esmf_field_out.data
-    err_handler.check_program_status(config_options, mpi_config)
-
-    # Convert the hourly precipitation total to a rate of mm/s
-    try:
-        ind_valid = np.where(supplemental_forcings.regridded_precip2 != config_options.globalNdv)
-        supplemental_forcings.regridded_precip2[ind_valid] = supplemental_forcings.regridded_precip2[ind_valid] / 3600.0
-        del ind_valid
-    except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
-        config_options.errMsg = "Unable to run NDV search on SBCv2 Liquid Water Fraction: " + str(npe)
-        err_handler.log_critical(config_options, mpi_config)
+    supplemental_forcings.regridded_precip2[:] = supplemental_forcings.esmf_field_out.data
     err_handler.check_program_status(config_options, mpi_config)
 
     # If we are on the first timestep, set the previous regridded field to be
     # the latest as there are no states for time 0.
     if config_options.current_output_step == 1:
-        supplemental_forcings.regridded_precip1[:, :] = \
-            supplemental_forcings.regridded_precip2[:, :]
+        supplemental_forcings.regridded_precip1[:] = \
+            supplemental_forcings.regridded_precip2[:]
     err_handler.check_program_status(config_options, mpi_config)
 
     # Close the NetCDF file
@@ -2353,10 +2346,16 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
             calc_regrid_flag = True
         else:
             if mpi_config.rank == 0:
-                if id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[1] \
-                        != supplemental_precip.ny_global and \
-                        id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[2] \
-                        != supplemental_precip.nx_global:
+                ncvar = id_tmp.variables[supplemental_precip.netcdf_var_names[0]]
+                ndims = len(ncvar.dimensions)
+                if ndims == 2:
+                    latdim = 0
+                    londim = 1
+                else:
+                    latdim = 1
+                    londim = 2
+                if ncvar.shape[latdim] != supplemental_precip.ny_global and \
+                        ncvar.shape[londim] != supplemental_precip.nx_global:
                     calc_regrid_flag = True
 
     # We will now check to see if the regridded arrays are still None. This means the fields were set to None
@@ -2643,21 +2642,36 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     :param config_options:
     :return:
     """
+    ndims = 0
     if mpi_config.rank == 0:
+        ncvar = id_tmp.variables[supplemental_precip.netcdf_var_names[0]]
+        ndims = len(ncvar.dimensions)
+        if ndims == 3:
+            latdim = 1
+            londim = 2
+        elif ndims == 2:
+            latdim = 0
+            londim = 1
+        else:
+            latdim = londim = -1
+            config_options.errMsg = "Unable to determine lat/lon grid size from " + tmp_file
+            err_handler.err_out(config_options)
+
         try:
-            supplemental_precip.ny_global = id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[1]
-        except (ValueError, KeyError, AttributeError) as err:
+            supplemental_precip.ny_global = id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[latdim]
+        except (ValueError, KeyError, AttributeError, Exception) as err:
             config_options.errMsg = "Unable to extract Y shape size from: " + \
                                     supplemental_precip.netcdf_var_names[0] + " from: " + \
-                                    tmp_file + " (" + str(err) + ")"
+                                    tmp_file + " (" + str(err) + ", " + type(err) + ")"
             err_handler.err_out(config_options)
         try:
-            supplemental_precip.nx_global = id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[2]
-        except (ValueError, KeyError, AttributeError) as err:
+            supplemental_precip.nx_global = id_tmp.variables[supplemental_precip.netcdf_var_names[0]].shape[londim]
+        except (ValueError, KeyError, AttributeError, Exception) as err:
             config_options.errMsg = "Unable to extract X shape size from: " + \
                                     supplemental_precip.netcdf_var_names[0] + " from: " + \
-                                    tmp_file + " (" + str(err) + ")"
+                                    tmp_file + " (" + str(err) + ", " + type(err) + ")"
             err_handler.err_out(config_options)
+
     # mpi_config.comm.barrier()
 
     # Broadcast the forcing nx/ny values
@@ -2706,12 +2720,12 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
         # Process lat/lon values from the GFS grid.
         if len(id_tmp.variables[lat_var].shape) == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][0, :, :]
-            lon_tmp = id_tmp.variables[lon_var][0, :, :]
+            lat_tmp = id_tmp.variables[lat_var][0, :]
+            lon_tmp = id_tmp.variables[lon_var][0, :]
         elif len(id_tmp.variables[lon_var].shape) == 2:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][:, :]
-            lon_tmp = id_tmp.variables[lon_var][:, :]
+            lat_tmp = id_tmp.variables[lat_var][:]
+            lon_tmp = id_tmp.variables[lon_var][:]
         elif len(id_tmp.variables[lat_var].shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
@@ -2765,18 +2779,23 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
 
     # Scatter global grid to processors..
     if mpi_config.rank == 0:
-        var_tmp = id_tmp[supplemental_precip.netcdf_var_names[0]][0, :, :]
+        if ndims == 3:
+            var_tmp = id_tmp[supplemental_precip.netcdf_var_names[0]][0, :]
+        elif ndims == 2:
+            var_tmp = id_tmp[supplemental_precip.netcdf_var_names[0]][:]
+        else:
+            var_tmp = None
         # Set all valid values to 1.0, and all missing values to 0.0. This will
         # be used to generate an output mask that is used later on in downscaling, layering,
         # etc.
-        var_tmp[:, :] = 1.0
+        var_tmp[:] = 1.0
     else:
         var_tmp = None
     var_sub_tmp = mpi_config.scatter_array(supplemental_precip, var_tmp, config_options)
     mpi_config.comm.barrier()
 
     # Place temporary data into the field array for generating the regridding object.
-    supplemental_precip.esmf_field_in.data[:, :] = var_sub_tmp
+    supplemental_precip.esmf_field_in.data[:] = var_sub_tmp
     # mpi_config.comm.barrier()
 
     supplemental_precip.regridObj = ESMF.Regrid(supplemental_precip.esmf_field_in,
@@ -2789,4 +2808,4 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     # any 0 values.
     supplemental_precip.esmf_field_out = supplemental_precip.regridObj(supplemental_precip.esmf_field_in,
                                                                        supplemental_precip.esmf_field_out)
-    supplemental_precip.regridded_mask[:, :] = supplemental_precip.esmf_field_out.data[:, :]
+    supplemental_precip.regridded_mask[:] = supplemental_precip.esmf_field_out.data[:]
