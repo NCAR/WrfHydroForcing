@@ -962,6 +962,8 @@ class ConfigOptions:
             for dir in self.supp_precip_param_dir:
                 if not os.path.isdir(dir):
                     err_handler.err_out_screen('Unable to locate SuppForcing[i][\'PcpParamDir\']: ' + dir)
+            #For compatability only keep the first PcpParamDir
+            self.supp_precip_param_dir = self.supp_precip_param_dir[0]
 
         try:
             ensembles = config['Ensembles']
@@ -982,6 +984,11 @@ class ConfigOptions:
 
 
 def main():
+    """
+    Can be called directly to create a ConfigOptions object and dump it's values
+    Can be used to compare values with config_orig.py
+    diff <(./config.py ../Test/template_forcing_engine_AnA_v2.yaml) <(./config_orig.py ../Test/template_forcing_engine_AnA_v2.config)
+    """
     if len(sys.argv) < 2:
         print("%s config_yaml" % sys.argv[0])
         sys.exit(1)
@@ -990,6 +997,8 @@ def main():
 
     config = ConfigOptions(yaml_file)
     config.read_config()
+    from pprint import pprint
+    pprint(vars(config))
 
 
 if __name__ == '__main__':

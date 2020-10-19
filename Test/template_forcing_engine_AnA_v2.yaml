@@ -19,7 +19,7 @@
 #Input:
 # - Forcing: 6
 #   Type: GRIB2
-#   Dir: /Users/bpetzke/temp/wrfhydro/RAP_Conus
+#   Dir: /glade/p/ral/allral/zhangyx/RAP_Conus
 #   Mandatory: 1
 #   Horizon: 60
 #   Offset: 0
@@ -43,7 +43,7 @@
 #    ParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
 # - Forcing: 5
 #   Type: GRIB2
-#   Dir: /Users/bpetzke/temp/wrfhydro/HRRR_Conus
+#   Dir: /glade/p/ral/allral/zhangyx/HRRR_Conus
 #   Mandatory: 1
 #   Horizon: 60
 #   Offset: 0
@@ -241,9 +241,9 @@
 # Input[i]['Downscaling']['ParamDir']
 # Specify the input parameter directory containing necessary downscaling grids.
 Input:
- - Forcing: 7
+ - Forcing: 6
    Type: GRIB2
-   Dir: /Users/bpetzke/temp/wrfhydro/RAP_Conus
+   Dir: /glade/p/ral/allral/zhangyx/RAP_Conus
    Mandatory: 1
    Horizon: 60
    Offset: 0
@@ -266,10 +266,10 @@ Input:
     Shortwave: 1
     Precip: 0
     Humidity: 1
-    ParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
+    ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
  - Forcing: 5
    Type: GRIB2
-   Dir: /Users/bpetzke/temp/wrfhydro/HRRR_Conus
+   Dir: /glade/p/ral/allral/zhangyx/HRRR_Conus
    Mandatory: 1
    Horizon: 60
    Offset: 0
@@ -290,7 +290,7 @@ Input:
     Shortwave: 1
     Precip: 0
     Humidity: 1
-    ParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
+    ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 
 #Output Example
 #
@@ -330,8 +330,8 @@ Input:
 # 1 - Activate compression
 Output:
  Frequency: 60
- Dir: /Users/bpetzke/temp/wrfhydro/AnA
- ScratchDir: /Users/bpetzke/temp/wrfhydro/AnA
+ Dir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
+ ScratchDir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
  FloatOutput: 0
  CompressOutput: 0
 
@@ -427,29 +427,29 @@ Forecast:
 # Specify the optional land spatial metadata file. If found, coordinate projection information
 # and coordinate will be translated from to the final output file.
 Geospatial:
- GeogridIn: /Users/bpetzke/temp/wrfhydro/geo_em.d01.conus_1km_NWMv2.0.nc
- SpatialMetaIn: /Users/bpetzke/temp/wrfhydro/GEOGRID_LDASOUT_Spatial_Metadata_1km_NWMv2.0.nc
+ GeogridIn: /glade/p/cisl/nwc/nwmv20_finals/CONUS/DOMAIN/geo_em.d01.conus_1km_NWMv2.0.nc
+ SpatialMetaIn: /glade/p/cisl/nwc/nwmv20_finals/CONUS/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata_1km_NWMv2.0.nc
 
 #Regridding Example
 #
 # Regridding:
 #  WeightsDir: /glade/p/cisl/nwc/nwm_forcings/ESMFWeightFiles
 Regridding:
- WeightsDir: /Users/bpetzke/temp/wrfhydro/ESMFWeightFiles
+ WeightsDir: /glade/p/cisl/nwc/nwm_forcings/ESMFWeightFiles
 
 # Example SuppForcing
 #
 #SuppForcing:
 # - Pcp: 5
 #   PcpTypes: GRIB2
-#   PcpDir: /Users/bpetzke/temp/wrfhydro/CONUS.MRMS
+#   PcpDir: /glade/p/ral/allral/zhangyx/CONUS.MRMS
 #   PcpMandatory: 0
 #   RegridOptPcp: 1
 #   PcpTemporalInterpolation: 0
 #   PcpInputOffsets: 0
 #   RqiMethod: 2
 #   RqiThreshold: 0.9
-#   PcpParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
+#   PcpParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 #
 # SuppForcing[i]['Pcp']
 # Choose a set of supplemental precipitation file(s) to layer
@@ -507,14 +507,14 @@ Regridding:
 SuppForcing:
  - Pcp: 5
    PcpType: GRIB2
-   PcpDir: /Users/bpetzke/temp/wrfhydro/CONUS.MRMS
+   PcpDir: /glade/p/ral/allral/zhangyx/CONUS.MRMS
    PcpMandatory: 0
    RegridOptPcp: 1
    PcpTemporalInterp: 0
    PcpInputOffsets: 0
    RqiMethod: 2
    RqiThreshold: 0.9
-   PcpParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
+   PcpParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 
 
 # Ensembles Example
