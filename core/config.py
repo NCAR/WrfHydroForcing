@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import configparser
 import datetime
 import json
 import os
 import sys
+from enum import IntEnum
 
 import numpy as np
 import yaml
@@ -12,6 +12,111 @@ import yaml
 from core import time_handling
 from core import err_handler
 
+class ForcingEnum(IntEnum):
+    NLDAS = 1 #GRIB retrospective files
+    NARR = 2 #GRIB retrospective files
+    GFS_GLOBAL = 3 #GRIB2 Global production files on the full gaussian grid
+    NAM_NEST_CONUS = 4 #Nest GRIB2 Conus production files
+    HRRR = 5 #GRIB2 Conus production files
+    RAP = 6 #GRIB2 Conus 13km production files
+    CFS_V2 = 7 #6-hourly GRIB2 Global production files
+    WRF_NEST_HI = 8 #GRIB2 Hawaii nest files
+    GFS_GLOBAL_25 = 9 #GRIB2 Global production files on 0.25 degree lat/lon grids. 
+    CUSTOM_1 = 10 #Custom NetCDF hourly forcing files
+    CUSTOM_2 = 11 #NetCDF hourly forcing files
+    CUSTOM_3 = 12 #NetCDF hourly forcing files
+    NAM_NEST_HI = 13 #3-km NAM Nest.
+    NAM_NEST_PR = 14 #3-km NAM Nest.
+    NAM_NEST_AK = 15 #3-km Alaska Nest
+    NAM_NEST_HI_RAD = 16 #NAM_Nest_3km_Hawaii_Radiation-Only
+    NAM_NEST_PR_RAD = 17 #NAM_Nest_3km_PuertoRico_Radiation-Only
+    WRF_ARW_PR = 18 #GRIB2 PuertoRico
+
+class RegriddingOptEnum(IntEnum):
+    ESMF_BILINEAR = 1
+    ESMF_NEAREST_NEIGHBOR = 2
+    ESMF_CONSERVATIVE_BILINEAR = 3
+
+class TemporalInterpEnum(IntEnum):
+    NONE = 0
+    NEAREST_NEIGHBOR = 1
+    LINEAR_WEIGHT_AVG = 2
+
+class BiasCorrTempEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+    CUSTOM = 2
+    GFS = 3
+    HRRR = 4
+
+class BiasCorrPressEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+
+class BiasCorrHumidEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+    CUSTOM = 2
+
+class BiasCorrWindEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+    CUSTOM = 2
+    GFS = 3
+    HRRR = 4
+
+class BiasCorrSwEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+    CUSTOM = 2
+
+class BiasCorrLwEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+    CUSTOM = 2
+    GFS = 3
+
+class BiasCorrPrecipEnum(IntEnum):
+    NONE = 0
+    CFS_V2 = 1
+
+class DownScaleTempEnum(IntEnum):
+    NONE = 0
+    LAPSE_675 = 1
+    LAPSE_PRE_CALC = 2
+
+class DownScalePressEnum(IntEnum):
+    NONE = 0
+    ELEV = 1
+
+class DownScaleSwEnum(IntEnum):
+    NONE = 0
+    ELEV = 1
+
+class DownScalePrecipEnum(IntEnum):
+    NONE = 0
+    NWM_MM = 1
+
+class DownScaleHumidEnum(IntEnum):
+    NONE = 0
+    REGRID_TEMP_PRESS = 1
+
+class OutputFloatEnum(IntEnum):
+    SCALE_OFFSET = 0
+    FLOAT = 1
+
+class SuppForcingPcpEnum(IntEnum):
+    MRMS = 1
+    MRMS_GAGE = 2
+    WRF_ARW_HI = 3
+    WRF_ARW_PR = 4
+    MRMS_CONUS_MS = 5
+    MRMS_HI_MS = 6
+
+class SuppForcingRqiMethodEnum(IntEnum):
+    NONE = 0
+    MRMS = 1
+    NWM = 2
 
 class ConfigOptions:
     """
@@ -131,9 +236,9 @@ class ConfigOptions:
 
         # Read in the base input forcing options as an array of values to map.
         try:
-            self.input_forcings = [input['Forcing'] for input in inputs]
+            self.input_forcings = [int(ForcingEnum[input['Forcing']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Forcing\'] in Input map in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Forcing\'] from options: %s' % [item.name for item in ForcingEnum])
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
@@ -174,9 +279,11 @@ class ConfigOptions:
 
         # Read in the mandatory enforcement options for input forcings.
         try:
-            self.input_force_mandatory = [input['Mandatory'] for input in inputs]
+            self.input_force_mandatory = [int(input['Mandatory']) for input in inputs]
         except KeyError:
             err_handler.err_out_screen('Missing Input[i][\'Mandatory\'] in Input map in configuration file.')
+        except ValueError:
+            err_handler.err_out_screen('Invalid Input[i][\'Mandatory\'] value in Input map in configuration file.')
 
         if len(self.input_force_mandatory) != self.number_inputs:
             err_handler.err_out_screen('Please specify InputMandatory values for each corresponding input '
@@ -236,9 +343,9 @@ class ConfigOptions:
 
         # Process regridding options.
         try:
-            self.regrid_opt = [input['RegriddingOpt'] for input in inputs]
+            self.regrid_opt = [int(RegriddingOptEnum[input['RegriddingOpt']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'RegriddingOpt\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'RegriddingOpt\'] from options: %s' % [item.name for item in RegriddingOptEnum])
         if len(self.regrid_opt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'RegriddingOpt\'] values for each corresponding input '
                                        'forcings in the configuration file.')
@@ -250,9 +357,9 @@ class ConfigOptions:
 
         # Read in temporal interpolation options.
         try:
-            self.forceTemoralInterp = [input['TemporalInterp'] for input in inputs]
+            self.forceTemoralInterp = [int(TemporalInterpEnum[input['TemporalInterp']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'TemporalInterp\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'TemporalInterp\'] from options: %s' % [item.name for item in TemporalInterpEnum])
         if len(self.forceTemoralInterp) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'TemporalInterp\'] values for each corresponding input forcings in the configuration file.')
         # Ensure the forcingTemporalInterpolation values make sense.
@@ -286,9 +393,9 @@ class ConfigOptions:
 
         # Read in temperature bias correction options
         try:
-            self.t2BiasCorrectOpt = [input['BiasCorrection']['Temperature'] for input in inputs]
+            self.t2BiasCorrectOpt = [int(BiasCorrTempEnum[input['BiasCorrection']['Temperature']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'BiasCorrection\'][\'Temperature\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Temperature\'] from options: %s' % [item.name for item in BiasCorrTempEnum])
         if len(self.t2BiasCorrectOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Temperature\'] values for each corresponding '
                                        'input forcings in the configuration file.')
@@ -300,9 +407,9 @@ class ConfigOptions:
 
         # Read in surface pressure bias correction options.
         try:
-            self.psfcBiasCorrectOpt = [input['BiasCorrection']['Pressure'] for input in inputs]
+            self.psfcBiasCorrectOpt = [int(BiasCorrPressEnum[input['BiasCorrection']['Pressure']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'BiasCorrection\'][\'Pressure\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Pressure\'] from options: %s' % [item.name for item in BiasCorrPressEnum])
         if len(self.psfcBiasCorrectOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Pressure\'] values for each corresponding '
                                        'input forcings in the configuration file.')
@@ -317,16 +424,16 @@ class ConfigOptions:
 
         # Read in humidity bias correction options.
         try:
-            self.q2BiasCorrectOpt = [input['BiasCorrection']['Humidity'] for input in inputs]
+            self.q2BiasCorrectOpt = [int(BiasCorrHumidEnum[input['BiasCorrection']['Humidity']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[\'BiasCorrection\'][\'Humidity\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Humidity\'] from options: %s' % [item.name for item in BiasCorrHumidEnum])
         if len(self.q2BiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify Input[\'BiasCorrection\'][\'Humidity\'] values for each corresponding '
+            err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Humidity\'] values for each corresponding '
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.q2BiasCorrectOpt:
             if optTmp < 0 or optTmp > 2:
-                err_handler.err_out_screen('Invalid Input[\'BiasCorrection\'][\'Humidity\'] options specified in the '
+                err_handler.err_out_screen('Invalid Input[i][\'BiasCorrection\'][\'Humidity\'] options specified in the '
                                            'configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
@@ -334,11 +441,11 @@ class ConfigOptions:
 
         # Read in wind bias correction options.
         try:
-            self.windBiasCorrect = [input['BiasCorrection']['Wind'] for input in inputs]
+            self.windBiasCorrect = [int(BiasCorrWindEnum[input['BiasCorrection']['Wind']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[\'BiasCorrection\'][\'Wind\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Wind\'] from options: %s' % [item.name for item in BiasCorrWindEnum])
         if len(self.windBiasCorrect) != self.number_inputs:
-            err_handler.err_out_screen('Please specify Input[\'BiasCorrection\'][\'Wind\'] values for each corresponding '
+            err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Wind\'] values for each corresponding '
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.windBiasCorrect:
@@ -350,48 +457,48 @@ class ConfigOptions:
 
         # Read in shortwave radiation bias correction options.
         try:
-            self.swBiasCorrectOpt = [input['BiasCorrection']['Shortwave'] for input in inputs]
+            self.swBiasCorrectOpt = [int(BiasCorrSwEnum[input['BiasCorrection']['Shortwave']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[\'BiasCorrection\'][\'Shortwave\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Shortwave\'] from options: %s' % [item.name for item in BiasCorrSwEnum])
         if len(self.swBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify Input[\'BiasCorrection\'][\'Shortwave\'] values for each corresponding '
+            err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Shortwave\'] values for each corresponding '
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.swBiasCorrectOpt:
             if optTmp < 0 or optTmp > 2:
-                err_handler.err_out_screen('Invalid Input[\'BiasCorrection\'][\'Shortwave\'] options specified in the configuration file.')
+                err_handler.err_out_screen('Invalid Input[i][\'BiasCorrection\'][\'Shortwave\'] options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
                 self.runCfsNldasBiasCorrect = True
 
         # Read in longwave radiation bias correction options.
         try:
-            self.lwBiasCorrectOpt = [input['BiasCorrection']['Longwave'] for input in inputs]
+            self.lwBiasCorrectOpt = [int(BiasCorrLwEnum[input['BiasCorrection']['Longwave']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[\'BiasCorrection\'][\'Longwave\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Longwave\'] from options: %s' % [item.name for item in BiasCorrLwEnum])
         if len(self.lwBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify Input[\'BiasCorrection\'][\'Longwave\'] values for each corresponding '
+            err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Longwave\'] values for each corresponding '
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.lwBiasCorrectOpt:
             if optTmp < 0 or optTmp > 4:
-                err_handler.err_out_screen('Invalid Input[\'BiasCorrection\'][\'Longwave\'] options specified in the configuration file.')
+                err_handler.err_out_screen('Invalid Input[i][\'BiasCorrection\'][\'Longwave\'] options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
                 self.runCfsNldasBiasCorrect = True
 
         # Read in precipitation bias correction options.
         try:
-            self.precipBiasCorrectOpt = [input['BiasCorrection']['Precip'] for input in inputs]
+            self.precipBiasCorrectOpt = [int(BiasCorrPrecipEnum[input['BiasCorrection']['Precip']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[\'BiasCorrection\'][\'Precip\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'BiasCorrection\'][\'Precip\'] from options: %s' % [item.name for item in BiasCorrPrecipEnum])
         if len(self.precipBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify Input[\'BiasCorrection\'][\'Precip\'] values for each corresponding '
+            err_handler.err_out_screen('Please specify Input[i][\'BiasCorrection\'][\'Precip\'] values for each corresponding '
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.precipBiasCorrectOpt:
             if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid Input[\'BiasCorrection\'][\'Precip\'] options specified in the configuration file.')
+                err_handler.err_out_screen('Invalid Input[i][\'BiasCorrection\'][\'Precip\'] options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
                 self.runCfsNldasBiasCorrect = True
@@ -431,9 +538,9 @@ class ConfigOptions:
         param_flag = np.empty([len(self.input_forcings)], np.int)
         param_flag[:] = 0
         try:
-            self.t2dDownscaleOpt = [input['Downscaling']['Temperature'] for input in inputs]
+            self.t2dDownscaleOpt = [int(DownScaleTempEnum[input['Downscaling']['Temperature']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Downscaling\'][\'Temperature\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Downscaling\'][\'Temperature\'] from options: %s' % [item.name for item in DownScaleTempEnum])
         if len(self.t2dDownscaleOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'Downscaling\'][\'Temperature\'] value for each corresponding '
                                        'input forcings in the configuration file.')
@@ -449,9 +556,9 @@ class ConfigOptions:
 
         # Read in the pressure downscaling options.
         try:
-            self.psfcDownscaleOpt = [input['Downscaling']['Pressure'] for input in inputs]
+            self.psfcDownscaleOpt = [int(DownScalePressEnum[input['Downscaling']['Pressure']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Downscaling\'][\'Pressure\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Downscaling\'][\'Pressure\'] from options: %s' % [item.name for item in DownScalePressEnum])
         if len(self.psfcDownscaleOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'Downscaling\'][\'Pressure\'] value for each corresponding '
                                        'input forcings in the configuration file.')
@@ -462,9 +569,9 @@ class ConfigOptions:
 
         # Read in the shortwave downscaling options
         try:
-            self.swDownscaleOpt = [input['Downscaling']['Shortwave'] for input in inputs]
+            self.swDownscaleOpt = [int(DownScaleSwEnum[input['Downscaling']['Shortwave']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Downscaling\'][\'Shortwave\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Downscaling\'][\'Shortwave\'] from options: %s' % [item.name for item in DownScaleSwEnum])
         if len(self.swDownscaleOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'Downscaling\'][\'Shortwave\'] value for each corresponding '
                                        'input forcings in the configuration file.')
@@ -475,9 +582,9 @@ class ConfigOptions:
 
         # Read in the precipitation downscaling options
         try:
-            self.precipDownscaleOpt =  [input['Downscaling']['Precip'] for input in inputs]
+            self.precipDownscaleOpt =  [int(DownScalePrecipEnum[input['Downscaling']['Precip']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Downscaling\'][\'Precip\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Downscaling\'][\'Precip\'] from options: %s' % [item.name for item in DownScalePrecipEnum])
         if len(self.precipDownscaleOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'Downscaling\'][\'Precip\'] value for each corresponding '
                                        'input forcings in the configuration file.')
@@ -492,9 +599,9 @@ class ConfigOptions:
 
         # Read in humidity downscaling options.
         try:
-            self.q2dDownscaleOpt = [input['Downscaling']['Humidity'] for input in inputs]
+            self.q2dDownscaleOpt = [int(DownScaleHumidEnum[input['Downscaling']['Humidity']]) for input in inputs]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate Input[i][\'Downscaling\'][\'Humidity\'] in the configuration file.')
+            err_handler.err_out_screen('Please pick Input[i][\'Downscaling\'][\'Humidity\'] from options: %s' % [item.name for item in DownScaleHumidEnum])
         if len(self.q2dDownscaleOpt) != self.number_inputs:
             err_handler.err_out_screen('Please specify Input[i][\'Downscaling\'][\'Humidity\'] value for each corresponding '
                                        'input forcings in the configuration file.')
@@ -573,7 +680,7 @@ class ConfigOptions:
         
         # Read in floating-point option
         try:
-            self.useFloats = int(output['FloatOutput'])
+            self.useFloats = int(OutputFloatEnum[output['FloatOutput']])
         except KeyError:
             # err_handler.err_out_screen('Unable to locate Output[\'FloatOutput\'] in the configuration file.')
             self.useFloats = 0
@@ -833,9 +940,9 @@ class ConfigOptions:
         
         # Read in supplemental precipitation options as an array of values to map.
         try:
-            self.supp_precip_forcings = [suppforcing['Pcp'] for suppforcing in suppforcings]
+            self.supp_precip_forcings = [int(SuppForcingPcpEnum[suppforcing['Pcp']]) for suppforcing in suppforcings]
         except KeyError:
-            err_handler.err_out_screen('Unable to locate SuppForcing[i][\'Pcp\'] in configuration file.')
+            err_handler.err_out_screen('Please pick SuppForcing[i][\'Pcp\'] from options: %s' % [item.name for item in SuppForcingPcpEnum])
         self.number_supp_pcp = len(self.supp_precip_forcings)
         
         # Read in the supp pcp types (GRIB[1|2], NETCDF)
@@ -863,9 +970,9 @@ class ConfigOptions:
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt == 1 or suppOpt == 2:
                     try:
-                        self.rqiMethod = [suppforcing['RqiMethod'] for suppforcing in suppforcings]
+                        self.rqiMethod = [int(SuppForcingRqiMethodEnum[suppforcing['RqiMethod']]) for suppforcing in suppforcings]
                     except KeyError:
-                        err_handler.err_out_screen('Unable to locate SuppForcing[i][\'RqiMethod\'] in the configuration file.')
+                        err_handler.err_out_screen('Please pick SuppForcing[i][\'RqiMethod\'] from options: %s' % [item.name for item in SuppForcingRqiMethodEnum])
                     # Make sure the RqiMethod makes sense.
                     if self.rqiMethod[i] < 0 or self.rqiMethod[i] > 2:
                         err_handler.err_out_screen('Please specify an SuppForcing[i][\'RqiMethod\'] of either 0, 1, or 2.')
@@ -894,7 +1001,7 @@ class ConfigOptions:
 
             # Process supplemental precipitation enforcement options
             try:
-                self.supp_precip_mandatory = [suppforcing['PcpMandatory'] for suppforcing in suppforcings]
+                self.supp_precip_mandatory = [int(suppforcing['PcpMandatory']) for suppforcing in suppforcings]
             except KeyError:
                 err_handler.err_out_screen('Unable to locate SuppForcing[i][\'PcpMandatory\'] in the configuration file.')
             if len(self.supp_precip_mandatory) != self.number_supp_pcp:

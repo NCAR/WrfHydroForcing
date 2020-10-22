@@ -17,54 +17,56 @@
 #Input Example With Two Separate Inputs (a YAML list of input parameters)
 #
 #Input:
-# - Forcing: 6
+# - Forcing: RAP
 #   Type: GRIB2
 #   Dir: /glade/p/ral/allral/zhangyx/RAP_Conus
-#   Mandatory: 1
+#   Mandatory: True
 #   Horizon: 60
 #   Offset: 0
 #   IgnoredBorderWidths: 0
-#   RegriddingOpt: 1
-#   TemporalInterp: 0
+#   RegriddingOpt: ESMF_BILINEAR
+#   TemporalInterp: NONE
+##   Custom:
+##    input_fcst_freq: 60
 #   BiasCorrection:
-#    Temperature: 0
-#    Pressure: 0
-#    Humidity: 0
-#    Wind: 0
-#    Shortwave: 0
-#    Longwave: 0
-#    Precip: 0
+#    Temperature: NONE
+#    Pressure: NONE
+#    Humidity: NONE
+#    Wind: NONE
+#    Shortwave: NONE
+#    Longwave: NONE
+#    Precip: NONE
 #   Downscaling:
-#    Temperature: 2
-#    Pressure: 1
-#    Shortwave: 1
-#    Precip: 0
-#    Humidity: 1
-#    ParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
-# - Forcing: 5
+#    Temperature: LAPSE_PRE_CALC
+#    Pressure: ELEV
+#    Shortwave: ELEV
+#    Precip: NONE
+#    Humidity: REGRID_TEMP_PRESS
+#    ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
+# - Forcing: HRRR
 #   Type: GRIB2
 #   Dir: /glade/p/ral/allral/zhangyx/HRRR_Conus
-#   Mandatory: 1
+#   Mandatory: True
 #   Horizon: 60
 #   Offset: 0
 #   IgnoredBorderWidths: 5
-#   RegriddingOpt: 1
-#   TemporalInterp: 0
+#   RegriddingOpt: ESMF_BILINEAR
+#   TemporalInterp: NONE
 #   BiasCorrection:
-#    Temperature: 4
-#    Pressure: 0
-#    Humidity: 0
-#    Wind: 4
-#    Shortwave: 2
-#    Longwave: 2
-#    Precip: 0
+#    Temperature: HRRR
+#    Pressure: NONE
+#    Humidity: NONE
+#    Wind: HRRR
+#    Shortwave: CUSTOM
+#    Longwave: CUSTOM
+#    Precip: NONE
 #   Downscaling:
-#    Temperature: 2
-#    Pressure: 1
-#    Shortwave: 1
-#    Precip: 0
-#    Humidity: 1
-#    ParamDir: /Users/bpetzke/temp/wrfhydro/NWM_v21_Params/AnA
+#    Temperature: LAPSE_PRE_CALC
+#    Pressure: ELEV
+#    Shortwave: ELEV
+#    Precip: NONE
+#    Humidity: REGRID_TEMP_PRESS
+#    ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 #
 #Input[i]['Forcing']
 # Choose a set of value(s) of forcing variables to be processed for
@@ -76,30 +78,31 @@
 # to variables within LDASIN files for WRF-Hydro. The forcing engine
 # will map files to external variable names internally. For custom
 # external native forcing files (see documenation), the code will
-# expect a set of named variables to process. The following is a
-# mapping of numeric values to external input native forcing files:
-# 1 - NLDAS GRIB retrospective files
-# 2 - NARR GRIB retrospective files
-# 3 - GFS GRIB2 Global production files on the full gaussian grid
-# 4 - NAM Nest GRIB2 Conus production files
-# 5 - HRRR GRIB2 Conus production files
-# 6 - RAP GRIB2 Conus 13km production files
-# 7 - CFSv2 6-hourly GRIB2 Global production files
-# 8 - WRF-ARW - GRIB2 Hawaii nest files
-# 9 - GFS GRIB2 Global production files on 0.25 degree lat/lon grids. 
-# 10 - Custom NetCDF hourly forcing files
-# 11 - Custom NetCDF hourly forcing files
-# 12 - Custom NetCDF hourly forcing files
-# 13 - Hawaii 3-km NAM Nest.
-# 14 - Puerto Rico 3-km NAM Nest.
-# 15 - Alaska 3-km Alaska Nest
-# 16 - NAM_Nest_3km_Hawaii_Radiation-Only
-# 17 - NAM_Nest_3km_PuertoRico_Radiation-Only
-# 18 - WRF-ARW GRIB2 PuertoRico
+# expect a set of named variables to process.
+# NLDAS - GRIB retrospective files
+# NARR - GRIB retrospective files
+# GFS_GLOBAL - GRIB2 Global production files on the full gaussian grid
+# NAM_NEST_CONUS - Nest GRIB2 Conus production files
+# HRRR - GRIB2 Conus production files
+# RAP - GRIB2 Conus 13km production files
+# CFS_V2 - 6-hourly GRIB2 Global production files
+# WRF_NEST_HI - GRIB2 Hawaii nest files
+# GFS_GLOBAL_25 - GRIB2 Global production files on 0.25 degree lat/lon grids. 
+# CUSTOM_1 - Custom NetCDF hourly forcing files
+# CUSTOM_2 - NetCDF hourly forcing files
+# CUSTOM_3 - NetCDF hourly forcing files
+# NAM_NEST_HI - 3-km NAM Nest.
+# NAM_NEST_PR - 3-km NAM Nest.
+# NAM_NEST_AK - 3-km Alaska Nest
+# NAM_NEST_HI_RAD - NAM_Nest_3km_Hawaii_Radiation-Only
+# NAM_NEST_PR_RAD - NAM_Nest_3km_PuertoRico_Radiation-Only
+# WRF_ARW_PR - GRIB2 PuertoRico
 #
 #Input[i]['Type']
 # Specify the file type for each forcing
-# Valid types are GRIB1, GRIB2, and NETCDF
+# GRIB
+# GRIB2
+# NETCDF
 # (GRIB files will be converted internally with WGRIB[2])
 #
 #Input[i]['Dir']
@@ -109,8 +112,8 @@
 # Specify whether the input forcings listed above are mandatory, or optional.
 # This is important for layering contingencies if a product is missing,
 # but forcing files are still desired.
-# 0 - Not mandatory
-# 1 - Mandatory
+# False - Not mandatory
+# True - Mandatory
 # NOTE!!! If not files are found for any products, code will error out indicating
 # the final field is all missing values.
 #
@@ -134,9 +137,9 @@
 #
 # Input[i]['RegriddingOpt']
 # Choose regridding options for each input forcing files being used. Options available are:
-# 1 - ESMF Bilinear
-# 2 - ESMF Nearest Neighbor
-# 3 - ESMF Conservative Bilinear
+# ESMF_BILINEAR
+# ESMF_NEAREST_NEIGHBOR
+# ESMF_CONSERVATIVE_BILINEAR
 #
 # Input[i]['TemporalInterp']
 # Specify an temporal interpolation for the forcing variables.
@@ -147,9 +150,9 @@
 # NOTE - All input options here must be of the same length
 # of the input forcing number. Also note all temporal interpolation
 # occurs BEFORE downscaling and bias correction.
-# 0 - No temporal interpolation.
-# 1 - Nearest Neighbor
-# 2 - Linear weighted average
+# NONE - No temporal interpolation.
+# NEAREST_NEIGHBOR - Nearest Neighbor
+# LINEAR_WEIGHT_AVG - Linear weighted average
 #
 # (Optional)
 # Input[i]['Custom']['input_fcst_freq'] 
@@ -163,143 +166,140 @@
 #
 # Input[i]['BiasCorrection']['Temperature']
 # Specify a temperature bias correction method.
-# 0 - No bias correction
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
-# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
-# 3 - NCAR parametric GFS bias correction
-# 4 - NCAR parametric HRRR bias correction
+# NONE - No bias correction
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# CUSTOM - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+# GFS - NCAR parametric GFS bias correction
+# HRRR - NCAR parametric HRRR bias correction
 #
 # Input[i]['BiasCorrection]['Pressure']
 # Specify a surface pressure bias correction method.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
 #
 # Input[i]['BiasCorrection']['Humidity']
 # Specify a specific humidity bias correction method.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
-# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# CUSTOM - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
 #
 # Input[i]['BiasCorrection']['Wind']
 # Specify a wind bias correction.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
-# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
-# 3 - NCAR parametric GFS bias correction
-# 4 - NCAR parametric HRRR bias correction
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# CUSTOM - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+# GFS - NCAR parametric GFS bias correction
+# HRRR - NCAR parametric HRRR bias correction
 #
 # Input[i]['BiasCorrection']['Shortwave']
 # Specify a bias correction for incoming short wave radiation flux.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
-# 2 - Custom NCAR bias-correction based on HRRRv3 analysis (USE WITH CAUTION).
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# CUSTOM - Custom NCAR bias-correction based on HRRRv3 analysis (USE WITH CAUTION).
 #
 # Input[i]['BiasCorrection']['Longwave']
 # Specify a bias correction for incoming long wave radiation flux.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
-# 2 - Custom NCAR bias-correction based on HRRRv3 analysis, blanket adjustment (USE WITH CAUTION).
-# 3 - NCAR parametric GFS bias correction
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# CUSTOM - Custom NCAR bias-correction based on HRRRv3 analysis, blanket adjustment (USE WITH CAUTION).
+# GFS - NCAR parametric GFS bias correction
 #
 # Input[i]['BiasCorrection']['Precip']
 # Specify a bias correction for precipitation.
-# 0 - No bias correction.
-# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# NONE - No bias correction.
+# CFS_V2 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
 #
 # Choose downscaling options for each of the input forcing files. Length of each option
 # must match the length of input forcings.
 #
 # Input[i]['Downscaling']['Temperature']
 # Specify a temperature downscaling method:
-# 0 - No downscaling.
-# 1 - Use a simple lapse rate of 6.75 degrees Celsius to get from the model elevation
-#     to the WRF-Hydro elevation.
-# 2 - Use a pre-calculated lapse rate regridded to the WRF-Hydro domain.
+# NONE - No downscaling.
+# LAPSE_675 - Use a simple lapse rate of 6.75 degrees Celsius to get from the model elevation to the WRF-Hydro elevation.
+# LAPSE_PRE_CALC - Use a pre-calculated lapse rate regridded to the WRF-Hydro domain.
 #
 # Input[i]['Downscaling']['Pressure']
 # Specify a surface pressure downscaling method:
-# 0 - No downscaling.
-# 1 - Use input elevation and WRF-Hydro elevation to downscale
-#     surface pressure.
+# NONE - No downscaling.
+# ELEV - Use input elevation and WRF-Hydro elevation to downscale surface pressure.
 #
 # Input[i]['Downscaling']['Shortwave']
 # Specify a shortwave radiation downscaling routine.
-# 0 - No downscaling
-# 1 - Run a topographic adjustment using the WRF-Hydro elevation
+# NONE - No downscaling
+# ELEV - Run a topographic adjustment using the WRF-Hydro elevation
 #
 # Input[i]['Downscaling']['Precip']
 # Specify a precipitation downscaling routine.
-# 0 - No downscaling
-# 1 - NWM mountain mapper downscaling using monthly PRISM climo.
+# NONE - No downscaling
+# NWM_MM - NWM mountain mapper downscaling using monthly PRISM climo.
 #
 # Input[i]['Downscaling']['Humidity']
 # Specify a specific humidity downscaling routine.
-# 0 - No downscaling
-# 1 - Use regridded humidity, along with downscaled temperature/pressure
-#     to extrapolate a downscaled surface specific humidty.
+# NONE - No downscaling
+# REGRID_TEMP_PRESS - Use regridded humidity, along with downscaled temperature/pressure to extrapolate a downscaled surface specific humidty.
 #
 # Input[i]['Downscaling']['ParamDir']
 # Specify the input parameter directory containing necessary downscaling grids.
 Input:
- - Forcing: 6
+ - Forcing: RAP
    Type: GRIB2
    Dir: /glade/p/ral/allral/zhangyx/RAP_Conus
-   Mandatory: 1
+   Mandatory: True
    Horizon: 60
    Offset: 0
    IgnoredBorderWidths: 0
-   RegriddingOpt: 1
-   TemporalInterp: 0
+   RegriddingOpt: ESMF_BILINEAR
+   TemporalInterp: NONE
 #   Custom:
 #    input_fcst_freq: 60
    BiasCorrection:
-    Temperature: 0
-    Pressure: 0
-    Humidity: 0
-    Wind: 0
-    Shortwave: 0
-    Longwave: 0
-    Precip: 0
+    Temperature: NONE
+    Pressure: NONE
+    Humidity: NONE
+    Wind: NONE
+    Shortwave: NONE
+    Longwave: NONE
+    Precip: NONE
    Downscaling:
-    Temperature: 2
-    Pressure: 1
-    Shortwave: 1
-    Precip: 0
-    Humidity: 1
+    Temperature: LAPSE_PRE_CALC
+    Pressure: ELEV
+    Shortwave: ELEV
+    Precip: NONE
+    Humidity: REGRID_TEMP_PRESS
     ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
- - Forcing: 5
+ - Forcing: HRRR
    Type: GRIB2
    Dir: /glade/p/ral/allral/zhangyx/HRRR_Conus
-   Mandatory: 1
+   Mandatory: True
    Horizon: 60
    Offset: 0
    IgnoredBorderWidths: 5
-   RegriddingOpt: 1
-   TemporalInterp: 0
+   RegriddingOpt: ESMF_BILINEAR
+   TemporalInterp: NONE
    BiasCorrection:
-    Temperature: 4
-    Pressure: 0
-    Humidity: 0
-    Wind: 4
-    Shortwave: 2
-    Longwave: 2
-    Precip: 0
+    Temperature: HRRR
+    Pressure: NONE
+    Humidity: NONE
+    Wind: HRRR
+    Shortwave: CUSTOM
+    Longwave: CUSTOM
+    Precip: NONE
    Downscaling:
-    Temperature: 2
-    Pressure: 1
-    Shortwave: 1
-    Precip: 0
-    Humidity: 1
+    Temperature: LAPSE_PRE_CALC
+    Pressure: ELEV
+    Shortwave: ELEV
+    Precip: NONE
+    Humidity: REGRID_TEMP_PRESS
     ParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 
 #Output Example
 #
-# Output:
-#  Frequency: 60
-#  Dir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
-#  ScratchDir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
-#  FloatOutput: 0
-#  CompressOutput: 0
+#Output:
+# Frequency: 60
+# Dir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
+# ScratchDir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
+# FloatOutput: SCALE_OFFSET
+# CompressOutput: False
 #
 #Output['Frequency']
 # Specify the output frequency in minutes. 
@@ -321,32 +321,32 @@ Input:
 #Output['FloatOutput']
 # Flag to use floating point output vs scale_factor / add_offset byte packing in
 # the output files (the default)
-# 0 - Use scale/offset encoding
-# 1 - Use floating-point encoding
+# SCALE_OFFSET - Use scale/offset encoding
+# FLOAT - Use floating-point encoding
 #
 #Output['CompressOutput']
 # Flag to activate netCDF4 deflate compression in the output files.
-# 0 - Deactivate compression
-# 1 - Activate compression
+# False - Deactivate compression
+# True - Activate compression
 Output:
  Frequency: 60
  Dir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
  ScratchDir: /glade/scratch/bpetzke/ForcingEngine/Test/AnA
- FloatOutput: 0
- CompressOutput: 0
+ FloatOutput: SCALE_OFFSET
+ CompressOutput: False
 
 
 #Retrospective Example:
 #
 # Retrospective:
-#  Flag: 0
+#  Flag: False
 #  BDateProc: 202002040000
 #  EDateProc: 202002050000
 #
 #Retrospective['Flag']
 # Specify to process forcings in retrosective mode
-# 0 - No
-# 1 - Yes
+# False - No
+# True - Yes
 #
 #Retrospective['BDateProc']
 #Retrospective['EDateProc']
@@ -355,7 +355,7 @@ Output:
 # If in real-time forecasting mode, leave as -9999.
 # These dates get over-ridden in lookBackHours.
 Retrospective:
- Flag: 0
+ Flag: False
  BDateProc: 202002040000
  EDateProc: 202002050000
 
@@ -363,7 +363,7 @@ Retrospective:
 #Forecast Example
 #
 # Forecast:
-#  AnAFlag: 1
+#  AnAFlag: True
 #  LookBack: 180
 #  RefcstBDateProc: 202009152300
 #  RefcstEDateProc: 202009160000
@@ -372,7 +372,8 @@ Retrospective:
 #
 # Forecast['AnAFlag']
 # Specify if this is an Analysis and Assimilation run (AnA).
-# If this is AnA run, set AnAFlag to 1, otherwise 0.
+# True - AnA run
+# False
 # Setting this flag will change the behavior of some Bias Correction routines as wel
 # as the ForecastInputOffsets options (see below for more information)
 #
@@ -405,7 +406,7 @@ Retrospective:
 # to determine forecast cycle dates.  
 #
 Forecast:
- AnAFlag: 1
+ AnAFlag: True
  LookBack: 180
  RefcstBDateProc: 202009152300
  RefcstEDateProc: 202009160000
@@ -440,14 +441,14 @@ Regridding:
 # Example SuppForcing
 #
 #SuppForcing:
-# - Pcp: 5
+# - Pcp: MRMR_CONUS_MS
 #   PcpTypes: GRIB2
 #   PcpDir: /glade/p/ral/allral/zhangyx/CONUS.MRMS
-#   PcpMandatory: 0
+#   PcpMandatory: False
 #   RegridOptPcp: 1
 #   PcpTemporalInterpolation: 0
 #   PcpInputOffsets: 0
-#   RqiMethod: 2
+#   RqiMethod: NWM
 #   RqiThreshold: 0.9
 #   PcpParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 #
@@ -456,16 +457,18 @@ Regridding:
 # into the final LDASIN forcing files processed from
 # the options above. The following is a mapping of
 # numeric values to external input native forcing files:
-# 1 - MRMS GRIB2 hourly radar-only QPE
-# 2 - MRMS GRIB2 hourly gage-corrected radar QPE
-# 3 - WRF-ARW 2.5 km 48-hr Hawaii nest precipitation.
-# 4 - WRF-ARW 2.5 km 48-hr Puerto Rico nest precipitation.
-# 5 - CONUS MRMS MultiSensor Pass1 and Pass1
-# 6 - Hawaii MRMS MultiSensor Pass1 and Pass2
+# MRMS - MRMS GRIB2 hourly radar-only QPE
+# MRMS_GAGE - MRMS GRIB2 hourly gage-corrected radar QPE
+# WRF_ARW_HI - WRF-ARW 2.5 km 48-hr Hawaii nest precipitation.
+# WRF_ARW_PR - WRF-ARW 2.5 km 48-hr Puerto Rico nest precipitation.
+# MRMS_CONUS_MS - CONUS MRMS MultiSensor Pass1 and Pass1
+# MRMS_HI_MS - Hawaii MRMS MultiSensor Pass1 and Pass2
 #
 # SuppForcing[i]['PcpType']
 # Specify the file type for each supplemental precipitation file (comma separated)
-# Valid types are GRIB1, GRIB2, and NETCDF
+# GRIB1
+# GRIB2
+# NETCDF
 # (GRIB files will be converted internally with WGRIB[2])
 #
 # SupportForcing[i]['PcpDir']
@@ -476,15 +479,21 @@ Regridding:
 # Specify whether the Supplemental Precips listed above are mandatory, or optional.
 # This is important for layering contingencies if a product is missing,
 # but forcing files are still desired.
-# 0 - Not mandatory
-# 1 - Mandatory
+# False - Not mandatory
+# True - Mandatory
 #
 # SuppForcing[i]['RegridOptPcp']
 # Specify regridding options for the supplemental precipitation products.
+# 1 - 
+# 2 - 
+# 3 -
 #
 # SuppForcing[i]['PcpTemporalInterp']
 # Specify the time interpretation methods for the supplemental precipitation
 # products.
+# 0 -
+# 1 -
+# 2 -
 #
 #SuppForcing[i]['PcpInputOffsets']
 # In AnA runs, this value is the offset from the available forecast and 00z
@@ -492,9 +501,9 @@ Regridding:
 #
 #SuppForcing[i]['RqiMethod']
 # Optional RQI method for radar-based data.
-# 0 - Do not use any RQI filtering. Use all radar-based estimates.
-# 1 - Use hourly MRMS Radar Quality Index grids.
-# 2 - Use NWM monthly climatology grids (NWM only!!!!)
+# NONE - Do not use any RQI filtering. Use all radar-based estimates.
+# MRMS - Use hourly MRMS Radar Quality Index grids.
+# NWM - Use NWM monthly climatology grids (NWM only!!!!)
 #
 #SuppForcing[i]['RqiThreshold']
 # Optional RQI threshold to be used to mask out. Currently used for MRMS products.
@@ -505,14 +514,14 @@ Regridding:
 # Specify an optional directory that contains supplemental precipitation parameter fields,
 # I.E monthly RQI climatology
 SuppForcing:
- - Pcp: 5
+ - Pcp: MRMS_CONUS_MS
    PcpType: GRIB2
    PcpDir: /glade/p/ral/allral/zhangyx/CONUS.MRMS
-   PcpMandatory: 0
+   PcpMandatory: False
    RegridOptPcp: 1
    PcpTemporalInterp: 0
    PcpInputOffsets: 0
-   RqiMethod: 2
+   RqiMethod: NWM
    RqiThreshold: 0.9
    PcpParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/AnA
 
