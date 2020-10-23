@@ -410,7 +410,7 @@ class input_forcings:
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
         regrid_inputs = {
-            1: regrid.regrid_custom_hourly_netcdf,
+            1: regrid.regrid_conus_rap,
             3: regrid.regrid_gfs,
             5: regrid.regrid_conus_hrrr,
             6: regrid.regrid_conus_rap,
