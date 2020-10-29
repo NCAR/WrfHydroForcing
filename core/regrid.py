@@ -2193,7 +2193,7 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        supplemental_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+        supplemental_forcings.esmf_field_in.data[:, :] = var_sub_tmp / 100.0        # convert from 0-100 to 0-1.0
     except (ValueError, KeyError, AttributeError) as err:
         config_options.errMsg = "Unable to place SBCv2 Liquid Water Fraction into local ESMF field: " + str(err)
         err_handler.log_critical(config_options, mpi_config)
@@ -2207,13 +2207,10 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Set any pixel cells outside the input domain to the global missing value.
+    # Set any missing data or pixel cells outside the input domain to a default of 100%
     try:
-        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.regridded_mask == 0)] = \
-            config_options.globalNdv
-        # fix up missing values
-        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.esmf_field_out.data < 0)] = \
-            config_options.globalNdv
+        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.regridded_mask == 0)] = 1.0
+        supplemental_forcings.esmf_field_out.data[np.where(supplemental_forcings.esmf_field_out.data < 0)] = 1.0
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on SBCv2 Liquid Water Fraction: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
