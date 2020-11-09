@@ -189,7 +189,8 @@ class input_forcings:
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
         grib_vars_in = {
-            1: None,
+            1: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                'DLWRF', 'PRES'],
             2: None,
             3: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
                 'DLWRF', 'PRES'],
@@ -219,7 +220,9 @@ class input_forcings:
         self.grib_vars = grib_vars_in[self.keyValue]
 
         grib_levels_in = {
-            1: None,
+            1: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface', 'surface'],
             2: None,
             3: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
@@ -261,7 +264,10 @@ class input_forcings:
         self.grib_levels = grib_levels_in[self.keyValue]
 
         netcdf_variables = {
-            1: None,
+            1: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                'PRES_surface'],
             2: None,
             3: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
@@ -338,7 +344,7 @@ class input_forcings:
         self.grib_mes_idx = grib_message_idx[self.keyValue] 
 
         input_map_to_outputs = {
-            1: None,
+            1: [4,5,0,1,3,7,2,6],
             2: None,
             3: [4,5,0,1,3,7,2,6],
             4: None,
@@ -371,6 +377,7 @@ class input_forcings:
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
         find_neighbor_files = {
+            1: time_handling.find_nldas_neighbors,
             3: time_handling.find_gfs_neighbors,
             5: time_handling.find_conus_hrrr_neighbors,
             6: time_handling.find_conus_rap_neighbors,
@@ -403,6 +410,7 @@ class input_forcings:
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
         regrid_inputs = {
+            1: regrid.regrid_conus_rap,
             3: regrid.regrid_gfs,
             5: regrid.regrid_conus_hrrr,
             6: regrid.regrid_conus_rap,
