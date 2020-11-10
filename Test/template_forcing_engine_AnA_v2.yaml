@@ -277,10 +277,10 @@ Input:
    RegriddingOpt: ESMF_BILINEAR
    TemporalInterp: NONE
    BiasCorrection:
-    Temperature: HRRR
+    Temperature: CUSTOM
     Pressure: NONE
     Humidity: NONE
-    Wind: HRRR
+    Wind: CUSTOM
     Shortwave: CUSTOM
     Longwave: CUSTOM
     Precip: NONE
