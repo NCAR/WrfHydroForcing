@@ -10,7 +10,6 @@ import math
 import os
 import shutil
 import subprocess
-import time
 
 import numpy as np
 from netCDF4 import Dataset
@@ -490,6 +489,19 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
             if not os.environ.get('MFE_SILENT'):
                 print("command: " + Wgrib2Cmd)
+
+            # set up GRIB2TABLE if needed:
+            if not os.environ.get('GRIB2TABLE'):
+                g2path = os.path.join(ConfigOptions.scratch_dir, "grib2.tbl")
+                with open(g2path, 'wt') as g2t:
+                    g2t.write(
+                            "209:1:0:0:161:1:6:30:MultiSensorQPE01H:"
+                            "Multi-sensor estimated precipitation accumulation 1-hour:mm\n"
+                            "209:1:0:0:161:1:6:37:MultiSensorQPE01H:"
+                            "Multi-sensor estimated precipitation accumulation 1-hour:mm\n"
+                    )
+                os.environ['GRIB2TABLE'] = g2path
+
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
 
             #print("exitcode: " + str(exitcode))
@@ -638,6 +650,8 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     if MpiConfig.rank == 0:
         # Unzip the file in place.
         try:
+            ConfigOptions.statusMsg = "Unzipping file: {}".format(GzFileIn)
+            err_handler.log_msg(ConfigOptions, MpiConfig)
             with gzip.open(GzFileIn, 'rb') as fTmpGz:
                 with open(FileOut, 'wb') as fTmp:
                     shutil.copyfileobj(fTmpGz, fTmp)
