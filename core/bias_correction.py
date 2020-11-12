@@ -650,7 +650,7 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
         monthly_ampl_AA = 0.0
         monthly_offs_AA = 0.0
 
-        bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) + \
+        wspd_bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) + \
                     monthly_ampl_AA * math.sin(monthly_offs_AA + MM / 12 * 2*math.pi)
     else:
         net_bias_SR = -0.03
@@ -662,7 +662,7 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
         fhr = config_options.current_output_step
 
-        bias_corr = net_bias_SR + fhr * fhr_mult_SR + \
+        wspd_bias_corr = net_bias_SR + fhr * fhr_mult_SR + \
                     diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
                     monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
 
