@@ -9,7 +9,6 @@ import os
 import random
 import time
 
-import ESMF
 import numpy as np
 from netCDF4 import Dataset
 
@@ -629,6 +628,7 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
     date_current = config_options.current_output_date
     hh = float(date_current.hour)
+    MM = float(date_current.month)
 
     fhr = config_options.current_output_step
 
