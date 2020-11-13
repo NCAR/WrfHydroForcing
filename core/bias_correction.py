@@ -318,7 +318,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
     :return:
     """
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming shortwave " \
+        config_options.statusMsg = "Performing NCAR HRRR bias correction on incoming shortwave " \
                                    "radiation fluxes for input: " + \
                                    input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
@@ -445,25 +445,19 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
         net_bias_AA = 0.019
         diurnal_ampl_AA = -0.06
         diurnal_offs_AA = 1.5
-        monthly_ampl_AA = 0.0
-        monthly_offs_AA = 0.0
 
-        bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) + \
-                    monthly_ampl_AA * math.sin(monthly_offs_AA + MM / 12 * 2*math.pi)
+        bias_corr = net_bias_AA + diurnal_ampl_AA * math.sin(diurnal_offs_AA + hh / 24 * 2 * math.pi) 
 
     else:
         net_bias_SR = 0.018
         diurnal_ampl_SR = -0.06
         diurnal_offs_SR = -0.6
-        monthly_ampl_SR = 0.0
-        monthly_offs_SR = 0.0
         fhr_mult_SR = -0.01
 
         fhr = config_options.current_output_step
 
         bias_corr = net_bias_SR + fhr * fhr_mult_SR + \
-                    diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
-                    monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
+                    diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) 
 
     # if mpi_config.rank == 0:
     #     config_options.statusMsg = f"\tAnAFlag = {config_options.ana_flag} {bias_corr}"
@@ -623,12 +617,13 @@ def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, for
 
 def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, force_num):
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Performing NCAR bias correction on incoming windspeed for input: " + \
+        config_options.statusMsg = "Performing NCAR HRRR bias correction on incoming windspeed for input: " + \
                                    input_forcings.productName + " at step " + str(config_options.current_output_step)
         err_handler.log_msg(config_options, mpi_config)
 
     date_current = config_options.current_output_date
     hh = float(date_current.hour)
+    MM = float(date_current.month)
 
     fhr = config_options.current_output_step
 
