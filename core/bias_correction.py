@@ -441,6 +441,9 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
     # determine if we're in AnA or SR configuration
     if config_options.ana_flag == 1:
+        hh -= config_options.output_freq / 60
+        if hh < 0:
+            hh += 24
         net_bias_AA = 0.019
         diurnal_ampl_AA = -0.06
         diurnal_offs_AA = 1.5
@@ -644,6 +647,9 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
 
     # determine if we're in AnA or SR configuration
     if config_options.ana_flag == 1:
+        hh -= config_options.output_freq / 60
+        if hh < 0:
+            hh += 24
         net_bias_AA = 0.23
         diurnal_ampl_AA = -0.13
         diurnal_offs_AA = -0.6
