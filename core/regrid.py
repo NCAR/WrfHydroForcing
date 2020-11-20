@@ -2353,11 +2353,9 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
                         border)
                 err_handler.log_msg(config_options, mpi_config)
 
-            gmask = np.ones([input_forcings.ny_global, input_forcings.nx_global])
-            gmask[:+border, :] = 0.  # top edge
-            gmask[-border:, :] = 0.  # bottom edge
-            gmask[:, :+border] = 0.  # left edge
-            gmask[:, -border:] = 0.  # right edge
+            gmask = np.zeros([input_forcings.ny_global, input_forcings.nx_global])
+            # Set center block to 1
+            gmask[border:-border, border:-border] = 1
 
             mask[:, :] = mpi_config.scatter_array(input_forcings, gmask, config_options)
             err_handler.check_program_status(config_options, mpi_config)
