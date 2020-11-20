@@ -2369,16 +2369,15 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
         _lat = id_tmp.variables['latitude'].ndim
         _lon = id_tmp.variables['longitude'].ndim
         if _lat != _lon:
-            config_options.errMsg = f"Latitude and Longitude dimensions must match ({_lat} != {_lon})"
+            config_options.errMsg = f"Latitude and Longitude number of dimensions must match ({_lat} != {_lon})"
             err_handler.log_error(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
         
         if _lat == 3:
-            # We have 2D grids already in place.
+            # Extract 2D slice from 3D array
             lat_tmp = id_tmp.variables['latitude'][0]
             lon_tmp = id_tmp.variables['longitude'][0]
         elif 0 < _lat < 3:
-            # We have 2D grids already in place.
             lat_tmp = id_tmp.variables['latitude'][:]
             lon_tmp = id_tmp.variables['longitude'][:]
         else:
@@ -2606,16 +2605,15 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
         _lat = id_tmp.variables['latitude'].ndim
         _lon = id_tmp.variables['longitude'].ndim
         if _lat != _lon:
-            config_options.errMsg = f"Latitude and Longitude dimensions must match ({_lat} != {_lon})"
+            config_options.errMsg = f"Latitude and Longitude number of dimensions must match ({_lat} != {_lon})"
             err_handler.log_error(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
         
         if _lat == 3:
-            # We have 2D grids already in place.
+            # Extract 2D slice from 3D array
             lat_tmp = id_tmp.variables['latitude'][0]
             lon_tmp = id_tmp.variables['longitude'][0]
         elif 0 < _lat < 3:
-            # We have 2D grids already in place.
             lat_tmp = id_tmp.variables['latitude'][:]
             lon_tmp = id_tmp.variables['longitude'][:]
         else:
