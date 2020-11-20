@@ -2368,19 +2368,24 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if id_tmp.variables['latitude'].ndim == 3:
+        _lat = id_tmp.variables['latitude'].ndim
+        _lon = id_tmp.variables['longitude'].ndim
+        if _lat != _lon:
+            config_options.errMsg = f"Latitude and Longitude dimensions must match ({_lat} != {_lon})"
+            err_handler.log_error(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+        
+        if _lat == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][0, :, :]
-            lon_tmp = id_tmp.variables['longitude'][0, :, :]
-        elif id_tmp.variables['longitude'].ndim == 2:
+            lat_tmp = id_tmp.variables['latitude'][0]
+            lon_tmp = id_tmp.variables['longitude'][0]
+        elif 0 < _lat < 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][:, :]
-            lon_tmp = id_tmp.variables['longitude'][:, :]
-        elif id_tmp.variables['latitude'].ndim == 1:
-            # We have 1D lat/lons we need to translate into
-            # 2D grids.
             lat_tmp = id_tmp.variables['latitude'][:]
             lon_tmp = id_tmp.variables['longitude'][:]
+        else:
+            config_options.errMsg = f"Latitude/Longitude arrays must be 1D, 2D, or 3D (got: {_lat})"
+            err_handler.log_error(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Scatter global GFS latitude grid to processors..
@@ -2416,8 +2421,8 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
         input_forcings.esmf_lats[:] = np.atleast_2d(var_sub_lat_tmp).T
         input_forcings.esmf_lons[:] = np.atleast_2d(var_sub_lon_tmp)
     else:
-        input_forcings.esmf_lats[:, :] = var_sub_lat_tmp
-        input_forcings.esmf_lons[:, :] = var_sub_lon_tmp
+        input_forcings.esmf_lats[:] = var_sub_lat_tmp
+        input_forcings.esmf_lons[:] = var_sub_lon_tmp
     del var_sub_lat_tmp
     del var_sub_lon_tmp
     del lat_tmp
@@ -2600,19 +2605,25 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     lat_tmp = lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if id_tmp.variables['latitude'].ndim == 3:
+        _lat = id_tmp.variables['latitude'].ndim
+        _lon = id_tmp.variables['longitude'].ndim
+        if _lat != _lon:
+            config_options.errMsg = f"Latitude and Longitude dimensions must match ({_lat} != {_lon})"
+            err_handler.log_error(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+        
+        if _lat == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][0, :, :]
-            lon_tmp = id_tmp.variables['longitude'][0, :, :]
-        elif id_tmp.variables['longitude'].ndim == 2:
+            lat_tmp = id_tmp.variables['latitude'][0]
+            lon_tmp = id_tmp.variables['longitude'][0]
+        elif 0 < _lat < 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables['latitude'][:, :]
-            lon_tmp = id_tmp.variables['longitude'][:, :]
-        elif id_tmp.variables['latitude'].ndim == 1:
-            # We have 1D lat/lons we need to translate into
-            # 2D grids.
             lat_tmp = id_tmp.variables['latitude'][:]
             lon_tmp = id_tmp.variables['longitude'][:]
+        else:
+            config_options.errMsg = f"Latitude/Longitude arrays must be 1D, 2D, or 3D (got: {_lat})"
+            err_handler.log_error(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
     # mpi_config.comm.barrier()
 
     # Scatter global GFS latitude grid to processors..
@@ -2650,8 +2661,8 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
         supplemental_precip.esmf_lats[:] = np.atleast_2d(var_sub_lat_tmp).T
         supplemental_precip.esmf_lons[:] = np.atleast_2d(var_sub_lon_tmp)
     else:
-        supplemental_precip.esmf_lats[:, :] = var_sub_lat_tmp
-        supplemental_precip.esmf_lons[:, :] = var_sub_lon_tmp
+        supplemental_precip.esmf_lats[:] = var_sub_lat_tmp
+        supplemental_precip.esmf_lons[:] = var_sub_lon_tmp
     del var_sub_lat_tmp
     del var_sub_lon_tmp
     del lat_tmp
