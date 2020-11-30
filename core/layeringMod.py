@@ -33,10 +33,7 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
         layerIn = input_forcings.final_forcings[force_idx,:,:]
         indSet = layerIn != ConfigOptions.globalNdv
         outLayerCurrent[indSet] = layerIn[indSet]
-        OutputObj.output_local[force_idx, :, :] = outLayerCurrent
 
-        # Reset for next iteration and memory efficiency.
-        indSet = None
     # MpiConfig.comm.barrier()
 
 
