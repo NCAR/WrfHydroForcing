@@ -48,20 +48,9 @@ def layer_supplemental_precipitation(OutputObj,supplemental_precip,ConfigOptions
     :param MpiConfig:
     :return:
     """
-    indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.final_supp_precip
-    layerOut = OutputObj.output_local[3,:,:]
-    if len(indSet[0]) != 0:
-        layerOut[indSet] = layerIn[indSet]
-    else:
-        # We have all missing data for the supplemental precip for this step.
-        layerOut = layerOut
-
-    OutputObj.output_local[3,:,:] = layerOut
-
-    # Reset local variables to reduce memory usage.
-    layerIn = None
-    layerOut = None
-    indSet = None
+    layerOut = OutputObj.output_local[3, :, :]
+    indSet = layerIn != ConfigOptions.globalNdv
+    layerOut[indSet] = layerIn[indSet]
 
     #MpiConfig.comm.barrier()
