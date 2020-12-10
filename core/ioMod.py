@@ -30,7 +30,7 @@ class OutputObj:
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
-        self.output_local = np.empty([8,GeoMetaWrfHydro.ny_local,GeoMetaWrfHydro.nx_local])
+        self.output_local = np.empty([9, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
         #self.output_local[:,:,:] = self.out_ndv
 
     def output_final_ldasin(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
@@ -60,7 +60,9 @@ class OutputObj:
             'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0,6],
             'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0,1],
             'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
-                       'Surface downward short-wave radiation flux','time point',0.001,0.0,3]
+                       'Surface downward short-wave radiation flux','time: point',0.001,0.0,3],
+            'LQFRAC': [8, '%', 'liquid_water_fraction', 'Fraction of precipitation that is liquid vs. frozen',
+                       'time: point', 0.1, 0.0, 3]
         }
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
@@ -543,17 +545,17 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         if idTmp is not None:
             # Check for expected lat/lon variables.
             if 'latitude' not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+                ConfigOptions.statusMsg = "Unable to locate latitude from: " + \
                                        GribFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
+                err_handler.log_warning(ConfigOptions, MpiConfig)
+                # idTmp = None
                 pass
         if idTmp is not None:
             if 'longitude' not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                ConfigOptions.statusMsg = "Unable to locate longitude from: " + \
                                        GribFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
+                err_handler.log_warning(ConfigOptions, MpiConfig)
+                # idTmp = None
                 pass
 
         if idTmp is not None and inputVar is not None:
@@ -612,15 +614,15 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
             if 'latitude' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate latitude from: " + \
                                         NetCdfFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
+                err_handler.log_warning(ConfigOptions, MpiConfig)
+                # idTmp = None
                 pass
         if idTmp is not None:
             if 'longitude' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable t locate longitude from: " + \
                                         NetCdfFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
+                err_handler.log_warning(ConfigOptions, MpiConfig)
+                # idTmp = None
                 pass
         pass
     else:

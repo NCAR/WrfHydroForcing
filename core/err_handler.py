@@ -334,13 +334,13 @@ def check_supp_pcp_bounds(ConfigOptions, supplemental_precip, MpiConfig):
         return
 
     # First check to see if we have any data that is not missing.
-    indCheck = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
+    # indCheck = np.where(supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv)
 
-    #if len(indCheck[0]) == 0:
-    #    ConfigOptions.errMsg = "No valid supplemental precip found in " + supplemental_precip.file_in2
-    #    log_critical(ConfigOptions, MpiConfig)
-    #    indCheck = None
-    #    return
+    # if len(indCheck[0]) == 0:
+    #     ConfigOptions.errMsg = "No valid supplemental precip found in " + supplemental_precip.file_in2
+    #     log_critical(ConfigOptions, MpiConfig)
+    #     indCheck = None
+    #     return
 
     # Check to see if any pixel cells are below the minimum value.
     indCheck = np.where((supplemental_precip.regridded_precip2 != ConfigOptions.globalNdv) &
