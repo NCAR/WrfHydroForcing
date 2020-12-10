@@ -154,8 +154,8 @@ class MpiConfig:
             err_handler.err_out(ConfigOptions)
             return None
 
-        data_type_flag = data_type_buffer[0];
-        data_type_buffer = None;
+        data_type_flag = data_type_buffer[0]
+        data_type_buffer = None
 
         # gather buffer offsets and bounds to rank 0
         bounds = np.array(
