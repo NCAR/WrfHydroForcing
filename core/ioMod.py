@@ -319,7 +319,9 @@ class OutputObj:
                             fill_value = ConfigOptions.globalNdv
                             dtype = 'f4'
                         else:
-                            fill_value = int(ConfigOptions.globalNdv / output_variable_attribute_dict[varTmp][5])
+                            fill_value = int(ConfigOptions.globalNdv)
+                            #fill_value = int((ConfigOptions.globalNdv - output_variable_attribute_dict[varTmp][6]) /
+                            #                 output_variable_attribute_dict[varTmp][5])
                             dtype = 'i4'
 
                         idOut.createVariable(varTmp, dtype, ('time', 'y', 'x'),
@@ -438,7 +440,7 @@ class OutputObj:
 
             if MpiConfig.rank == 0:
                 try:
-                    idOut.variables[varTmp][0, :, :] = dataOutTmp
+                    idOut.variables[varTmp][0, :, :] = np.ma.masked_where(dataOutTmp == ConfigOptions.globalNdv, dataOutTmp)
                 except (ValueError, IOError):
                     ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -577,7 +579,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     # Return the NetCDF file handle back to the user.
     return idTmp
 
-def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
+
+def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False):
     """
     Generic function to convert a NetCDF forcing file given a list of input forcing
     variables.
@@ -590,14 +593,13 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
     #MpiConfig.comm.barrier()
 
     # Open the NetCDF file on the master processor and read in data.
-    if MpiConfig.rank == 0:
+    if MpiConfig.rank == 0 or open_on_all_procs:
         # Ensure file exists.
         if not os.path.isfile(NetCdfFileIn):
             ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
                                     " not found."
             err_handler.log_critical(ConfigOptions, MpiConfig)
             idTmp = None
-            pass
 
         # Open the NetCDF file.
         try:
@@ -607,35 +609,27 @@ def open_netcdf_forcing(NetCdfFileIn,ConfigOptions,MpiConfig):
                                     NetCdfFileIn
             err_handler.log_critical(ConfigOptions, MpiConfig)
             idTmp = None
-            pass
 
         if idTmp is not None:
             # Check for expected lat/lon variables.
             if 'latitude' not in idTmp.variables.keys():
                 ConfigOptions.errMsg = "Unable to locate latitude from: " + \
                                         NetCdfFileIn
-                err_handler.log_warning(ConfigOptions, MpiConfig)
-                # idTmp = None
-                pass
+                err_handler.log_critical(ConfigOptions, MpiConfig)
+                idTmp = None
         if idTmp is not None:
             if 'longitude' not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable t locate longitude from: " + \
+                ConfigOptions.errMsg = "Unable to locate longitude from: " + \
                                         NetCdfFileIn
-                err_handler.log_warning(ConfigOptions, MpiConfig)
-                # idTmp = None
-                pass
-        pass
+                err_handler.log_critical(ConfigOptions, MpiConfig)
+                idTmp = None
     else:
         idTmp = None
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-    # Ensure all processors are synced up before outputting.
-    #MpiConfig.comm.barrier()
 
     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
     # Return the NetCDF file handle back to the user.
     return idTmp
+
 
 def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     """

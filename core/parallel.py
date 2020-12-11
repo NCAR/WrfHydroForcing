@@ -28,7 +28,7 @@ class MpiConfig:
         """
         try:
             self.comm = MPI.COMM_WORLD
-            self.comm.Set_errhandler(MPI.ERRORS_RETURN)
+            self.comm.Set_errhandler(MPI.ERRORS_ARE_FATAL)
         except AttributeError as ae:
             config_options.errMsg = "Unable to initialize the MPI Communicator object"
             raise ae

@@ -822,21 +822,20 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
     # output time step is true. This entails the necessary
     # inputs have already been regridded and we can move on.
     if input_forcings.regridComplete:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "No Custom Hourly NetCDF regridding required for this timestep."
+            err_handler.log_msg(config_options, mpi_config)
         return
 
-    if mpi_config.rank == 0:
-        config_options.statusMsg = "No Custom Hourly NetCDF regridding required for this timestep."
-        err_handler.log_msg(config_options, mpi_config)
-    # mpi_config.comm.barrier()
-
     # Open the input NetCDF file containing necessary data.
-    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
-    # mpi_config.comm.barrier()
+    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True)
+
+    fill_values = {'TMP': 288.0, 'SPFH': 0.005, 'PRES': 101300.0, 'APCP': 0,
+                   'UGRD': 0.0, 'VGRD': 0.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Processing Custom NetCDF Forcing Variable: " + \
-                                       nc_var
+            config_options.statusMsg = "Processing Custom NetCDF Forcing Variable: " + nc_var
             err_handler.log_msg(config_options, mpi_config)
         calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
                                                config_options, wrf_hydro_geo_meta, mpi_config)
@@ -845,79 +844,142 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
             calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
-            if 'HGT_surface' not in id_tmp.variables.keys():
-                config_options.errMsg = "Unable to locate HGT_surface in: " + input_forcings.file_in2
-                raise Exception()
-            # mpi_config.comm.barrier()
+            if 'HGT_surface' in id_tmp.variables.keys():
+                # Regrid the height variable.
+                if mpi_config.rank == 0:
+                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                else:
+                    var_tmp = None
+                err_handler.check_program_status(config_options, mpi_config)
 
-            # Regrid the height variable.
-            if mpi_config.rank == 0:
-                var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+                err_handler.check_program_status(config_options, mpi_config)
+
+                try:
+                    input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+                except (ValueError, KeyError, AttributeError) as err:
+                    config_options.errMsg = "Unable to place NetCDF elevation data into the ESMF field object: " \
+                                            + str(err)
+                    err_handler.log_critical(config_options, mpi_config)
+                err_handler.check_program_status(config_options, mpi_config)
+
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Regridding elevation data to the WRF-Hydro domain."
+                    err_handler.log_msg(config_options, mpi_config)
+                try:
+                    input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                             input_forcings.esmf_field_out)
+                except ValueError as ve:
+                    config_options.errMsg = "Unable to regrid elevation data to the WRF-Hydro domain " \
+                                            "using ESMF: " + str(ve)
+                    err_handler.log_critical(config_options, mpi_config)
+                err_handler.check_program_status(config_options, mpi_config)
+
+                # Set any pixel cells outside the input domain to the global missing value.
+                try:
+                    input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                        config_options.globalNdv
+                except (ValueError, ArithmeticError) as npe:
+                    config_options.errMsg = "Unable to compute mask on elevation data: " + str(npe)
+                    err_handler.log_critical(config_options, mpi_config)
+                err_handler.check_program_status(config_options, mpi_config)
+
+                try:
+                    input_forcings.height[:, :] = input_forcings.esmf_field_out.data
+                except (ValueError, KeyError, AttributeError) as err:
+                    config_options.errMsg = "Unable to extract ESMF regridded elevation data to a local " \
+                                            "array: " + str(err)
+                    err_handler.log_critical(config_options, mpi_config)
+                err_handler.check_program_status(config_options, mpi_config)
             else:
-                var_tmp = None
-            # mpi_config.comm.barrier()
+                input_forcings.height = None
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = f"Unable to locate HGT_surface in: {input_forcings.file_in2}. " \
+                                               f"Downscaling will not be available."
+                    err_handler.log_msg(config_options, mpi_config)
 
-            var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
-            # mpi_config.comm.barrier()
-
-            input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
-            # mpi_config.comm.barrier()
-
-            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                     input_forcings.esmf_field_out)
-            # Set any pixel cells outside the input domain to the global missing value.
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-                config_options.globalNdv
-            # mpi_config.comm.barrier()
-
-            input_forcings.height[:, :] = input_forcings.esmf_field_out.data
-            # mpi_config.comm.barrier()
-
-        # mpi_config.comm.barrier()
+            # close netCDF file on non-root ranks
+            if mpi_config.rank != 0:
+                id_tmp.close()
 
         # Regrid the input variables.
+        var_tmp = None
         if mpi_config.rank == 0:
-            var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
-        else:
-            var_tmp = None
-        # mpi_config.comm.barrier()
+            config_options.statusMsg = "Regridding Custom netCDF input variable: " + nc_var
+            err_handler.log_msg(config_options, mpi_config)
+            try:
+                fill = fill_values[input_forcings.grib_vars[force_count]]
+                config_options.statusMsg = f"Using {fill} to replace missing values in input"
+                err_handler.log_msg(config_options, mpi_config)
+                var_tmp = id_tmp.variables[nc_var][:].filled(fill)[0, :, :]
+            except Exception as err:
+                config_options.errMsg = "Unable to extract " + nc_var + \
+                                        " from: " + input_forcings.file_in2 + " (" + str(err) + ")"
+                err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
-        # mpi_config.comm.barrier()
+        err_handler.check_program_status(config_options, mpi_config)
 
-        input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
-        # mpi_config.comm.barrier()
+        try:
+            input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local array into local ESMF field: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
-        input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
-                                                                 input_forcings.esmf_field_out)
+        try:
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+        except ValueError as ve:
+            config_options.errMsg = "Unable to regrid input Custom netCDF forcing variables using ESMF: " + str(ve)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
         # Set any pixel cells outside the input domain to the global missing value.
-        input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-            config_options.globalNdv
-        # mpi_config.comm.barrier()
+        try:
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                config_options.globalNdv
+        except (ValueError, ArithmeticError) as npe:
+            config_options.errMsg = "Unable to calculate mask from input Custom netCDF regridded forcings: " + str(
+                npe)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
-        input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
-            input_forcings.esmf_field_out.data
-        # mpi_config.comm.barrier()
+        # Convert the hourly precipitation total to a rate of mm/s
+        if nc_var == 'APCP_surface':
+            try:
+                ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[
+                                                                    ind_valid] / 3600.0
+                del ind_valid
+            except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+                config_options.errMsg = "Unable to run NDV search on Custom netCDF precipitation: " + str(npe)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
+                input_forcings.esmf_field_out.data
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local ESMF regridded data into local array: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
         # If we are on the first timestep, set the previous regridded field to be
         # the latest as there are no states for time 0.
         if config_options.current_output_step == 1:
             input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
-        # mpi_config.comm.barrier()
+        err_handler.check_program_status(config_options, mpi_config)
 
-        # Close the temporary NetCDF file and remove it.
-        if mpi_config.rank == 0:
-            try:
-                id_tmp.close()
-            except OSError:
-                config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
-                err_handler.err_out(config_options)
-            try:
-                os.remove(input_forcings.tmpFile)
-            except OSError:
-                config_options.errMsg = "Unable to remove NetCDF file: " + input_forcings.tmpFile
-                err_handler.err_out(config_options)
+    # Close the NetCDF file
+    if mpi_config.rank == 0:
+        try:
+            id_tmp.close()
+        except OSError:
+            config_options.errMsg = "Unable to close NetCDF file: " + input_forcings.tmpFile
+            err_handler.err_out(config_options)
 
 
 @static_vars(last_file=None)
@@ -2534,10 +2596,10 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     # Scatter global grid to processors..
     if mpi_config.rank == 0:
         var_tmp = id_tmp[input_forcings.netcdf_var_names[force_count]][0, :, :]
-        # Set all valid values to 1.0, and all missing values to 0.0. This will
-        # be used to generate an output mask that is used later on in downscaling, layering,
-        # etc.
-        var_tmp[:, :] = 1.0
+        # Set all valid values to 1, and all missing values to 0. This will
+        # be used to generate an output mask that is used later on in downscaling, layering, etc.
+        var_tmp.fill(1)
+        var_tmp = var_tmp.filled(0)
     else:
         var_tmp = None
     var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
@@ -2588,7 +2650,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
             begin = time.monotonic()
             input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                                    input_forcings.esmf_field_out,
-                                                   src_mask_values=np.array([0]),
+                                                   src_mask_values=np.array([0, config_options.globalNdv]),
                                                    regrid_method=ESMF.RegridMethod.BILINEAR,
                                                    unmapped_action=ESMF.UnmappedAction.IGNORE,
                                                    filename=weight_file)
