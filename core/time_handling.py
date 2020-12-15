@@ -138,22 +138,135 @@ def find_nldas_neighbors(input_forcings, config_options, d_current, mpi_config):
                     input_forcings.file_in1 = tmp_file1
                     input_forcings.file_in2 = tmp_file2
             input_forcings.regridComplete = False
-        err_handler.check_program_status(config_options, mpi_config)
+    else:
+            input_forcings.file_in2 = tmp_file1
+            input_forcings.file_in1 = tmp_file1
+    err_handler.check_program_status(config_options, mpi_config)
 
-        # Ensure we have the necessary new file
-        if mpi_config.rank == 0:
-            if not os.path.isfile(input_forcings.file_in2):
-                if input_forcings.enforce == 1:
-                    config_options.errMsg = "Expected input Custom file: " + input_forcings.file_in2 + " not found."
-                    err_handler.log_critical(config_options, mpi_config)
-                else:
-                    config_options.statusMsg = "Expected input Custom file: " + \
-                                               input_forcings.file_in2 + " not found. Will not use in final layering."
-                    err_handler.log_warning(config_options, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input Custom file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input Custom file: " + \
+                                           input_forcings.file_in2 + " not found. Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
+
+
+def find_aorc_neighbors(input_forcings, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and after hourly AORC files for use in processing.
+    :param input_forcings:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    # Normally, we do a check to make sure the input horizons chosen by the user are not
+    # greater than an expected value. However, since these are custom input NetCDF files,
+    # we are foregoing that check.
+    current_aorc_cycle = config_options.current_fcst_cycle - \
+        datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+
+    # Calculate the current forecast hour within this cycle.
+    dt_tmp = d_current - current_aorc_cycle
+
+    current_aorc_hour = int(dt_tmp.days*24) + math.floor(dt_tmp.seconds/3600.0)
+
+    # Calculate the previous file to process.
+    min_since_last_output = (current_aorc_hour * 60) % 60
+    if min_since_last_output == 0:
+        min_since_last_output = 60
+    prev_aorc_date = d_current - datetime.timedelta(seconds=min_since_last_output * 60)
+    input_forcings.fcst_date1 = prev_aorc_date
+    if min_since_last_output == 60:
+        min_until_next_output = 0
+    else:
+        min_until_next_output = 60 - min_since_last_output
+    next_aorc_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
+    input_forcings.fcst_date2 = next_aorc_date
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dt_tmp = next_aorc_date - current_aorc_cycle
+    next_aorc_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour2 = next_aorc_forecast_hour
+    dt_tmp = prev_aorc_date - current_aorc_cycle
+    prev_aorc_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour1 = prev_aorc_forecast_hour
+    # If we are on the first forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prev_aorc_forecast_hour == 0:
+        prev_aorc_forecast_hour = 1
+
+    # Calculate expected file paths.
+    tmp_file1 = input_forcings.inDir + "/AORC-OWP_" + \
+                input_forcings.fcst_date1.strftime('%Y%m%d%H') + \
+                "z_example" + input_forcings.file_ext
+    tmp_file2 = input_forcings.inDir + '/AORC-OWP_' + \
+                input_forcings.fcst_date1.strftime('%Y%m%d%H') + \
+                "z_example" + input_forcings.file_ext
+
+    if mpi_config.rank == 0:
+        # Check to see if files are already set. If not, then reset, grids and
+        # regridding objects to communicate things need to be re-established.
+        if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+            if config_options.current_output_step == 1:
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.file_in2 = tmp_file2
+            else:
+                # Check to see if we are restarting from a previously failed instance. In this case,
+                # We are not on the first timestep, but no previous forcings have been processed.
+                # We need to process the previous input timestep for temporal interpolation purposes.
+                # if not np.any(input_forcings.regridded_forcings1):
+                if input_forcings.regridded_forcings1 is None:
+                    if mpi_config.rank == 0:
+                        config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                                   input_forcings.productName
+                        err_handler.log_msg(config_options, mpi_config)
+                    input_forcings.rstFlag = 1
+                    input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                    input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                    input_forcings.file_in2 = tmp_file1
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.fcst_date2 = input_forcings.fcst_date1
+                    input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+                else:
+                    # The custom window has shifted. Reset fields 2 to
+                    # be fields 1.
+                    input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.file_in2 = tmp_file2
+            input_forcings.regridComplete = False
+    else:
+        input_forcings.file_in2 = tmp_file1
+        input_forcings.file_in1 = tmp_file1
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input AORC file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input AORC file: " + \
+                                           input_forcings.file_in2 + " not found. Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.exists(input_forcings.file_in2):
         if input_forcings.regridded_forcings2 is not None:
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 

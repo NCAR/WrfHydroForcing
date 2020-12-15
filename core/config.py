@@ -1186,9 +1186,11 @@ class ConfigOptions:
         except configparser.NoOptionError:
             err_handler.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in '
                                        'configuration file.')
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as je:
             err_handler.err_out_screen('Improper custom_input_fcst_freq  option specified in '
-                                       'configuration file')
+                                       'configuration file: ' + str(je))
         if len(self.customFcstFreq) != self.number_custom_inputs:
-            err_handler.err_out_screen('Improper custom_input fcst_freq specified. This number must '
-                                       'match the frequency of custom input forcings selected.')
+            err_handler.err_out_screen(f'Improper custom_input fcst_freq specified. '
+                                       f'This number ({len(self.customFcstFreq)}) must '
+                                       f'match the frequency of custom input forcings selected '
+                                       f'({self.number_custom_inputs}).')

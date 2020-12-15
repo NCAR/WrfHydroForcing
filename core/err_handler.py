@@ -298,8 +298,9 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
                             (input_forcings.regridded_forcings2[variable_range[varTmp][0]] < variable_range[varTmp][1]))
         numCells = len(indCheck[0])
         if numCells > 0:
-            ConfigOptions.errMsg = "Data below minimum threshold for: " + varTmp + " in " + input_forcings.file_in2 + \
-                                   " for " + str(numCells) + " regridded pixel cells."
+            min = input_forcings.regridded_forcings2[variable_range[varTmp][0]][indCheck].min()
+            ConfigOptions.errMsg = f"Data (min = {min}) below minimum threshold for: {varTmp} in " \
+                                   f"{input_forcings.file_in2} for {numCells} regridded pixel cells."
             log_critical(ConfigOptions, MpiConfig)
             indCheck = None
             return
@@ -309,8 +310,9 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
                             (input_forcings.regridded_forcings2[variable_range[varTmp][0]] > variable_range[varTmp][2]))
         numCells = len(indCheck[0])
         if numCells > 0:
-            ConfigOptions.errMsg = "Data above maximum threshold for: " + varTmp + " in " + input_forcings.file_in2 + \
-                                   " for " + str(numCells) + " regridded pixel cells."
+            max = input_forcings.regridded_forcings2[variable_range[varTmp][0]][indCheck].max()
+            ConfigOptions.errMsg = f"Data (max = {max}) above maximum threshold for: {varTmp} in " \
+                                   f"{input_forcings.file_in2} for {numCells} regridded pixel cells."
             log_critical(ConfigOptions, MpiConfig)
             indCheck = None
             return
