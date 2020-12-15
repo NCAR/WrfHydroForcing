@@ -831,7 +831,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
     id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True)
 
     fill_values = {'TMP': 288.0, 'SPFH': 0.005, 'PRES': 101300.0, 'APCP': 0,
-                   'UGRD': 0.0, 'VGRD': 0.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
+                   'UGRD': 1.0, 'VGRD': 1.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
@@ -904,11 +904,11 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
 
         # Regrid the input variables.
         var_tmp = None
+        fill = fill_values.get(input_forcings.grib_vars[force_count], config_options.globalNdv)
         if mpi_config.rank == 0:
             config_options.statusMsg = "Regridding Custom netCDF input variable: " + nc_var
             err_handler.log_msg(config_options, mpi_config)
             try:
-                fill = fill_values[input_forcings.grib_vars[force_count]]
                 config_options.statusMsg = f"Using {fill} to replace missing values in input"
                 err_handler.log_msg(config_options, mpi_config)
                 var_tmp = id_tmp.variables[nc_var][:].filled(fill)[0, :, :]
@@ -938,8 +938,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
 
         # Set any pixel cells outside the input domain to the global missing value.
         try:
-            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
-                config_options.globalNdv
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = fill
         except (ValueError, ArithmeticError) as npe:
             config_options.errMsg = "Unable to calculate mask from input Custom netCDF regridded forcings: " + str(
                 npe)
@@ -949,7 +948,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
         # Convert the hourly precipitation total to a rate of mm/s
         if nc_var == 'APCP_surface':
             try:
-                ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
+                ind_valid = np.where(input_forcings.esmf_field_out.data != fill)
                 input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[
                                                                     ind_valid] / 3600.0
                 del ind_valid

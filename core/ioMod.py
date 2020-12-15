@@ -440,7 +440,7 @@ class OutputObj:
 
             if MpiConfig.rank == 0:
                 try:
-                    idOut.variables[varTmp][0, :, :] = np.ma.masked_where(dataOutTmp == ConfigOptions.globalNdv, dataOutTmp)
+                    idOut.variables[varTmp][0, :, :] = dataOutTmp
                 except (ValueError, IOError):
                     ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
                     err_handler.log_critical(ConfigOptions, MpiConfig)
