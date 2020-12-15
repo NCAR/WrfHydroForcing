@@ -97,6 +97,11 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         err_handler.log_msg(ConfigOptions, MpiConfig)
 
     # Calculate the elevation difference.
+    if input_forcings.height is None:
+        ConfigOptions.errMsg = "Unable to perform downscaling without terrain height input"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+        return
+
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
     # Assign existing, un-downscaled temperatures to a temporary placeholder, which
@@ -142,6 +147,10 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         err_handler.log_msg(ConfigOptions, MpiConfig)
 
     # Calculate the elevation difference.
+    if input_forcings.height is None:
+        ConfigOptions.errMsg = "Unable to perform downscaling without terrain height input"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+        return
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
     if input_forcings.lapseGrid is None:
@@ -279,6 +288,10 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig
         err_handler.log_msg(ConfigOptions, MpiConfig)
 
     # Calculate the elevation difference.
+    if input_forcings.height is None:
+        ConfigOptions.errMsg = "Unable to perform downscaling without terrain height input"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+        return
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
     # Assign existing, un-downscaled pressure values to a temporary placeholder, which
