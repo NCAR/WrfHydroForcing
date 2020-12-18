@@ -1103,11 +1103,15 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
             err_handler.log_msg(config_options, mpi_config)
         return
 
-    # Open the input NetCDF file containing necessary data.
-    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True)
-
     fill_values = {'TMP': 288.0, 'SPFH': 0.005, 'PRES': 101300.0, 'APCP': 0,
                    'UGRD': 1.0, 'VGRD': 1.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
+
+    lat_var = 'XLAT' if 'wrfout' in input_forcings.productName.lower() else 'latitude'
+    lon_var = 'XLONG' if 'wrfout' in input_forcings.productName.lower() else 'longitude'
+
+    # Open the input NetCDF file containing necessary data.
+    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True,
+                                       lat_var=lat_var, lon_var=lon_var)
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
@@ -1117,13 +1121,17 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
                                                config_options, wrf_hydro_geo_meta, mpi_config)
 
         if calc_regrid_flag:
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
+                              lat_var=lat_var, lon_var=lon_var)
 
-            # Read in the RAP height field, which is used for downscaling purposes.
-            if 'HGT_surface' in id_tmp.variables.keys():
+            # Read in the height field, which is used for downscaling purposes, if available
+            if 'HGT_surface' in id_tmp.variables.keys() or 'HGT' in id_tmp.variables.keys():
                 # Regrid the height variable.
                 if mpi_config.rank == 0:
-                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                    if 'HGT' in id_tmp.variables.keys():
+                        var_tmp = id_tmp.variables['HGT'][0, :, :]
+                    else:
+                        var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 else:
                     var_tmp = None
                 err_handler.check_program_status(config_options, mpi_config)
@@ -1222,7 +1230,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
         err_handler.check_program_status(config_options, mpi_config)
 
         # Convert the hourly precipitation total to a rate of mm/s
-        if nc_var == 'APCP_surface':
+        if nc_var == 'APCP_surface' or nc_var == 'PREC_ACC_NC':
             try:
                 ind_valid = np.where(input_forcings.esmf_field_out.data != fill)
                 input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[
