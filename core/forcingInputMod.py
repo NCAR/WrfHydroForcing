@@ -126,7 +126,7 @@ class input_forcings:
             8: "WRF_ARW_Hawaii_GRIB2",
             9: "GFS_Production_025d_GRIB2",
             10: "Custom_NetCDF_Hourly",
-            11: "Custom_NetCDF_Hourly",
+            11: "WRFOUT_CONUS",
             12: "AORC",
             13: "NAM_Nest_3km_Hawaii",
             14: "NAM_Nest_3km_PuertoRico",
@@ -208,7 +208,8 @@ class input_forcings:
             9: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
                 'DLWRF', 'PRES'],
             10: None,
-            11: None,
+            11: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP',
+                 'DSWRF', 'DLWRF', 'PRES'],
             12: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP',
                  'DSWRF', 'DLWRF', 'PRES'],
             13: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
@@ -304,8 +305,8 @@ class input_forcings:
                 'PRES_surface'],
             10: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
                  'DLWRF', 'PRES'],
-            11: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
-                 'DLWRF', 'PRES'],
+            11: ['T2', 'Q2', 'U10', 'V10', 'PREC_ACC_NC', 'SWDOWN',
+                 'GLW', 'PSFC'],
             12: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
@@ -402,7 +403,7 @@ class input_forcings:
             8: time_handling.find_hourly_wrf_arw_neighbors,
             9: time_handling.find_gfs_neighbors,
             10: time_handling.find_custom_hourly_neighbors,
-            11: time_handling.find_custom_hourly_neighbors,
+            11: time_handling.find_wrfout_neighbors,
             12: time_handling.find_aorc_neighbors,
             13: time_handling.find_nam_nest_neighbors,
             14: time_handling.find_nam_nest_neighbors,
@@ -542,7 +543,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                 GeoMetaWrfHydro.nx_local],np.float32)
 
         # Obtain custom input cycle frequencies
-        if force_key == 10 or force_key == 11:
+        if force_key == 10:
             InputDict[force_key].cycleFreq = ConfigOptions.customFcstFreq[custom_count]
             custom_count = custom_count + 1
 
