@@ -1239,9 +1239,12 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
     fill_values = {'TMP': 288.0, 'SPFH': 0.005, 'PRES': 101300.0, 'APCP': 0,
                    'UGRD': 1.0, 'VGRD': 1.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
 
+    lat_var = 'XLAT' if 'wrfout' in input_forcings.productName.lower() else 'latitude'
+    lon_var = 'XLONG' if 'wrfout' in input_forcings.productName.lower() else 'longitude'
+
     # Open the input NetCDF file containing necessary data.
-    id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config,
-                                                         open_on_all_procs=True)
+    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True,
+                                       lat_var=lat_var, lon_var=lon_var)
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:

@@ -827,7 +827,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     return idTmp
 
 
-def open_netcdf_forcing(nc_file, config_options, MpiConfig, open_on_all_procs=False,):
+def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False,
+                        lat_var='latitude', lon_var='longitude'):
     """
     Generic function to convert a NetCDF forcing file given a list of input forcing
     variables.
@@ -913,7 +914,7 @@ def get_height_field(id_tmp, config_options, mpi_config):
         err_handler.check_program_status(config_options, mpi_config)
     else:
         var_tmp = None
-    
+
     return var_tmp
 
 
