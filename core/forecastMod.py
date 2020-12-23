@@ -33,21 +33,21 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
     # checked upon the beginning of this program to see if we
     # need to process any files.
 
+    if ConfigOptions.ana_flag:
+        last_fcst_cycle = ConfigOptions.b_date_proc + datetime.timedelta(
+            seconds=ConfigOptions.fcst_freq * 60 * ConfigOptions.nFcsts)
+        ConfigOptions.ana_out_dir = ConfigOptions.output_dir + "/" + last_fcst_cycle.strftime('%Y%m%d%H')
+
     for fcstCycleNum in range(ConfigOptions.nFcsts):
         ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + datetime.timedelta(
             seconds=ConfigOptions.fcst_freq * 60 * fcstCycleNum)
         if ConfigOptions.first_fcst_cycle is None:
             ConfigOptions.first_fcst_cycle = ConfigOptions.current_fcst_cycle
 
-        if ConfigOptions.ana_flag:
-            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.e_date_proc.strftime('%Y%m%d%H')
-        else:
-            fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
+        fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
 
         # put all AnA output in the same directory
         if ConfigOptions.ana_flag:
-            if ConfigOptions.ana_out_dir is None:
-                ConfigOptions.ana_out_dir = fcstCycleOutDir
             fcstCycleOutDir = ConfigOptions.ana_out_dir
 
         # completeFlag = ConfigOptions.scratch_dir + "/WrfHydroForcing.COMPLETE"
@@ -78,7 +78,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             # ConfigOptions.logFile = ConfigOptions.output_dir + "/LOG_" + \
 
             if ConfigOptions.ana_flag:
-                log_time = ConfigOptions.e_date_proc
+                log_time = last_fcst_cycle
             else:
                 log_time = ConfigOptions.current_fcst_cycle
 
@@ -122,11 +122,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             )
             ConfigOptions.current_output_date = OutputObj.outDate
 
-            # if AnA, adjust file date for analysis vs forecast
-            if ConfigOptions.ana_flag:
-                file_date = OutputObj.outDate - datetime.timedelta(seconds=ConfigOptions.output_freq * 60)
-            else:
-                file_date = OutputObj.outDate
+            file_date = OutputObj.outDate
 
             # Calculate the previous output timestep. This is used in potential downscaling routines.
             if outStep == ana_factor:
