@@ -8,6 +8,7 @@ import os
 import numpy as np
 
 from core import err_handler
+from core.err_handler import root_print
 from core.forcingInputMod import input_forcings
 NETCDF = input_forcings.NETCDF
 
@@ -210,12 +211,12 @@ def find_aorc_neighbors(input_forcings, config_options, d_current, mpi_config):
         prev_aorc_forecast_hour = 1
 
     # Calculate expected file paths.
-    tmp_file1 = input_forcings.inDir + "/AORC-OWP_" + \
+    tmp_file1 = input_forcings.inDir + '/' + input_forcings.fcst_date1.strftime('%Y%m') + "/AORC-OWP_" + \
                 input_forcings.fcst_date1.strftime('%Y%m%d%H') + \
-                "z_example" + input_forcings.file_ext
-    tmp_file2 = input_forcings.inDir + '/AORC-OWP_' + \
+                "z" + input_forcings.file_ext
+    tmp_file2 = input_forcings.inDir + '/' + input_forcings.fcst_date1.strftime('%Y%m') + '/AORC-OWP_' + \
                 input_forcings.fcst_date1.strftime('%Y%m%d%H') + \
-                "z_example" + input_forcings.file_ext
+                "z" + input_forcings.file_ext
 
     if mpi_config.rank == 0:
         # Check to see if files are already set. If not, then reset, grids and
