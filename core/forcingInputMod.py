@@ -171,6 +171,8 @@ class input_forcings:
             self.file_ext = '.grib2'
         elif self.fileType == 'NETCDF':
             self.file_ext = '.nc'
+        elif self.fileType == 'NETCDF4':
+            self.file_ext = '.nc4'
 
         cycle_freq_minutes = {
             1: 60,

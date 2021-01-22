@@ -7,6 +7,11 @@ import numpy as np
 from mpi4py import MPI
 
 
+def root_print(msg):
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        print(msg, flush=True)
+
+
 def err_out_screen(err_msg):
     """
     Generic routine to exit the program gracefully. This specific error function does not log
