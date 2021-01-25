@@ -121,9 +121,10 @@ class OutputObj:
                     break
                 try:
                     if ConfigOptions.ana_flag:
-                        idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
+                        model_init = ConfigOptions.b_date_proc - datetime.timedelta(minutes=ConfigOptions.output_freq)
                     else:
-                        idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                        model_init = ConfigOptions.current_fcst_cycle
+                    idOut.model_initialization_time = model_init.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
@@ -156,7 +157,10 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.model_total_valid_times = float(ConfigOptions.num_output_steps)
+                    if ConfigOptions.ana_flag:
+                        idOut.model_total_valid_times = np.int32(ConfigOptions.nFcsts)
+                    else:
+                        idOut.model_total_valid_times = np.int32(ConfigOptions.num_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
@@ -219,7 +223,7 @@ class OutputObj:
                 # Populate time variables
                 dEpoch = datetime.datetime(1970, 1, 1)
                 dtValid = self.outDate - dEpoch
-                dtRef = ConfigOptions.current_fcst_cycle - dEpoch
+                dtRef = model_init - dEpoch
 
                 try:
                     idOut.variables['time'][0] = int(dtValid.days * 24.0 * 60.0) + \
