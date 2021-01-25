@@ -114,12 +114,6 @@ class OutputObj:
 
                 # Set global attributes
                 try:
-                    idOut.model_output_valid_time = self.outDate.strftime("%Y-%m-%d_%H:%M:00")
-                except:
-                    ConfigOptions.errMsg = "Unable to set the model_output_valid_time attribute in :" + self.outPath
-                    err_handler.log_critical(ConfigOptions, MpiConfig)
-                    break
-                try:
                     if ConfigOptions.ana_flag:
                         idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
                     else:
@@ -127,6 +121,15 @@ class OutputObj:
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    if ConfigOptions.ana_flag:
+                        idOut.model_output_valid_time = idOut.model_initialization_time
+                    else:
+                        idOut.model_output_valid_time = self.outDate.strftime("%Y-%m-%d_%H:%M:00")
+                except:
+                    ConfigOptions.errMsg = "Unable to set the model_output_valid_time attribute in :" + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
 
