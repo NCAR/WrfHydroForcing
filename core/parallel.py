@@ -28,7 +28,7 @@ class MpiConfig:
         """
         try:
             self.comm = MPI.COMM_WORLD
-            self.comm.Set_errhandler(MPI.ERRORS_RETURN)
+            self.comm.Set_errhandler(MPI.ERRORS_ARE_FATAL)
         except AttributeError as ae:
             config_options.errMsg = "Unable to initialize the MPI Communicator object"
             raise ae
@@ -154,8 +154,8 @@ class MpiConfig:
             err_handler.err_out(ConfigOptions)
             return None
 
-        data_type_flag = data_type_buffer[0];
-        data_type_buffer = None;
+        data_type_flag = data_type_buffer[0]
+        data_type_buffer = None
 
         # gather buffer offsets and bounds to rank 0
         bounds = np.array(

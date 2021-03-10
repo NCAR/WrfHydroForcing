@@ -240,8 +240,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                             # Layer in the supplemental precipitation into the current output object.
-                            layeringMod.layer_supplemental_precipitation(OutputObj, suppPcpMod[suppPcpKey],
-                                                                         ConfigOptions, MpiConfig)
+                            layeringMod.layer_supplemental_forcing(OutputObj, suppPcpMod[suppPcpKey],
+                                                                   ConfigOptions, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                 # Call the output routines
