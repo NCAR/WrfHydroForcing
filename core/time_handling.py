@@ -659,12 +659,14 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
         # FV3 change on June 12th, 2019
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
-            current_gfs_cycle.strftime('%H') + "/gfs.t" + \
+            current_gfs_cycle.strftime('%H') + \
+            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
-            current_gfs_cycle.strftime('%H') + "/gfs.t" + \
+            current_gfs_cycle.strftime('%H') + \
+            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
 
