@@ -83,6 +83,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 log_time = ConfigOptions.current_fcst_cycle
 
             ConfigOptions.logFile = ConfigOptions.scratch_dir + "/LOG_" + ConfigOptions.nwmConfig + \
+                                    ('_' if ConfigOptions.nwmConfig != "long_range" else "_mem" + str(ConfigOptions.cfsv2EnsMember)+ "_") + \
                                     ConfigOptions.d_program_init.strftime('%Y%m%d%H%M') + \
                                     "_" + log_time.strftime('%Y%m%d%H%M')
 
