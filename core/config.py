@@ -1022,9 +1022,22 @@ class ConfigOptions:
                                                    'section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         err_handler.err_out_screen('Improper RqiMethod option in the configuration file.')
-                    # Make sure the RqiMethod makes sense.
-                    if self.rqiMethod < 0 or self.rqiMethod > 2:
-                        err_handler.err_out_screen('Please specify an RqiMethod of either 0, 1, or 2.')
+
+                    # Check that if we have more than one RqiMethod, it's the correct number
+                    if type(self.rqiMethod) is list:
+                        if len(self.rqiMethod) != self.number_supp_pcp:
+                            err_handler.err_out_screen('Number of RqiMethods ({}) must match the number '
+                                                       'of SuppPcp inputs ({}) in the configuration file, or '
+                                                       'supply a single method for all inputs'.format(
+                                                        len(self.rqiMethod), self.number_supp_pcp))
+                    elif type(self.rqiMethod) is int:
+                        # Support 'classic' mode of single method
+                        self.rqiMethod = [self.rqiMethod] * self.number_supp_pcp
+
+                    # Make sure the RqiMethod(s) makes sense.
+                    for method in self.rqiMethod:
+                        if method < 0 or method > 2:
+                            err_handler.err_out_screen('Please specify RqiMethods of either 0, 1, or 2.')
 
                     try:
                         self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
@@ -1036,9 +1049,22 @@ class ConfigOptions:
                                                    'SuppForcing section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         err_handler.err_out_screen('Improper RqiThreshold option in the configuration file.')
+
+                    # Check that if we have more than one RqiThreshold, it's the correct number
+                    if type(self.rqiThresh) is list:
+                        if len(self.rqiThresh) != self.number_supp_pcp:
+                            err_handler.err_out_screen('Number of RqiThresholds ({}) must match the number '
+                                                       'of SuppPcp inputs ({}) in the configuration file, or '
+                                                       'supply a single threshold for all inputs'.format(
+                                                        len(self.rqiThresh), self.number_supp_pcp))
+                    elif type(self.rqiThresh) is float:
+                        # Support 'classic' mode of single threshold
+                        self.rqiThresh = [self.rqiThresh] * self.number_supp_pcp
+
                     # Make sure the RQI threshold makes sense.
-                    if self.rqiThresh < 0.0 or self.rqiThresh > 1.0:
-                        err_handler.err_out_screen('Please specify an RqiThreshold between 0.0 and 1.0.')
+                    for threshold in self.rqiThresh:
+                        if threshold < 0.0 or threshold > 1.0:
+                            err_handler.err_out_screen('Please specify RqiThresholds between 0.0 and 1.0.')
 
             # Read in the input directories for each supplemental precipitation product.
             try:

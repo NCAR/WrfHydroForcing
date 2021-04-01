@@ -48,6 +48,8 @@ class supplemental_precip:
         self.final_supp_precip = None
         self.file_in1 = None
         self.file_in2 = None
+        self.rqiMethod = None
+        self.rqiThresh = None
         self.rqi_file_in1 = None
         self.rqi_file_in2 = None
         self.pcp_hour1 = None
@@ -274,6 +276,9 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
                                                            GeoMetaWrfHydro.nx_local], np.float32)
 
         InputDict[supp_pcp_key].userCycleOffset = ConfigOptions.supp_input_offsets[supp_pcp_tmp]
+
+        InputDict[supp_pcp_key].rqiMethod = ConfigOptions.rqiMethod[supp_pcp_tmp]
+        InputDict[supp_pcp_key].rqiThresh = ConfigOptions.rqiThresh[supp_pcp_tmp]
 
     return InputDict
 
