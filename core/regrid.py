@@ -1598,7 +1598,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         ioMod.unzip_file(supplemental_precip.file_in2, mrms_tmp_grib2, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-        if config_options.rqiMethod == 1:
+        if supplemental_precip.rqiMethod == 1:
             ioMod.unzip_file(supplemental_precip.rqi_file_in2, mrms_tmp_rqi_grib2, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
@@ -1608,7 +1608,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
                                    mpi_config, supplemental_precip.netcdf_var_names[0])
         err_handler.check_program_status(config_options, mpi_config)
 
-        if config_options.rqiMethod == 1:
+        if supplemental_precip.rqiMethod == 1:
             cmd2 = "$WGRIB2 " + mrms_tmp_rqi_grib2 + " -netcdf " + mrms_tmp_rqi_nc
             id_mrms_rqi = ioMod.open_grib2(mrms_tmp_rqi_grib2, mrms_tmp_rqi_nc, cmd2, config_options,
                                            mpi_config, supplemental_precip.rqi_netcdf_var_names[0])
@@ -1624,7 +1624,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
                 config_options.errMsg = "Unable to remove GRIB2 file: " + mrms_tmp_grib2
                 err_handler.log_critical(config_options, mpi_config)
 
-            if config_options.rqiMethod == 1:
+            if supplemental_precip.rqiMethod == 1:
                 try:
                     os.remove(mrms_tmp_rqi_grib2)
                 except OSError:
@@ -1634,7 +1634,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     else:
         create_link("MRMS", supplemental_precip.file_in2, mrms_tmp_nc, config_options, mpi_config)
         id_mrms = ioMod.open_netcdf_forcing(mrms_tmp_nc, config_options, mpi_config)
-        if config_options.rqiMethod == 1:
+        if supplemental_precip.rqiMethod == 1:
             create_link("RQI", supplemental_precip.rqi_file_in2, mrms_tmp_rqi_nc, config_options, mpi_config)
             id_mrms_rqi = ioMod.open_netcdf_forcing(mrms_tmp_rqi_nc, config_options, mpi_config)
         else:
@@ -1653,7 +1653,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the RQI grid.
-    if config_options.rqiMethod == 1:
+    if supplemental_precip.rqiMethod == 1:
         var_tmp = None
         if mpi_config.rank == 0:
             try:
@@ -1687,6 +1687,12 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
 
         # Set any pixel cells outside the input domain to the global missing value.
         try:
+            n_masked = len((supplemental_precip.regridded_mask == 0))
+            if n_masked > 0:
+                if mpi_config == 0:
+                    config_options.statusMsg = f"{n_masked} masked cells in RQI field, will remove"
+                    err_handler.log_msg(config_options, mpi_config)
+
             supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
                 config_options.globalNdv
         except (ValueError, ArithmeticError) as npe:
@@ -1694,7 +1700,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-    if not config_options.rqiMethod:
+    if not supplemental_precip.rqiMethod:
         # We will set the RQI field to 1.0 here so no MRMS data gets masked out.
         supplemental_precip.regridded_rqi2[:, :] = 1.0
 
@@ -1702,15 +1708,15 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
             config_options.statusMsg = "MRMS Will not be filtered using RQI values."
             err_handler.log_msg(config_options, mpi_config)
 
-    elif config_options.rqiMethod == 2:
+    elif supplemental_precip.rqiMethod == 2:
         # Read in the RQI field from monthly climatological files.
         ioMod.read_rqi_monthly_climo(config_options, mpi_config, supplemental_precip, wrf_hydro_geo_meta)
-    elif config_options.rqiMethod == 1:
+    elif supplemental_precip.rqiMethod == 1:
         # We are using the MRMS RQI field in realtime
         supplemental_precip.regridded_rqi2[:, :] = supplemental_precip.esmf_field_out.data
     err_handler.check_program_status(config_options, mpi_config)
 
-    if config_options.rqiMethod == 1:
+    if supplemental_precip.rqiMethod == 1:
         # Close the temporary NetCDF file and remove it.
         if mpi_config.rank == 0:
             try:
@@ -1752,10 +1758,12 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Set any pixel cells outside the input domain to the global missing value.
+    # Set any pixel cells outside the input domain to the global missing value, and set negative precip values to 0
     try:
         supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
             config_options.globalNdv
+        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = 0
+
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on MRMS supplemental precip: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
@@ -1768,7 +1776,11 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     # Check for any RQI values below the threshold specified by the user.
     # Set these values to global NDV.
     try:
-        ind_filter = np.where(supplemental_precip.regridded_rqi2 < config_options.rqiThresh)
+        ind_filter = np.where(supplemental_precip.regridded_rqi2 < supplemental_precip.rqiThresh)
+        if len(ind_filter) > 0:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = f"Removing {len(ind_filter)} MRMS cells below RQI threshold of {supplemental_precip.rqiThresh}"
+                err_handler.log_msg(config_options, mpi_config)
         supplemental_precip.regridded_precip2[ind_filter] = config_options.globalNdv
         del ind_filter
     except (ValueError, AttributeError, KeyError, ArithmeticError) as npe:
