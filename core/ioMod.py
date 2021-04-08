@@ -827,8 +827,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     return idTmp
 
 
-def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False,
-                        lat_var='latitude', lon_var='longitude'):
+def open_netcdf_forcing(nc_file, config_options, MpiConfig, open_on_all_procs=False,):
     """
     Generic function to convert a NetCDF forcing file given a list of input forcing
     variables.
