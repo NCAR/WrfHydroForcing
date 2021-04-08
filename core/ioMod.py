@@ -580,8 +580,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     return idTmp
 
 
-def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False,
-                        lat_var='latitude', lon_var='longitude'):
+def open_netcdf_forcing(nc_file, config_options, MpiConfig, open_on_all_procs=False,):
     """
     Generic function to convert a NetCDF forcing file given a list of input forcing
     variables.
@@ -593,46 +592,61 @@ def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_proc
     # Ensure all processors are synced up before outputting.
     #MpiConfig.comm.barrier()
 
+    # lat_var_name = 'XLAT' if 'wrfout' in input_forcings.productName.lower() else 'latitude'
+    # lon_var_name = 'XLONG' if 'wrfout' in input_forcings.productName.lower() else 'longitude'
+
     # Open the NetCDF file on the master processor and read in data.
+    idTmp = lat_var = lon_var = None
     if MpiConfig.rank == 0 or open_on_all_procs:
         # Ensure file exists.
-        if not os.path.isfile(NetCdfFileIn):
-            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileIn + \
-                                    " not found."
-            err_handler.log_critical(ConfigOptions, MpiConfig)
-            idTmp = None
+        if not os.path.isfile(nc_file):
+            config_options.errMsg = "Expected NetCDF file: " + nc_file + " not found."
+            err_handler.log_critical(config_options, MpiConfig)
 
         # Open the NetCDF file.
         try:
             if MpiConfig.rank == 0:
-                ConfigOptions.statusMsg = "Opening netCDF file: " + NetCdfFileIn
-                err_handler.log_msg(ConfigOptions, MpiConfig)
-            idTmp = Dataset(NetCdfFileIn, 'r')
+                config_options.statusMsg = "Opening netCDF file: " + nc_file
+                err_handler.log_msg(config_options, MpiConfig)
+            idTmp = Dataset(nc_file, 'r')
         except:
-            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                                    NetCdfFileIn
-            err_handler.log_critical(ConfigOptions, MpiConfig)
-            idTmp = None
+            config_options.errMsg = "Unable to open input NetCDF file: " + nc_file
+            err_handler.log_critical(config_options, MpiConfig)
 
         if idTmp is not None:
+            # find the lat/lon, which may be in a metadata file
+            grid_src = config_options.grid_meta
+            if grid_src is None:
+                grid_id = idTmp
+            else:
+                grid_id = Dataset(grid_src, 'r')
+
             # Check for expected lat/lon variables.
-            if lat_var not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
-                                        NetCdfFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
-        if idTmp is not None:
-            if lon_var not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate longitude from: " + \
-                                        NetCdfFileIn
-                err_handler.log_critical(ConfigOptions, MpiConfig)
-                idTmp = None
+            # TODO: make the lat/lon name choices configurable
+
+            lat_key = {"latitude", "XLAT", "Lat"} & set(grid_id.variables.keys())
+            if len(lat_key) == 1:
+                lat_var = grid_id.variables[lat_key.pop()]
+            else:
+                config_options.errMsg = "Unable to determine latitude from: " + \
+                                        (grid_src if grid_src is not None else nc_file)
+                err_handler.log_critical(config_options, MpiConfig)
+
+            lon_key = {"longitude", "XLONG", "Lon"} & set(grid_id.variables.keys())
+            if len(lon_key) == 1:
+                lon_var = grid_id.variables[lon_key.pop()]
+            else:
+                config_options.errMsg = "Unable to locate longitude from: " + \
+                                        (grid_src if grid_src is not None else nc_file)
+                err_handler.log_critical(config_options, MpiConfig)
     else:
         idTmp = None
+        lat_var = None
+        lon_var = None
 
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
-    # Return the NetCDF file handle back to the user.
-    return idTmp
+    err_handler.check_program_status(config_options, MpiConfig)
+    # Return the NetCDF file handle and lat/lon variables back to the user.
+    return idTmp, lat_var, lon_var
 
 
 def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):

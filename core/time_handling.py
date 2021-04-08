@@ -318,7 +318,7 @@ def find_wrfout_neighbors(input_forcings, config_options, d_current, mpi_config)
 
     # Calculate expected file paths.
     tmp_file1 = path.join(input_forcings.inDir,
-                          "wrfout_d01_" + input_forcings.fcst_date1.strftime('%Y-%m-%d_%H') + ":00:00")
+                          "wrf2d_d01_" + input_forcings.fcst_date1.strftime('%Y-%m-%d_%H') + ":00:00")
     tmp_file2 = tmp_file1
 
     if mpi_config.rank == 0:
