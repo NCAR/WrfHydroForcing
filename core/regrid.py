@@ -384,12 +384,12 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("HRRR", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
@@ -404,7 +404,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating HRRR regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # # Read in the HRRR height field, which is used for downscaling purposes.
@@ -614,12 +614,12 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("RAP", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
@@ -634,7 +634,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating RAP regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -854,12 +854,12 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("CFSv2", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
@@ -875,7 +875,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
                 config_options.statusMsg = "Calculate CFSv2 regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
 
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -1106,12 +1106,9 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
     fill_values = {'TMP': 288.0, 'SPFH': 0.005, 'PRES': 101300.0, 'APCP': 0,
                    'UGRD': 1.0, 'VGRD': 1.0, 'DSWRF': 80.0, 'DLWRF': 310.0}
 
-    lat_var = 'XLAT' if 'wrfout' in input_forcings.productName.lower() else 'latitude'
-    lon_var = 'XLONG' if 'wrfout' in input_forcings.productName.lower() else 'longitude'
-
     # Open the input NetCDF file containing necessary data.
-    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config, open_on_all_procs=True,
-                                       lat_var=lat_var, lon_var=lon_var)
+    id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config,
+                                                         open_on_all_procs=True)
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
@@ -1121,8 +1118,7 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
                                                config_options, wrf_hydro_geo_meta, mpi_config)
 
         if calc_regrid_flag:
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
-                              lat_var=lat_var, lon_var=lon_var)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
 
             # Read in the height field, which is used for downscaling purposes, if available
             if 'HGT_surface' in id_tmp.variables.keys() or 'HGT' in id_tmp.variables.keys():
@@ -1324,7 +1320,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Reusing previous input file: " + input_forcings.file_in2
             err_handler.log_msg(config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         if input_forcings.fileType != NETCDF:
@@ -1358,12 +1354,12 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             fields.append(":(HGT):(surface):")
             cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
                   " -netcdf " + input_forcings.tmpFile
-            id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+            id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                       config_options, mpi_config, inputVar=None)
             err_handler.check_program_status(config_options, mpi_config)
         else:
             create_link("GFS", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-            id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+            id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     for force_count, grib_var in enumerate(input_forcings.grib_vars):
         if mpi_config.rank == 0:
@@ -1378,7 +1374,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating 13km GFS regridding weights."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the GFS height field, which is used for downscaling purposes.
@@ -1601,12 +1597,12 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("NAM-Nest", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
@@ -1624,7 +1620,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating NAM nest regridding weights...."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -1896,14 +1892,15 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
 
         # Perform a GRIB dump to NetCDF for the MRMS precip and RQI data.
         cmd1 = "$WGRIB2 " + mrms_tmp_grib2 + " -netcdf " + mrms_tmp_nc
-        id_mrms = ioMod.open_grib2(mrms_tmp_grib2, mrms_tmp_nc, cmd1, config_options,
-                                   mpi_config, supplemental_precip.netcdf_var_names[0])
+        id_mrms, lat_var_m, lon_var_m = ioMod.open_grib2(mrms_tmp_grib2, mrms_tmp_nc, cmd1, config_options,
+                                                         mpi_config, supplemental_precip.netcdf_var_names[0])
         err_handler.check_program_status(config_options, mpi_config)
 
         if supplemental_precip.rqiMethod == 1:
             cmd2 = "$WGRIB2 " + mrms_tmp_rqi_grib2 + " -netcdf " + mrms_tmp_rqi_nc
-            id_mrms_rqi = ioMod.open_grib2(mrms_tmp_rqi_grib2, mrms_tmp_rqi_nc, cmd2, config_options,
-                                           mpi_config, supplemental_precip.rqi_netcdf_var_names[0])
+            id_mrms_rqi, lat_var_r, lon_var_r = ioMod.open_grib2(mrms_tmp_rqi_grib2, mrms_tmp_rqi_nc, cmd2,
+                                                                 config_options, mpi_config,
+                                                                 supplemental_precip.rqi_netcdf_var_names[0])
             err_handler.check_program_status(config_options, mpi_config)
         else:
             id_mrms_rqi = None
@@ -1925,10 +1922,10 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("MRMS", supplemental_precip.file_in2, mrms_tmp_nc, config_options, mpi_config)
-        id_mrms = ioMod.open_netcdf_forcing(mrms_tmp_nc, config_options, mpi_config)
-        if supplemental_precip.rqiMethod == 1:
+        id_mrms, lat_var_m, lon_var_m = ioMod.open_netcdf_forcing(mrms_tmp_nc, config_options, mpi_config)
+        if config_options.rqiMethod == 1:
             create_link("RQI", supplemental_precip.rqi_file_in2, mrms_tmp_rqi_nc, config_options, mpi_config)
-            id_mrms_rqi = ioMod.open_netcdf_forcing(mrms_tmp_rqi_nc, config_options, mpi_config)
+            id_mrms_rqi, lat_var_r, lon_var_r = ioMod.open_netcdf_forcing(mrms_tmp_rqi_nc, config_options, mpi_config)
         else:
             id_mrms_rqi = None
 
@@ -1941,7 +1938,8 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         if mpi_config.rank == 0:
             config_options.statusMsg = "Calculating MRMS regridding weights."
             err_handler.log_msg(config_options, mpi_config)
-        calculate_supp_pcp_weights(supplemental_precip, id_mrms, mrms_tmp_nc, config_options, mpi_config)
+        calculate_supp_pcp_weights(supplemental_precip, id_mrms, lat_var_m, lon_var_m,
+                                   mrms_tmp_nc, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the RQI grid.
@@ -2172,12 +2170,12 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
-        id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("WRF-ARW", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.tmpFile, config_options, mpi_config)
 
     # Loop through all of the input forcings in NAM nest data. Convert the GRIB2 files
     # to NetCDF, read in the data, regrid it, then map it to the appropriate
@@ -2195,7 +2193,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating WRF-ARW regridding weights...."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -2411,12 +2409,12 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
               "-" + str(supplemental_precip.fcst_hour1) + " hour acc fcst):\"" + \
               " -netcdf " + arw_tmp_nc
 
-        id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, arw_tmp_nc, cmd,
+        id_tmp, lat_var, lon_var = ioMod.open_grib2(supplemental_precip.file_in1, arw_tmp_nc, cmd,
                                   config_options, mpi_config, "APCP_surface")
         err_handler.check_program_status(config_options, mpi_config)
     else:
         create_link("ARW-PCP", supplemental_precip.file_in1, arw_tmp_nc, config_options, mpi_config)
-        id_tmp = ioMod.open_netcdf_forcing(arw_tmp_nc, config_options, mpi_config)
+        id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(arw_tmp_nc, config_options, mpi_config)
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options,
@@ -2427,7 +2425,8 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
         if mpi_config.rank == 0:
             config_options.statusMsg = "Calculating WRF ARW regridding weights."
             err_handler.log_msg(config_options, mpi_config)
-        calculate_supp_pcp_weights(supplemental_precip, id_tmp, arw_tmp_nc, config_options, mpi_config)
+        calculate_supp_pcp_weights(supplemental_precip, id_tmp, lat_var, lon_var,
+                                   arw_tmp_nc, config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the input variables.
@@ -2526,7 +2525,7 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
     if supplemental_forcings.regridComplete:
         return
 
-    id_tmp = ioMod.open_netcdf_forcing(supplemental_forcings.file_in1, config_options, mpi_config)
+    id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(supplemental_forcings.file_in1, config_options, mpi_config)
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_forcings, config_options,
@@ -2537,8 +2536,8 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
         if mpi_config.rank == 0:
             config_options.statusMsg = "Calculating SBCv2 Liquid Water Fraction regridding weights."
             err_handler.log_msg(config_options, mpi_config)
-        calculate_supp_pcp_weights(supplemental_forcings, id_tmp, supplemental_forcings.file_in1,
-                                   config_options, mpi_config, lat_var="Lat", lon_var="Lon")
+        calculate_supp_pcp_weights(supplemental_forcings, id_tmp, lat_var, lon_var, supplemental_forcings.file_in1,
+                                   config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
     # Regrid the input variable
@@ -2879,8 +2878,7 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
     return calc_regrid_flag
 
 
-def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
-                      lat_var="latitude", lon_var="longitude"):
+def calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config):
     """
     Function to calculate ESMF weights based on the output ESMF
     field previously calculated, along with input lat/lon grids,
@@ -2890,6 +2888,9 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     :param mpi_config:
     :param config_options:
     :param force_count:
+    :param lon_var:
+    :param lat_var:
+
     :return:
     """
 
@@ -2977,19 +2978,19 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if len(id_tmp.variables[lat_var].shape) == 3:
+        if len(lat_var.shape) == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][0, :, :]
-            lon_tmp = id_tmp.variables[lon_var][0, :, :]
-        elif len(id_tmp.variables[lon_var].shape) == 2:
+            lat_tmp = lat_var[0, :, :]
+            lon_tmp = lon_var[0, :, :]
+        elif len(lon_var.shape) == 2:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][:, :]
-            lon_tmp = id_tmp.variables[lon_var][:, :]
-        elif len(id_tmp.variables[lat_var].shape) == 1:
+            lat_tmp = lat_var[:, :]
+            lon_tmp = lon_var[:, :]
+        elif len(lat_var.shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
-            lat_tmp = np.repeat(id_tmp.variables[lat_var][:][:, np.newaxis], input_forcings.nx_global, axis=1)
-            lon_tmp = np.tile(id_tmp.variables[lon_var][:], (input_forcings.ny_global, 1))
+            lat_tmp = np.repeat(lat_var[:][:, np.newaxis], input_forcings.nx_global, axis=1)
+            lon_tmp = np.tile(lon_var[:], (input_forcings.ny_global, 1))
     err_handler.check_program_status(config_options, mpi_config)
 
     # Scatter global GFS latitude grid to processors..
@@ -3132,8 +3133,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]
 
 
-def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_options, mpi_config,
-                               lat_var="latitude", lon_var="longitude"):
+def calculate_supp_pcp_weights(supplemental_precip, id_tmp, lat_var, lon_var, tmp_file, config_options, mpi_config):
     """
     Function to calculate ESMF weights based on the output ESMF
     field previously calculated, along with input lat/lon grids,
@@ -3221,19 +3221,19 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
     lat_tmp = lon_tmp = None
     if mpi_config.rank == 0:
         # Process lat/lon values from the GFS grid.
-        if len(id_tmp.variables[lat_var].shape) == 3:
+        if len(lat_var.shape) == 3:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][0, :]
-            lon_tmp = id_tmp.variables[lon_var][0, :]
-        elif len(id_tmp.variables[lon_var].shape) == 2:
+            lat_tmp = lat_var[0, :]
+            lon_tmp = lon_var[0, :]
+        elif len(lon_var.shape) == 2:
             # We have 2D grids already in place.
-            lat_tmp = id_tmp.variables[lat_var][:]
-            lon_tmp = id_tmp.variables[lon_var][:]
-        elif len(id_tmp.variables[lat_var].shape) == 1:
+            lat_tmp = lat_var[:]
+            lon_tmp = lon_var[:]
+        elif len(lat_var.shape) == 1:
             # We have 1D lat/lons we need to translate into
             # 2D grids.
-            lat_tmp = np.repeat(id_tmp.variables[lat_var][:][:, np.newaxis], supplemental_precip.nx_global, axis=1)
-            lon_tmp = np.tile(id_tmp.variables[lon_var][:], (supplemental_precip.ny_global, 1))
+            lat_tmp = np.repeat(lat_var[:][:, np.newaxis], supplemental_precip.nx_global, axis=1)
+            lon_tmp = np.tile(lon_var[:], (supplemental_precip.ny_global, 1))
     # mpi_config.comm.barrier()
 
     # Scatter global GFS latitude grid to processors..
