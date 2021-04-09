@@ -17,4 +17,4 @@ rm -f *.err *.out
 
 module unload mpt
 module load impi
-mpiexec python ../genForcing.py ./template_forcing_engine_AnA.config 2.2 AnA
+mpiexec python ../genForcing.py ./template_forcing_engine_AnA_v2.config 2.2 AnA
