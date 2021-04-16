@@ -1662,13 +1662,13 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/" + supplemental_precip.pcp_date1.strftime('%H') + \
             "/qmd/blend.t" + supplemental_precip.pcp_date1.strftime('%H') + \
             "z.qmd.f" + format(int(supplemental_precip.pcp_date1.strftime('%H')), '03d') + ".co" \
-            + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+            + supplemental_precip.file_ext
         tmp_file2 = supplemental_precip.inDir + "blend." + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
             "/" + supplemental_precip.pcp_date2.strftime('%H') + \
             "/qmd/blend.t" + supplemental_precip.pcp_date2.strftime('%H') + \
             "z.qmd.f" + format(int(supplemental_precip.pcp_date2.strftime('%H')), '03d') + ".co" \
-            + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+            + supplemental_precip.file_ext
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1694,19 +1694,6 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         supplemental_precip.file_in2 = tmp_file2
         supplemental_precip.regridComplete = False
 
-    # If either file does not exist, set to None. This will instruct downstream regridding steps to
-    # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
-    # added to the final output grids.
-
-    # if not os.path.isfile(tmp_file1) or not os.path.isfile(tmp_file2):
-    #    if MpiConfig.rank == 0:
-    #        ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
-    #                                  "supplemental precipitation"
-    #        errMod.log_warning(ConfigOptions,MpiConfig)
-    #    supplemental_precip.file_in2 = None
-    #    supplemental_precip.file_in1 = None
-
-    # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
