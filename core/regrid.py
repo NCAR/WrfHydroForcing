@@ -2317,7 +2317,23 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     if supplemental_precip.regridComplete:
         return
     
-    id_tmp = ioMod.open_netcdf_forcing(supplemental_precip.file_in1, config_options, mpi_config)
+    
+    nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
+    if os.path.isfile(nbm_tmp_nc):
+        config_options.statusMsg = "Found old temporary file: " + \
+							   nbm_tmp_nc + " - Removing....."
+        err_handler.log_warning(config_options, mpi_config)
+	try:
+		os.remove(nbm_tmp_nc)
+	except OSError:
+		config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
+		err_handler.log_critical(config_options, mpi_config)
+        
+    # Perform a GRIB dump to NetCDF for the MRMS precip and RQI data.
+    cmd1 = "$WGRIB2 " + supplemental_precip.file_in1 + " -netcdf " + nbm_tmp_nc
+    id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, nbm_tmp_nc, cmd1, config_options,
+                               mpi_config, supplemental_precip.netcdf_var_names[0])
+    err_handler.check_program_status(config_options, mpi_config)
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options,
