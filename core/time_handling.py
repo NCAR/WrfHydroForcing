@@ -1710,7 +1710,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == 5 or supplemental_precip.keyValue == 6):
+        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == 8 ):
             config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
                     supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
