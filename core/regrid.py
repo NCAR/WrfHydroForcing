@@ -2297,6 +2297,110 @@ def regrid_sbcv2_liquid_water_fraction(supplemental_forcings, config_options, wr
     err_handler.check_program_status(config_options, mpi_config)
 
 
+def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
+    """
+    Function for handling regridding hourly forecasted NBM precipitation.
+    :param supplemental_precip:
+    :param config_options:
+    :param wrf_hydro_geo_meta:
+    :param mpi_config:
+    :return:
+    """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.exists(supplemental_precip.file_in1):
+        return
+
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    if supplemental_precip.regridComplete:
+        return
+    
+    id_tmp = ioMod.open_netcdf_forcing(supplemental_precip.file_in1, config_options, mpi_config)
+
+    # Check to see if we need to calculate regridding weights.
+    calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options,
+                                                    wrf_hydro_geo_meta, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    if calc_regrid_flag:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Calculating NBM regridding weights."
+            err_handler.log_msg(config_options, mpi_config)
+        calculate_supp_pcp_weights(supplemental_precip, id_tmp, supplemental_precip.file_in1, config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    # Regrid the input variables.
+    var_tmp = None
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Regridding NBM APCP Precipitation."
+        err_handler.log_msg(config_options, mpi_config)
+        try:
+            var_tmp = id_tmp.variables['APCP_surface'][0, :, :]
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to extract precipitation from NBM file: " + \
+                                    supplemental_precip.file_in1 + " (" + str(err) + ")"
+            err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    var_sub_tmp = mpi_config.scatter_array(supplemental_precip, var_tmp, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        supplemental_precip.esmf_field_in.data[:, :] = var_sub_tmp
+    except (ValueError, KeyError, AttributeError) as err:
+        config_options.errMsg = "Unable to place NBM precipitation into local ESMF field: " + str(err)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    try:
+        supplemental_precip.esmf_field_out = supplemental_precip.regridObj(supplemental_precip.esmf_field_in,
+                                                                           supplemental_precip.esmf_field_out)
+    except ValueError as ve:
+        config_options.errMsg = "Unable to regrid NBM supplemental precipitation: " + str(ve)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Set any pixel cells outside the input domain to the global missing value.
+    try:
+        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
+            config_options.globalNdv
+    except (ValueError, ArithmeticError) as npe:
+        config_options.errMsg = "Unable to run mask search on NBM supplemental precipitation: " + str(npe)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    supplemental_precip.regridded_precip2[:, :] = supplemental_precip.esmf_field_out.data
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Convert the hourly precipitation total from kg.m-2.hour-1 to a rate of mm.s-1
+    try:
+        ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
+        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
+        del ind_valid
+    except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+        config_options.errMsg = "Unable to run NDV search on NBM supplemental precipitation: " + str(npe)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If we are on the first timestep, set the previous regridded field to be
+    # the latest as there are no states for time 0.
+    if config_options.current_output_step == 1:
+        supplemental_precip.regridded_precip1[:, :] = \
+            supplemental_precip.regridded_precip2[:, :]
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Close the temporary NetCDF file and remove it.
+    if mpi_config.rank == 0:
+        try:
+            id_tmp.close()
+        except OSError:
+            config_options.errMsg = "Unable to close NetCDF file: " + supplemental_precip.file_in1
+            err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+
 def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for checking to see if regridding weights need to be
