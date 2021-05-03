@@ -1636,46 +1636,65 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     current_day = d_current.day
     current_hr = d_current.hour
     current_min = d_current.minute
+ 
+    # First find the current NBM forecast cycle that we are using.
+    current_nbm_cycle = config_options.current_fcst_cycle - \
+        datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
+
+    # Calculate the current forecast hour within this NBM cycle.
+    dt_tmp = d_current - current_nbm_cycle
+    current_nbm_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
     # Set the input file frequency to be hourly.
     supplemental_precip.input_frequency = 60.0
 
-    prev_date1 = datetime.datetime(current_yr, current_mo, current_day, current_hr)
-    dt_tmp = d_current - prev_date1
-    if dt_tmp.total_seconds() == 0:
-        # We are on the hour, we can set this date to the be the "next" date.
-        next_nbm_date = d_current
-        prev_nbm_date = d_current - datetime.timedelta(seconds=3600.0)
+    # Calculate the previous file to process.
+    min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
+    if min_since_last_output == 0:
+        min_since_last_output = supplemental_precip.input_frequency
+    prev_nbm_date = d_current - datetime.timedelta(seconds=min_since_last_output*60)
+    supplemental_precip.fcst_date1 = prev_nbm_date
+    if min_since_last_output == supplemental_precip.input_frequency:
+        min_until_next_output = 0
     else:
-        # We are between two NBM hours.
-        prev_nbm_date = prev_date1
-        next_nbm_date = prev_nbm_date + datetime.timedelta(seconds=3600.0)
+        min_until_next_output = supplemental_precip.input_frequency - min_since_last_output
+    next_nbm_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
+    supplemental_precip.fcst_date2 = next_nbm_date
 
-    supplemental_precip.pcp_date1 = prev_nbm_date
-    #supplemental_precip.pcp_date2 = next_mrms_date
-    supplemental_precip.pcp_date2 = prev_nbm_date
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dt_tmp = next_nbm_date - current_nbm_cycle
+    next_nbm_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
+    supplemental_precip.fcst_hour2 = next_nbm_forecast_hour
+    dt_tmp = prev_nbm_date - current_nbm_cycle
+    prev_nbm_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
+    supplemental_precip.fcst_hour1 = prev_nbm_forecast_hour
+    # If we are on the first NBM forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prev_nbm_forecast_hour == 0:
+        prev_nbm_forecast_hour = 1
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 8:
-        tmp_file1 = supplemental_precip.inDir + "blend." + \
-            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-            "/" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "/qmd/blend.t" + supplemental_precip.pcp_date1.strftime('%H') + \
-            "z.qmd.f" + format(int(supplemental_precip.pcp_date1.strftime('%H')), '03d') + ".co" \
+        tmp_file1 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/qmd/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.qmd.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-        tmp_file2 = supplemental_precip.inDir + "blend." + \
-            supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-            "/" + supplemental_precip.pcp_date2.strftime('%H') + \
-            "/qmd/blend.t" + supplemental_precip.pcp_date2.strftime('%H') + \
-            "z.qmd.f" + format(int(supplemental_precip.pcp_date2.strftime('%H')), '03d') + ".co" \
+        tmp_file2 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/qmd/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.qmd.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
     else:
         tmp_file1 = tmp_file2 = ""
 
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Previous NBM supplemental file: " + tmp_file1
+        config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
         err_handler.log_msg(config_options, mpi_config)
-        config_options.statusMsg = "Next NBM supplemental file: " + tmp_file2
+        config_options.statusMsg = "Next NBM supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -1709,6 +1728,8 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             else:
                 config_options.statusMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + \
                                            " not found. " + "Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+                config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
                 err_handler.log_warning(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
