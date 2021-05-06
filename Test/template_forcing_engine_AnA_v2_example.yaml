@@ -454,6 +454,7 @@ Retrospective:
 # WRF_ARW_PR - WRF-ARW 2.5 km 48-hr Puerto Rico nest precipitation.
 # MRMS_CONUS_MS - CONUS MRMS MultiSensor Pass1 and Pass1
 # MRMS_HI_MS - Hawaii MRMS MultiSensor Pass1 and Pass2
+# MRMS_SBCV2 - Liquid Water Fraction (netCDF only)
 #
 # SuppForcing[i]['PcpType']
 # Specify the file type for each supplemental precipitation file (comma separated)

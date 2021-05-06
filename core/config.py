@@ -112,6 +112,7 @@ class SuppForcingPcpEnum(IntEnum):
     WRF_ARW_PR = 4
     MRMS_CONUS_MS = 5
     MRMS_HI_MS = 6
+    MRMS_SBCV2 = 7
 
 class SuppForcingRqiMethodEnum(IntEnum):
     NONE = 0
