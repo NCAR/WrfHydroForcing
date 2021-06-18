@@ -743,7 +743,10 @@ class ConfigOptions:
                 err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
-            if len(tmp_scale_param_dirs) < param_flag.sum():
+            if len(tmp_scale_param_dirs) == 1:
+                # single directory for all params
+                tmp_scale_param_dirs *= param_flag.sum()
+            elif len(tmp_scale_param_dirs) != param_flag.sum():
                 err_handler.err_out_screen('Please specify a downscaling parameter directory for each '
                                            'corresponding downscaling option that requires one.')
             # Loop through each downscaling parameter directory and make sure they exist.
