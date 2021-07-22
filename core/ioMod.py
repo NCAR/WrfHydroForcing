@@ -649,6 +649,27 @@ def open_netcdf_forcing(nc_file, config_options, MpiConfig, open_on_all_procs=Fa
     return idTmp, lat_var, lon_var
 
 
+def get_height_field(id_tmp, config_options, mpi_config):
+    var_tmp = np.empty(0)
+    if config_options.grid_meta is not None:
+        hgt_file = Dataset(config_options.grid_meta)
+    else:
+        hgt_file = id_tmp
+
+    if 'HGT_surface' in hgt_file.variables.keys() or 'HGT' in hgt_file.variables.keys():
+        # Regrid the height variable.
+        if mpi_config.rank == 0:
+            if 'HGT' in hgt_file.variables.keys():
+                var_tmp = hgt_file.variables['HGT'][0, :, :]
+            else:
+                var_tmp = hgt_file.variables['HGT_surface'][0, :, :]
+        err_handler.check_program_status(config_options, mpi_config)
+    else:
+        var_tmp = None
+    
+    return var_tmp
+
+
 def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     """
     Generic I/O function to unzip a .gz file to a new location.
@@ -681,6 +702,7 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
             return
     else:
         return
+
 
 def read_rqi_monthly_climo(ConfigOptions, MpiConfig, supplemental_precip, GeoMetaWrfHydro):
     """

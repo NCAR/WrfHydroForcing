@@ -845,18 +845,9 @@ def regrid_custom_hourly_netcdf(input_forcings, config_options, wrf_hydro_geo_me
             calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
 
             # Read in the height field, which is used for downscaling purposes, if available
-            if 'HGT_surface' in id_tmp.variables.keys() or 'HGT' in id_tmp.variables.keys():
-                # Regrid the height variable.
-                if mpi_config.rank == 0:
-                    if 'HGT' in id_tmp.variables.keys():
-                        var_tmp = id_tmp.variables['HGT'][0, :, :]
-                    else:
-                        var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
-                else:
-                    var_tmp = None
-                err_handler.check_program_status(config_options, mpi_config)
-
-                var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+            hgt_field = ioMod.get_height_field(id_tmp, config_options, mpi_config)
+            if hgt_field is not None:
+                var_sub_tmp = mpi_config.scatter_array(input_forcings, hgt_field, config_options)
                 err_handler.check_program_status(config_options, mpi_config)
 
                 try:
