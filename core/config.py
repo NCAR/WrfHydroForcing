@@ -123,8 +123,8 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 18:
-                err_handler.err_out_screen('Please specify InputForcings values between 1 and 18.')
+            if forceOpt < 0 or forceOpt > 19:
+                err_handler.err_out_screen('Please specify InputForcings values between 1 and 19.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1

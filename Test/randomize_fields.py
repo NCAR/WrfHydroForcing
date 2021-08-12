@@ -4,9 +4,9 @@ import argparse
 import netCDF4
 import numpy as np
 
+#Script adds Gaussian random numbers to user selected fields in a netcdf file
 #
 #Example USAGE: ./randomize_fields.py /glade/scratch/bpetzke/WRF-Hydro/StageIV_Alaska/20210714/nws_precip_last6hours_ak_2021071400.nc observation 
-#
 
 def randomize_field(nc_file, field_names):
     print(f"Randomizing {nc_file} fields {field_names}")
