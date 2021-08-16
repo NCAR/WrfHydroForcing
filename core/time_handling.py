@@ -435,10 +435,12 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # First find the current HRRR AK forecast cycle that we are using.
     if config_options.ana_flag:
-        # find nearest previous cycle, and always use the first cycle for consistency
         shift = config_options.first_fcst_cycle.hour % 3
         current_hrrr_cycle = config_options.first_fcst_cycle - datetime.timedelta(seconds=3600*shift)
-        current_hrrr_cycle -= datetime.timedelta(hours=3)
+        if shift == 0:
+            current_hrrr_cycle -= datetime.timedelta(hours=6)
+        else:
+            current_hrrr_cycle -= datetime.timedelta(hours=3)
     else:
         current_hrrr_cycle = config_options.current_fcst_cycle - \
             datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
@@ -481,6 +483,8 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
     input_forcings.fcst_hour2 = next_hrrr_forecast_hour
     dt_tmp = prev_hrrr_date - current_hrrr_cycle
     prev_hrrr_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    if config_options.ana_flag:
+        prev_hrrr_forecast_hour -= 1    # for analysis vs forecast
     input_forcings.fcst_hour1 = prev_hrrr_forecast_hour
     err_handler.check_program_status(config_options, mpi_config)
 
