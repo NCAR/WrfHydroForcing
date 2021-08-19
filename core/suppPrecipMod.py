@@ -84,7 +84,7 @@ class supplemental_precip:
             5: "CONUS_MRMS_1HR_MultiSensor",
             6: "Hawaii_MRMS_1HR_MultiSensor",
             7: "MRMS_LiquidWaterFraction",
-            8: "NBM_QMD_CONUS_APCP"
+            8: "NBM_CORE_CONUS_APCP"
         }
         self.productName = product_names[self.keyValue]
 

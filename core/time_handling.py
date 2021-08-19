@@ -1621,7 +1621,7 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
 
 def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and next NBM/QMD/CONUS files. This
+    Function to calculate the previous and next NBM/CORE/CONUS files. This
     will also calculate the neighboring radar quality index (RQI) files as well.
     :param supplemental_precip:
     :param config_options:
@@ -1629,6 +1629,11 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     :param mpi_config:
     :return:
     """
+    nbm_out_freq = {
+    36: 60,
+    240: 360
+    }
+        
     # First we need to find the nearest previous and next hour, which is
     # the previous/next NBM files we will be using.
     current_yr = d_current.year
@@ -1645,9 +1650,12 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     dt_tmp = d_current - current_nbm_cycle
     current_nbm_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
-    # Set the input file frequency to be hourly.
-    supplemental_precip.input_frequency = 60.0
-
+    # Set the input file frequency to be hourly for f001-f036 and 6-hourly beyond f036.
+    if current_nbm_hour <= 36:
+        supplemental_precip.input_frequency = 60.0
+    else:
+        supplemental_precip.input_frequency = 360.0
+            
     # Calculate the previous file to process.
     min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
     if min_since_last_output == 0:
@@ -1679,15 +1687,15 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
-            "/qmd/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.qmd.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
+            + supplemental_precip.file_ext + "_APCP"
         tmp_file2 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
-            "/qmd/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.qmd.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
+            + supplemental_precip.file_ext + "_APCP"
     else:
         tmp_file1 = tmp_file2 = ""
 

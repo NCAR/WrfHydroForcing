@@ -2393,7 +2393,10 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     # Convert the hourly precipitation total from kg.m-2.hour-1 to a rate of mm.s-1
     try:
         ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
-        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
+        if supplemental_precip.input_frequency == 60.0:
+            supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
+        elif supplemental_precip.input_frequency == 360.0:
+            supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 21600.0 #uniform disaggregation for 6-hourly nbm data
         del ind_valid
     except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
         config_options.errMsg = "Unable to run NDV search on NBM supplemental precipitation: " + str(npe)
