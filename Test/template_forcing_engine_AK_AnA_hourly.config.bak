@@ -119,8 +119,8 @@ LookBack = 180
 
 # If running reforecasts, specify a window below. This will override 
 # using the LookBack value to calculate a processing window. 
-RefcstBDateProc = 202108172300
-RefcstEDateProc = 202108180000
+RefcstBDateProc = syyyymmdyhh00
+RefcstEDateProc = eyyyymmdyhh00
 
 # Specify a forecast frequency in minutes. This value specifies how often
 # to generate a set of forecast forcings. If generating hourly retrospective
