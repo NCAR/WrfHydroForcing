@@ -275,6 +275,10 @@ def find_aorc_neighbors(input_forcings, config_options, d_current, mpi_config):
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 
 
+def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_config):
+    find_conus_ak_neighbors(input_forcings, config_options, d_current, mpi_config)
+
+
 def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
     Function to calculate the previous and after HRRR conus cycles based on the current timestep.
@@ -1384,6 +1388,19 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+    elif supplemental_precip.keyValue == 8:
+        tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+        tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass2/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1771,3 +1788,7 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
     if not os.path.isfile(input_forcings.file_in2):
         if input_forcings.regridded_precip2 is not None:
             input_forcings.regridded_precip2[:, :] = config_options.globalNdv
+
+
+def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+    pass

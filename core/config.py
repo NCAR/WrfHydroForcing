@@ -123,8 +123,8 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 19:
-                err_handler.err_out_screen('Please specify InputForcings values between 1 and 19.')
+            if forceOpt < 0 or forceOpt > 20:
+                err_handler.err_out_screen('Please specify InputForcings values between 1 and 20.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -1011,10 +1011,10 @@ class ConfigOptions:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
-                if suppOpt < 0 or suppOpt > 7:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 7.')
+                if suppOpt < 0 or suppOpt > 9:
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 9.')
                 # Read in RQI threshold to apply to radar products.
-                if suppOpt in (1,2,7):
+                if suppOpt in (1,2,7,8):
                     try:
                         self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
                     except KeyError:
