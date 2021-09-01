@@ -2,6 +2,7 @@ import math
 
 import ESMF
 import numpy as np
+from ESMF import ESMPyException
 from netCDF4 import Dataset
 
 
@@ -15,6 +16,8 @@ class GeoMetaWrfHydro:
         self.ny_global = None
         self.dx_meters = None
         self.dy_meters = None
+        self.dx_degrees = None
+        self.dy_degrees = None
         self.nx_local = None
         self.ny_local = None
         self.x_lower_bound = None
@@ -72,7 +75,7 @@ class GeoMetaWrfHydro:
                 idTmp = Dataset(ConfigOptions.geogrid,'r')
             except:
                 ConfigOptions.errMsg = "Unable to open the WRF-Hydro " + \
-                                       "geogrid file: " + ConfigOptions.geogrid
+                                       "geo_em file: " + ConfigOptions.geogrid
                 raise Exception
 
             try:
@@ -119,7 +122,7 @@ class GeoMetaWrfHydro:
                                        coord_sys=ESMF.CoordSys.SPH_DEG)
         except:
             ConfigOptions.errMsg = "Unable to create ESMF grid for WRF-Hydro " \
-                                   "geogrid: " + ConfigOptions.geogrid
+                                   "geo_em: " + ConfigOptions.geogrid
             raise Exception
 
         #MpiConfig.comm.barrier()
@@ -152,7 +155,7 @@ class GeoMetaWrfHydro:
             varSubTmp = None
             varTmp = None
         except:
-            ConfigOptions.errMsg = "Unable to subset XLAT_M from geogrid file into ESMF object"
+            ConfigOptions.errMsg = "Unable to subset XLAT_M from geo_em file into ESMF object"
             raise Exception
 
         #MpiConfig.comm.barrier()
@@ -175,7 +178,7 @@ class GeoMetaWrfHydro:
             varSubTmp = None
             varTmp = None
         except:
-            ConfigOptions.errMsg = "Unable to subset XLONG_M from geogrid file into ESMF object"
+            ConfigOptions.errMsg = "Unable to subset XLONG_M from geo_em file into ESMF object"
             raise Exception
 
         #MpiConfig.comm.barrier()
@@ -243,11 +246,11 @@ class GeoMetaWrfHydro:
         #MpiConfig.comm.barrier()
 
         if MpiConfig.rank == 0:
-            # Close the geogrid file
+            # Close the geo_em file
             try:
                 idTmp.close()
             except:
-                ConfigOptions.errMsg = "Unable to close geogrid file: " + ConfigOptions.geogrid
+                ConfigOptions.errMsg = "Unable to close geo_em file: " + ConfigOptions.geogrid
                 raise Exception
 
         # Reset temporary variables to free up memory
@@ -378,7 +381,7 @@ class GeoMetaWrfHydro:
         :param ConfigOptions:
         :return:
         """
-        # First extract the sina,cosa, and elevation variables from the geogrid file.
+        # First extract the sina,cosa, and elevation variables from the geo_em file.
         try:
             sinaGrid = idTmp.variables['SINALPHA'][0,:,:]
         except:
@@ -477,4 +480,87 @@ class GeoMetaWrfHydro:
 
         return slopeOut,slp_azi
 
+
+class GeoMetaRegLatLon(GeoMetaWrfHydro):
+    def initialize_destination_geo(self, config, mpi):
+        id_tmp = None
+
+        if mpi.rank == 0:
+            try:
+                id_tmp = Dataset(config.geogrid, 'r')
+            except Exception as ncErr:
+                config.errMsg = f"Unable to open the WRF-Hydro geo_em file '{config.geogrid}': {ncErr}"
+                raise ncErr
+
+            try:
+                xlat = id_tmp.variables['XLAT_V']
+                xlon = id_tmp.variables['XLONG_U']
+                nlat, nlon = xlat.shape[1:]
+
+                # determine a naive lat/lon overlay
+                lat_min, lat_max = xlat[:].min(), xlat[:].max()
+                lon_min, lon_max = xlon[:].min(), xlon[:].max()
+
+                lats, d_lat = np.linspace(lat_min, lat_max, nlat, retstep=True)
+                lons, d_lon = np.linspace(lon_min, lon_max, nlon, retstep=True)
+
+                lon_grid, lat_grid = np.meshgrid(lons, lats)
+
+            except Exception as ncErr:
+                config.errMsg = f"Unable to read the WRF-Hydro geo_em file '{config.geogrid}': {ncErr}"
+                raise ncErr
+        else:
+            nlat = nlon = d_lat = d_lon = 0
+            lat_grid = lon_grid = None
+
+        # Broadcast global dimensions to the other processors.
+        self.nx_global = mpi.broadcast_parameter(nlon, config, param_type=int)
+        self.ny_global = mpi.broadcast_parameter(nlat, config, param_type=int)
+        self.dx_degrees = mpi.broadcast_parameter(d_lon, config, param_type=float)
+        self.dy_degrees = mpi.broadcast_parameter(d_lat, config, param_type=float)
+        try:
+            # noinspection PyTypeChecker
+            self.esmf_grid = ESMF.Grid(np.array([self.ny_global, self.nx_global]),
+                                       staggerloc=ESMF.StaggerLoc.CENTER,
+                                       coord_sys=ESMF.CoordSys.SPH_DEG,
+                                       num_peri_dims=1)
+        except ESMPyException as esmfError:
+            config.errMsg = f"Unable to create ESMF grid for WRF-Hydro geo_em: {esmfError}"
+            raise esmfError
+
+        self.esmf_lat = self.esmf_grid.get_coords(1)
+        self.esmf_lon = self.esmf_grid.get_coords(0)
+
+        # Obtain the local boundaries for this processor.
+        self.get_processor_bounds()
+
+        # Place the local lat/lon grid slices from the parent geogrid file into the ESMF lat/lon grids.
+
+        # Scatter global latitude grid to processors
+        try:
+            localLats = mpi.scatter_array(self, lat_grid, config)
+
+            self.esmf_lat[:, :] = localLats
+            self.latitude_grid = localLats
+        except Exception as error:
+            config.errMsg = f"Unable to disaggregate latitude grid: {error}"
+            raise error
+
+        # Scatter global longitude grid to processors..
+        try:
+            localLons = mpi.scatter_array(self, lon_grid, config)
+
+            self.esmf_lon[:, :] = localLons
+            self.longitude_grid = localLons
+        except Exception as error:
+            config.errMsg = f"Unable to disaggregate longitude grid: {error}"
+            raise error
+
+        if mpi.rank == 0:
+            # Close the geo_em file
+            try:
+                id_tmp.close()
+            except Exception as error:
+                config.errMsg = f"Unable to close geo_em file {config.geogrid}: {error}"
+                raise Exception
 

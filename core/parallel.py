@@ -143,9 +143,9 @@ class MpiConfig:
 
         # Broadcast the data_type_flag to other processors
         if self.rank == 0:
-            data_type_buffer = np.array([data_type_flag],np.int32)
+            data_type_buffer = np.array([data_type_flag], np.int32)
         else:
-            data_type_buffer = np.empty(1,np.int32)
+            data_type_buffer = np.empty(1, np.int32)
 
         try:
             self.comm.Bcast(data_type_buffer, root=0)
