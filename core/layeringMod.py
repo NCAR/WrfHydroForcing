@@ -29,7 +29,7 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     # 6.) Surface pressure (Pa)
     # 7.) Surface incoming shortwave radiation flux (W/m^2)
 
-    for force_idx in range(0,8):
+    for force_idx in range(0, 8):
         if force_idx in input_forcings.input_map_output:
             outLayerCurrent = OutputObj.output_local[force_idx,:,:]
             layerIn = input_forcings.final_forcings[force_idx,:,:]
