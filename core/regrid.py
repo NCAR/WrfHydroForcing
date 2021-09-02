@@ -48,6 +48,29 @@ def create_link(name, input_file, tmpFile, config_options, mpi_config):
     err_handler.check_program_status(config_options, mpi_config)
 
 
+def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
+    """
+    Function for handling regridding of Alaska ExtAna data.
+    :param input_forcings:
+    :param config_options:
+    :param wrf_hydro_geo_meta:
+    :param mpi_config:
+    :return:
+    """
+    # If the expected file is missing, this means we are allowing missing files, simply
+    # exit out of this routine as the regridded fields have already been set to NDV.
+    if not os.path.isfile(input_forcings.file_in2):
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "No ExtAnA in_2 file found for this timestep."
+            err_handler.log_msg(config_options, mpi_config)
+        err_handler.log_msg(config_options, mpi_config)
+        return
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Passing through without regridding for ExtAnA."
+        err_handler.log_msg(config_options, mpi_config)
+
+
 def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for handling regridding of HRRR data.

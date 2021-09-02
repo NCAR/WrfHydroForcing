@@ -454,7 +454,7 @@ class input_forcings:
             17: regrid.regrid_nam_nest,
             18: regrid.regrid_hourly_wrf_arw,
             19: regrid.regrid_conus_hrrr,
-            20: regrid.regrid_conus_hrrr
+            20: regrid.regrid_ak_ext_ana
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 

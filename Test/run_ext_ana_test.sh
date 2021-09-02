@@ -17,6 +17,4 @@ rm -f *.err *.out
 
 module unload mpt
 module load impi
-#mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.2.config 2.2 ExtAnA
-#mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.1.config.orig 2.2 ExtAnA
-mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.3.config.orig 2.2 ExtAnA
+mpiexec python ../genForcing.py ./template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA
