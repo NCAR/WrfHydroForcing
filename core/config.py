@@ -1011,10 +1011,10 @@ class ConfigOptions:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
-                if suppOpt < 0 or suppOpt > 9:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 9.')
+                if suppOpt < 0 or suppOpt > 11:
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 11.')
                 # Read in RQI threshold to apply to radar products.
-                if suppOpt in (1,2,7,8):
+                if suppOpt in (1,2,7,10):
                     try:
                         self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
                     except KeyError:

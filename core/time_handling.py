@@ -290,22 +290,12 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
                                    "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
-    # Fortunately, ExtAnA data is straightforward compared to GFS in terms of precip values, etc.
-    if d_current >= datetime.datetime(2018, 10, 1):
-        default_horizon = 18  # 18-hour forecasts.
-        six_hr_horizon = 36  # 36-hour forecasts every six hours.
-    else:
-        default_horizon = 18  # 18-hour forecasts.
-        six_hr_horizon = 18  # 18-hour forecasts every six hours.
-
     # First find the current ExtAnA forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
-    if current_ext_ana_cycle.hour % 6 != 0:
-        ext_ana_horizon = default_horizon
-    else:
-        ext_ana_horizon = six_hr_horizon
+    
+    ext_ana_horizon = 5
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
@@ -344,18 +334,18 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     # If we are on the first ExtAnA forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
-    if prev_ext_ana_forecast_hour == 0:
-        prev_ext_ana_forecast_hour = 1
+    #if prev_ext_ana_forecast_hour == 0:
+    #    prev_ext_ana_forecast_hour = 1
 
     # Calculate expected file paths.
-    tmp_file1 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d') + str(prev_ext_ana_forecast_hour).zfill(2) + \
+    tmp_file1 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d%H') + \
                 "/" + current_ext_ana_cycle.strftime('%Y%m%d') + str(prev_ext_ana_forecast_hour).zfill(2) + "00" + \
                 ".LDASIN_DOMAIN1"
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous ExtAnA file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
-    tmp_file2 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d') + str(prev_ext_ana_forecast_hour).zfill(2) + \
+    tmp_file2 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d%H') + \
                 "/" + current_ext_ana_cycle.strftime('%Y%m%d') + str(next_ext_ana_forecast_hour).zfill(2) + "00" + \
                 ".LDASIN_DOMAIN1"
     if mpi_config.rank == 0:
@@ -1528,7 +1518,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-    elif supplemental_precip.keyValue == 8:
+    elif supplemental_precip.keyValue == 10:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
                     "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
