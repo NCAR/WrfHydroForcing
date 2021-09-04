@@ -286,16 +286,17 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     :return:
     """
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Processing Conus ExtAnA Data. Calculating neighboring " \
+        config_options.statusMsg = "Processing Alasks ExtAnA Data. Calculating neighboring " \
                                    "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
+    #REVIEW: AnA handling
     # First find the current ExtAnA forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     
-    ext_ana_horizon = 5
+    ext_ana_horizon = 3
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
@@ -334,19 +335,19 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     # If we are on the first ExtAnA forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
-    #if prev_ext_ana_forecast_hour == 0:
-    #    prev_ext_ana_forecast_hour = 1
+    if prev_ext_ana_forecast_hour == 0:
+        prev_ext_ana_forecast_hour = 1
 
     # Calculate expected file paths.
-    tmp_file1 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d%H') + \
-                "/" + current_ext_ana_cycle.strftime('%Y%m%d') + str(prev_ext_ana_forecast_hour).zfill(2) + "00" + \
+    tmp_file1 = input_forcings.inDir + '/' + prev_ext_ana_date.strftime('%Y%m%d%H') + \
+                "/" + prev_ext_ana_date.strftime('%Y%m%d%H') +  "00" + \
                 ".LDASIN_DOMAIN1"
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous ExtAnA file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
-    tmp_file2 = input_forcings.inDir + '/' + current_ext_ana_cycle.strftime('%Y%m%d%H') + \
-                "/" + current_ext_ana_cycle.strftime('%Y%m%d') + str(next_ext_ana_forecast_hour).zfill(2) + "00" + \
+    tmp_file2 = input_forcings.inDir + '/' + next_ext_ana_date.strftime('%Y%m%d%H') + \
+                "/" + next_ext_ana_date.strftime('%Y%m%d%H') + "00" + \
                 ".LDASIN_DOMAIN1"
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
