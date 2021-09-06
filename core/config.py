@@ -1014,7 +1014,7 @@ class ConfigOptions:
                 if suppOpt < 0 or suppOpt > 11:
                     err_handler.err_out_screen('Please specify SuppForcing values between 1 and 11.')
                 # Read in RQI threshold to apply to radar products.
-                if suppOpt in (1,2,7,10):
+                if suppOpt in (1,2,7,10,11):
                     try:
                         self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
                     except KeyError:
