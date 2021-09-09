@@ -1689,13 +1689,13 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/" + current_nbm_cycle.strftime('%H') + \
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext + "_APCP"
+            + supplemental_precip.file_ext
         tmp_file2 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext + "_APCP"
+            + supplemental_precip.file_ext
     else:
         tmp_file1 = tmp_file2 = ""
 

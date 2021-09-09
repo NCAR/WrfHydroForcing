@@ -2329,8 +2329,15 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
             config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
             err_handler.log_critical(config_options, mpi_config)
         
-    # Perform a GRIB dump to NetCDF for the MRMS precip and RQI data.
-    cmd1 = "$WGRIB2 " + supplemental_precip.file_in1 + " -netcdf " + nbm_tmp_nc
+    # Perform a GRIB dump to NetCDF for the precip data.
+    fieldnbm_match1 = "\":APCP:\""
+    fieldnbm_match2 = "\"" + str(supplemental_precip.fcst_hour1) + "-" + str(supplemental_precip.fcst_hour2) + "\""
+    fieldnbm_notmatch1 = "\"prob\"" #We don't want the probabilistic QPF layers
+    cmd1 = "$WGRIB2 " + supplemental_precip.file_in1 + " -match " + fieldnbm_match1 \
+                                                     + " -match " + fieldnbm_match2 \
+                                                     + " -not " + fieldnbm_notmatch1 \
+                                                     + " -netcdf " + nbm_tmp_nc
+    print("HereHere:" , cmd1)
     id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, nbm_tmp_nc, cmd1, config_options,
                                mpi_config, supplemental_precip.netcdf_var_names[0])
     err_handler.check_program_status(config_options, mpi_config)
