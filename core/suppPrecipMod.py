@@ -150,7 +150,7 @@ class supplemental_precip:
             8: ['AmirVar'], #Amir merge
             9: ['AmirVar'], #Amir merge
             10: ['MultiSensorQPE01H_0mabovemeansealevel'],
-            11: ['observation']
+            11: ['A_PCP_GDS5_SFC_acc6h']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -242,7 +242,7 @@ class supplemental_precip:
             8: regrid.regrid_mrms_hourly, #Amir merge
             9: regrid.regrid_mrms_hourly, #Amir merge
             10: regrid.regrid_mrms_hourly, 
-            11: regrid.regrid_mrms_hourly  
+            11: regrid.regrid_ak_ext_ana_pcp  
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
         #try:

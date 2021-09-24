@@ -286,15 +286,14 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     :return:
     """
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Processing Alasks ExtAnA Data. Calculating neighboring " \
+        config_options.statusMsg = "Processing Alaska ExtAnA Data. Calculating neighboring " \
                                    "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
-    #REVIEW: AnA handling
     # First find the current ExtAnA forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+        minutes=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     
     ext_ana_horizon = 3
 
@@ -1945,15 +1944,18 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
     supplemental_precip.pcp_date2 = next_mrms_date
     #supplemental_precip.pcp_date2 = prev_mrms_date
 
+    next_hr_map = {"00":"06","06":"12","12":"18","18":"00"}
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 11:
         tmp_file1 = supplemental_precip.inDir + "/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "nws_precip_last6hours_ak_" + supplemental_precip.pcp_date1.strftime('%Y%m%d%H') + \
+                    "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
+                    next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                     supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "nws_precip_last6hours_ak_" + supplemental_precip.pcp_date2.strftime('%Y%m%d%H') + \
+                    "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
+                    next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
         tmp_file1 = tmp_file2 = ""

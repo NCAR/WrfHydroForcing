@@ -225,7 +225,7 @@ class input_forcings:
             18: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES'],
             19: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
                 'DLWRF', 'PRES'],
-            20: None
+            20: ['RAINRATE']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -386,7 +386,7 @@ class input_forcings:
             17: [7, 2],
             18: [4, 5, 0, 1, 3, 6],
             19: [4,5,0,1,3,7,2,6],
-            20: [4,5,0,1,3,7,2,6]
+            20: [3]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
