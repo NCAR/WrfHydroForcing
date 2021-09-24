@@ -1696,6 +1696,19 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
+    elif supplemental_precip.keyValue == 9:
+        tmp_file1 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".ak" \
+            + supplemental_precip.file_ext
+        tmp_file2 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".ak" \
+            + supplemental_precip.file_ext
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1724,7 +1737,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == 8 ):
+        if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == 8) or (supplemental_precip.keyValue == 9)):
             config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
                     supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
@@ -1745,3 +1758,10 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+
+    # Do we want to use NBM data at this timestep? If not, set the local slab of arrays to missing.
+    if not config_options.use_data_at_current_time:
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+        if supplemental_precip.regridded_precip1 is not None:
+            supplemental_precip.regridded_precip1[:, :] = config_options.globalNdv

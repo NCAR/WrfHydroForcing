@@ -2306,6 +2306,13 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     :param mpi_config:
     :return:
     """
+    # Do we want to use NBM data at this timestep? If not, log and continue
+    if not config_options.use_data_at_current_time:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Exceeded max hours for NBM precipitation, will not use NBM in final layering."
+            err_handler.log_msg(config_options, mpi_config)
+        return
+        
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.exists(supplemental_precip.file_in1):
@@ -2316,7 +2323,6 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     # inputs have already been regridded and we can move on.
     if supplemental_precip.regridComplete:
         return
-    
     
     nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
     if os.path.isfile(nbm_tmp_nc):
@@ -2329,6 +2335,7 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
             config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
             err_handler.log_critical(config_options, mpi_config)
         
+        
     # Perform a GRIB dump to NetCDF for the precip data.
     fieldnbm_match1 = "\":APCP:\""
     fieldnbm_match2 = "\"" + str(supplemental_precip.fcst_hour1) + "-" + str(supplemental_precip.fcst_hour2) + "\""
@@ -2337,7 +2344,6 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
                                                      + " -match " + fieldnbm_match2 \
                                                      + " -not " + fieldnbm_notmatch1 \
                                                      + " -netcdf " + nbm_tmp_nc
-    print("HereHere:" , cmd1)
     id_tmp = ioMod.open_grib2(supplemental_precip.file_in1, nbm_tmp_nc, cmd1, config_options,
                                mpi_config, supplemental_precip.netcdf_var_names[0])
     err_handler.check_program_status(config_options, mpi_config)
