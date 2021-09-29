@@ -1920,43 +1920,40 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
             input_forcings.regridded_precip2[:, :] = config_options.globalNdv
 
 
-def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_current, mpi_config):
-    """
-    Function to calculate the previous and next Stage IV MPE files. 
-    :param supplemental_precip:
-    :param config_options:
-    :param d_current:
-    :param mpi_config:
-    :return:
-    """
+def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config):
     # First we need to find the nearest previous and next hour, which is
     # the previous/next Stage IV files we will be using.
     d_current_epoch = int(d_current.strftime("%s"))
     six_hr_sec = 21600
-    next_mrms_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
     d_prev_epoch = d_current_epoch-six_hr_sec
-    prev_mrms_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
+    prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
 
     # Set the input file frequency to be six-hourly.
     supplemental_precip.input_frequency = 360.0
 
-    supplemental_precip.pcp_date1 = prev_mrms_date
-    supplemental_precip.pcp_date2 = next_mrms_date
-    #supplemental_precip.pcp_date2 = prev_mrms_date
+    supplemental_precip.pcp_date1 = prev_stage4_date
+    supplemental_precip.pcp_date2 = next_stage4_date
+    #supplemental_precip.pcp_date2 = prev_stage4_date
 
     next_hr_map = {"00":"06","06":"12","12":"18","18":"00"}
+
+    try:
+        #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
+        stage4_in_dir = supplemental_precip.inDir.split(',')[0]
+    except IndexError:
+        stage4_in_dir = None
+
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 11:
-        tmp_file1 = supplemental_precip.inDir + "/" + \
+    if stage4_in_dir and supplemental_precip.keyValue == 11:
+        tmp_file1 = stage4_in_dir + "/" + \
                     "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
                     next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
-                    supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-        tmp_file2 = supplemental_precip.inDir + "/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
+        tmp_file2 = stage4_in_dir + "/" + \
                     "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
                     next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
-                    supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1967,10 +1964,6 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
         config_options.statusMsg = "Previous Stage IV supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next Stage IV supplemental file: " + tmp_file2
-        err_handler.log_msg(config_options, mpi_config)
-        config_options.statusMsg = "Previous Stage IV RQI supplemental file: " + tmp_rqi_file1
-        err_handler.log_msg(config_options, mpi_config)
-        config_options.statusMsg = "Next Stage IV RQI supplemental file: " + tmp_rqi_file2
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
@@ -2013,7 +2006,7 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == 5 or supplemental_precip.keyValue == 6):
+        if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
             config_options.statusMsg = "Stage IV file {} not found, will attempt to use {} instead.".format(
                     supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
@@ -2032,3 +2025,129 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+    
+    supplemental_precip.ext_ana = "STAGE4"
+
+
+def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config):
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next MRMS files we will be using.
+    next_mrms_date = d_current
+    prev_mrms_date = d_current - datetime.timedelta(hours=1)
+
+    # Set the input file frequency to be hourly.
+    supplemental_precip.input_frequency = 60.0
+
+    supplemental_precip.pcp_date1 = prev_mrms_date
+    supplemental_precip.pcp_date2 = next_mrms_date
+
+    try:
+        #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
+        mrms_in_dir = supplemental_precip.inDir.split(',')[1]
+    except IndexError:
+        mrms_in_dir = None
+
+    # Calculate expected file paths.
+    if supplemental_precip.keyValue == 11:
+        tmp_file1 = mrms_in_dir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                    "0000.grib2.gz"
+        tmp_file2 = mrms_in_dir + "/MultiSensor_QPE_01H_Pass2/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                    "0000.grib2.gz"
+    else:
+        tmp_file1 = tmp_file2 = ""
+
+    # Compose the RQI paths.
+    tmp_rqi_file1 = tmp_rqi_file2 = ""
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous MRMS supplemental file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next MRMS supplemental file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
+        if config_options.current_output_step == 1:
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+            # supplemental_precip.regridded_precip1[:,:] = supplemental_precip.regridded_precip2[:,:]
+            # supplemental_precip.regridded_rqi1[:, :] = supplemental_precip.regridded_rqi2[:, :]
+        supplemental_precip.file_in1 = tmp_file1
+        supplemental_precip.file_in2 = tmp_file2
+        supplemental_precip.rqi_file_in1 = tmp_rqi_file1
+        supplemental_precip.rqi_file_in2 = tmp_rqi_file2
+        supplemental_precip.regridComplete = False
+
+    # If either file does not exist, set to None. This will instruct downstream regridding steps to
+    # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
+    # added to the final output grids.
+
+    # if not os.path.isfile(tmp_file1) or not os.path.isfile(tmp_file2):
+    #    if MpiConfig.rank == 0:
+    #        ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
+    #                                  "supplemental precipitation"
+    #        errMod.log_warning(ConfigOptions,MpiConfig)
+    #    supplemental_precip.file_in2 = None
+    #    supplemental_precip.file_in1 = None
+
+    # errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+            config_options.statusMsg = "MRMS file {} not found, will attempt to use {} instead.".format(
+                    supplemental_precip.file_in2, supplemental_precip.file_in1)
+            err_handler.log_warning(config_options, mpi_config)
+            supplemental_precip.file_in2 = supplemental_precip.file_in1
+        if not os.path.isfile(supplemental_precip.file_in2):
+            if supplemental_precip.enforce == 1:
+                config_options.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
+                                           " not found. " + "Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    if not os.path.isfile(supplemental_precip.file_in2):
+        config_options.statusMsg = "Attempting to use Stage IV in place of MRMS"
+        err_handler.log_warning(config_options, mpi_config)
+        _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
+    else:
+        supplemental_precip.ext_ana = "MRMS"
+
+
+def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next Stage IV MPE files. 
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    if d_current > config_options.e_date_proc - datetime.timedelta(hours=5):
+        print(f"Using MRMS hour {d_current}")
+        _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+    else:
+        print(f"Using StageIV hour {d_current}")
+        _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)

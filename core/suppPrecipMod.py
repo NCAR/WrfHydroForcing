@@ -89,7 +89,7 @@ class supplemental_precip:
             8: "Amir1", #Amir merge
             9: "Amir2", #Amir merge
             10: "AK_MRMS",
-            11: "AK_Stage_IV_Precip"
+            11: "AK_Stage_IV_Precip-MRMS"
         }
         self.productName = product_names[self.keyValue]
 
@@ -150,7 +150,7 @@ class supplemental_precip:
             8: ['AmirVar'], #Amir merge
             9: ['AmirVar'], #Amir merge
             10: ['MultiSensorQPE01H_0mabovemeansealevel'],
-            11: ['A_PCP_GDS5_SFC_acc6h']
+            11: [] #Set dynamically since we have have Stage IV and MRMS
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 

@@ -115,9 +115,9 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                     input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
 
 
-def regrid_ak_ext_ana_pcp(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
+def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
     """
-    Function for handling regridding of Alaska ExtAna supplemental precip data.
+    Function for handling regridding of Alaska ExtAna supplemental Stage IV precip data.
     :param supplemental_precip:
     :param config_options:
     :param wrf_hydro_geo_meta:
@@ -235,6 +235,26 @@ def regrid_ak_ext_ana_pcp(supplemental_precip, config_options, wrf_hydro_geo_met
             config_options.errMsg = "Unable to remove NetCDF file: " + stage4_tmp_nc
             err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
+
+
+def regrid_ak_ext_ana_pcp(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
+    """
+    Function for handling regridding of Alaska ExtAna supplemental precip data.
+    :param supplemental_precip:
+    :param config_options:
+    :param wrf_hydro_geo_meta:
+    :param mpi_config:
+    :return:
+    """
+
+    if supplemental_precip.ext_ana == "STAGE4":
+        supplemental_precip.netcdf_var_names.append('A_PCP_GDS5_SFC_acc6h')
+        _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
+        supplemental_precip.netcdf_var_names.pop()
+    else: #MRMS
+        supplemental_precip.netcdf_var_names.append('MultiSensorQPE01H_0mabovemeansealevel')
+        regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
+        supplemental_precip.netcdf_var_names.pop()
 
 
 def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):

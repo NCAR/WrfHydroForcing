@@ -1078,15 +1078,23 @@ class ConfigOptions:
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                            'in the configuration file.')
-            if len(self.supp_precip_dirs) != self.number_supp_pcp:
-                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
-                                           'of SuppForcing in the configuration file.')
+        
             # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
             # or new line characters.
             for dirTmp in range(0, len(self.supp_precip_dirs)):
                 self.supp_precip_dirs[dirTmp] = self.supp_precip_dirs[dirTmp].strip()
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     err_handler.err_out_screen('Unable to locate supp pcp directory: ' + self.supp_precip_dirs[dirTmp])
+
+            #Special case for ExtAnA where we treat comma separated stage IV, MRMS data as one SuppPcp input 
+            if 11 in self.supp_precip_forcings:
+                if len(self.supp_precip_forcings) != 1:
+                    err_handler.err_out_screen('Alaska Stage IV/MRMS SuppPcp option is only supported as a standalone option')
+                self.supp_precip_dirs = [",".join(self.supp_precip_dirs)]
+
+            if len(self.supp_precip_dirs) != self.number_supp_pcp:
+                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
+                                           'of SuppForcing in the configuration file.')
 
             # Process supplemental precipitation enforcement options
             try:
