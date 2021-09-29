@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Developed by Bill Petzke at RAL NCAR
+# 04/05/2021
 
 import argparse
 import sys
