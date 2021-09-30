@@ -575,14 +575,26 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
             current_hrrr_cycle -= datetime.timedelta(hours=6)
         else:
             current_hrrr_cycle -= datetime.timedelta(hours=3)
+
+        # Calculate the current forecast hour within this HRRR cycle.
+        dt_tmp = d_current - current_hrrr_cycle
+        current_hrrr_hour = int(dt_tmp.days * 24) + int(dt_tmp.seconds / 3600.0)
     else:
         current_hrrr_cycle = config_options.current_fcst_cycle - \
             datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+
+        # Map the native forecast hour to the shifted HRRR cycles
+        hrrr_cycle = (current_hrrr_cycle // 3 * 3) - 3
+        if hrrr_cycle < 0:
+            hrrr_cycle += 24
+
+        # throw out the first 3 hours of the cycle
+        current_hrrr_hour = (current_hrrr_cycle % 3) + 3
     
-    if current_hrrr_cycle.hour % 6 != 0:
-        hrrr_horizon = default_horizon
+    if current_hrrr_cycle.hour % 6 == 0:
+        hrrr_horizon = 48
     else:
-        hrrr_horizon = six_hr_horizon
+        hrrr_horizon = 18
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
@@ -591,10 +603,6 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
                                 "that is greater than the maximum allowed hours of: " + str(hrrr_horizon)
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
-
-    # Calculate the current forecast hour within this HRRR cycle.
-    dt_tmp = d_current - current_hrrr_cycle
-    current_hrrr_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
     # Calculate the previous file to process.
     min_since_last_output = (current_hrrr_hour * 60) % 60
