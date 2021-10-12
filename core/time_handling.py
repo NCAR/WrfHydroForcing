@@ -2145,9 +2145,9 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
     :param mpi_config:
     :return:
     """
-    if d_current > config_options.e_date_proc - datetime.timedelta(hours=5):
-        print(f"Using MRMS hour {d_current}")
+    if d_current > config_options.e_date_proc - datetime.timedelta(hours=7):
+        #print(f"Using MRMS hour {d_current}")
         _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
     else:
-        print(f"Using StageIV hour {d_current}")
+        #print(f"Using StageIV hour {d_current}")
         _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
