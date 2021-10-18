@@ -1925,6 +1925,10 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     # the previous/next Stage IV files we will be using.
     d_current_epoch = int(d_current.strftime("%s"))
     six_hr_sec = 21600
+    #if we're at an even 6 hour multiple move the time back 6 hours as d_current is included at the end of the prior range
+    #(begin_date,end_date]
+    if d_current_epoch%six_hr_sec == 0:
+        d_current_epoch -= six_hr_sec
     next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
     d_prev_epoch = d_current_epoch-six_hr_sec
     prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)

@@ -55,7 +55,10 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, Mpi
     target_data = None
     date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
     end_date = date_iter + timedelta(hours=6)
-    while date_iter < end_date:
+    #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included
+    #(begin_date,end_date]
+    date_iter += timedelta(hours=1)
+    while date_iter <= end_date:
         tmp_file = f"{input_forcings.inDir}/{date_iter.strftime('%Y%m%d%H')}/{date_iter.strftime('%Y%m%d%H')}00.LDASIN_DOMAIN1"
         if MpiConfig.rank == 0:
             if os.path.exists(tmp_file):
@@ -85,7 +88,14 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, Mpi
     if MpiConfig.rank == 0:
         ConfigOptions.statusMsg = f"Performing disaggregation of {supplemental_precip.file_in2} using the {target_hh} hour fraction of the sum of hourly ExtAnA files RAINRATE"
         err_handler.log_msg(ConfigOptions, MpiConfig)
+        if target_data is None:
+            target_data = np.empty(data_sum.shape)
+            target_data[:] = np.nan
+            ConfigOptions.statusMsg = f"Could not find ExtAnA target_hh = {target_hh} for disaggregation. Setting values to {ConfigOptions.globalNdv}."
+            err_handler.log_warning(ConfigOptions, MpiConfig)
+
     print("Before disaggregation: ", supplemental_precip.regridded_precip2[:,:])
-    #TODO: handle case when target_data is None
+    supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
     supplemental_precip.regridded_precip2[:,:] *= target_data/data_sum
+    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=ConfigOptions.globalNdv)    
     print("After disaggregation: ", supplemental_precip.regridded_precip2[:,:])
