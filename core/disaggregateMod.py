@@ -74,6 +74,7 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, Mpi
                             data_sum = np.copy(data)
                         if date_iter.hour == int(target_hh):
                             target_data = np.copy(data)
+    
                         del data
                     except (ValueError, KeyError, AttributeError) as err:
                         ConfigOptions.errMsg = f"Unable to extract: {input_forcings.netcdf_var_names[force_count]} from: {input_forcings.file_in2} ({str(err)})"
@@ -94,8 +95,22 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, Mpi
             ConfigOptions.statusMsg = f"Could not find ExtAnA target_hh = {target_hh} for disaggregation. Setting values to {ConfigOptions.globalNdv}."
             err_handler.log_warning(ConfigOptions, MpiConfig)
 
-    print("Before disaggregation: ", supplemental_precip.regridded_precip2[:,:])
-    supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
+    #TODO: disable test code
+    #Begin test code
+    test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
+    np.savetxt(test_file,supplemental_precip.regridded_precip2)
+    #End test code
+    #supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
+    #TODO: disable test code
+    #Begin test code
+    test_file = f"{ConfigOptions.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
+    np.savetxt(test_file,np.nan_to_num(target_data/data_sum,nan=ConfigOptions.globalNdv))
+    #End test code
     supplemental_precip.regridded_precip2[:,:] *= target_data/data_sum
-    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=ConfigOptions.globalNdv)    
-    print("After disaggregation: ", supplemental_precip.regridded_precip2[:,:])
+    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=ConfigOptions.globalNdv) 
+     #TODO: disable test code
+    #Begin test code
+    test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6_disaggregation_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
+    np.savetxt(test_file,supplemental_precip.regridded_precip2)
+    #End test code
+    
