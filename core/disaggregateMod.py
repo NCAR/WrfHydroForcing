@@ -62,12 +62,12 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, Mpi
         tmp_file = f"{input_forcings.inDir}/{date_iter.strftime('%Y%m%d%H')}/{date_iter.strftime('%Y%m%d%H')}00.LDASIN_DOMAIN1"
         if MpiConfig.rank == 0:
             if os.path.exists(tmp_file):
-                ConfigOptions.statusMsg = f"Reading {input_forcings.netcdf_var_names[0]} from {tmp_file} for disaggregation"
+                ConfigOptions.statusMsg = f"Reading {input_forcings.netcdf_var_names[3]} from {tmp_file} for disaggregation"
                 err_handler.log_msg(ConfigOptions, MpiConfig)
                 with Dataset(tmp_file,'r') as ds:
                     try:
                         #Read in rainrate
-                        data = ds.variables[input_forcings.netcdf_var_names[0]][0, :, :]
+                        data = ds.variables[input_forcings.netcdf_var_names[3]][0, :, :]
                         if data_sum is not None:
                             data_sum += data
                         else:

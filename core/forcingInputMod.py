@@ -225,7 +225,8 @@ class input_forcings:
             18: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES'],
             19: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
                 'DLWRF', 'PRES'],
-            20: ['RAINRATE']
+            20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
+                 'Q2D', 'PSFC', 'SWDOWN']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -336,7 +337,8 @@ class input_forcings:
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            20: ['RAINRATE']
+            20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
+                 'Q2D', 'PSFC', 'SWDOWN']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -386,7 +388,7 @@ class input_forcings:
             17: [7, 2],
             18: [4, 5, 0, 1, 3, 6],
             19: [4,5,0,1,3,7,2,6],
-            20: [3]
+            20: [0,1,2,3,4,5,6,7]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 

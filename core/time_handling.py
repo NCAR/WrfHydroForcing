@@ -295,7 +295,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         minutes=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     
-    ext_ana_horizon = 3
+    ext_ana_horizon = 32
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
