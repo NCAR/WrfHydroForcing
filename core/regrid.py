@@ -88,17 +88,15 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
     from netCDF4 import Dataset
     with Dataset(input_forcings.file_in2,'r') as ds:
         ds.set_auto_scale(True)
-        for force_count, grib_var in enumerate(input_forcings.grib_vars):
+        for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
             var_tmp = None
             if mpi_config.rank == 0:
-                config_options.statusMsg = "Processing input AK AnA variable: " + \
-                                           input_forcings.netcdf_var_names[force_count]
+                config_options.statusMsg = f"Processing input AK AnA variable: {nc_var} from {input_forcings.file_in2}"
                 err_handler.log_msg(config_options, mpi_config)
                 try:
-                    var_tmp = ds.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
+                    var_tmp = ds.variables[nc_var][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
-                    config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
-                                        " from: " + input_forcings.file_in2 + " (" + str(err) + ")"
+                    config_options.errMsg = f"Unable to extract: {nc_var} from: {input_forcings.file_in2} ({str(err)})"
                     err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
