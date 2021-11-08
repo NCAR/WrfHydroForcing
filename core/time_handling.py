@@ -1872,3 +1872,95 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
     if not os.path.isfile(input_forcings.file_in2):
         if input_forcings.regridded_precip2 is not None:
             input_forcings.regridded_precip2[:, :] = config_options.globalNdv
+
+
+def find_hourly_wrf_iceland_neighbors(input_forcings, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next WRF-Iceland files for the previous
+    and next output timestep. These files will be used for supplemental precipitation.
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+
+    # First find the current wrf forecast cycle that we are using.
+    if config_options.ana_flag:
+        ana_cycle = config_options.first_fcst_cycle + datetime.timedelta(hours=2)
+        wrf_shift = ((ana_cycle.hour // 6) * 6) - 6
+
+        current_wrf_cycle = ana_cycle - datetime.timedelta(hours=ana_cycle.hour - wrf_shift)
+        current_wrf_hour = (config_options.current_fcst_cycle - datetime.timedelta(hours=wrf_shift)).hour
+    else:
+        current_wrf_hour = config_options.current_fcst_cycle
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Processing WRF-Iceland from forecast cycle: " + \
+                                   current_wrf_cycle.strftime('%Y-%m-%d %H')
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Current WRF-Iceland forecast cycle being used: " + \
+                                   current_wrf_cycle.strftime('%Y-%m-%d %H')
+        err_handler.log_msg(config_options, mpi_config)
+
+    fcst_horizon = 24
+    if current_wrf_hour > fcst_horizon:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Current WRF forecast hour greater than max allowed " \
+                                       "of: " + str(fcst_horizon)
+            err_handler.log_msg(config_options, mpi_config)
+            input_forcings.file_in2 = None
+            input_forcings.file_in1 = None
+            pass
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Calculate expected file paths.
+    tmp_file1 = f"{input_forcings.inDir}/WRF.{current_wrf_cycle.strftime('%Y%m%d')}/" \
+                f"v3.9.1_wrfout_d02_{current_wrf_cycle.strftime('%Y-%m-%d_%H')}_island_" \
+                f"f{str(current_wrf_hour).zfill(2)}{ input_forcings.file_ext}"
+    tmp_file2 = tmp_file1
+
+    err_handler.check_program_status(config_options, mpi_config)
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Current WRF input file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next WRF input file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+        # if config_options.current_output_step == 1:
+        #     supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        #     supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        # else:
+        #     # The forecast window has shifted. Reset fields 2 to
+        #     # be fields 1.
+        #     supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        #     supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        input_forcings.file_in1 = tmp_file1
+        input_forcings.file_in2 = tmp_file2
+        input_forcings.regridComplete = False
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input WRF file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input WRF file: " + input_forcings.file_in2 + \
+                                          " not found. " + "Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(input_forcings.file_in2):
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :] = config_options.globalNdv
+
+    # supplemental_precip.file_in2 = supplemental_precip.file_in1
