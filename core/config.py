@@ -438,9 +438,9 @@ class ConfigOptions:
                                            'file greater than zero.')
             # Currently, we only support daily or sub-daily forecasts. Any other iterations should
             # be done using custom config files for each forecast cycle.
-            if self.fcst_freq > 1440:
-                err_handler.err_out_screen('Only forecast cycles of daily or sub-daily are supported '
-                                           'at this time')
+            #if self.fcst_freq > 1440:
+            #    err_handler.err_out_screen('Only forecast cycles of daily or sub-daily are supported '
+            #                               'at this time')
 
             # Read in the ForecastShift option. This is ONLY done for the realtime instance as
             # it's used to calculate the beginning of the processing window.
