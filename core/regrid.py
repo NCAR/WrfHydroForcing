@@ -2081,7 +2081,8 @@ def regrid_hourly_wrf_iceland(input_forcings, config_options, wrf_hydro_geo_meta
         err_handler.log_msg(config_options, mpi_config)
         return
 
-    id_tmp = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
+    id_tmp, lat_var, lon_var = ioMod.open_netcdf_forcing(input_forcings.file_in2, config_options, mpi_config)
+    press_hpa = temp_c = None
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Processing WRF-Iceland Variable: " + nc_var
@@ -2095,7 +2096,7 @@ def regrid_hourly_wrf_iceland(input_forcings, config_options, wrf_hydro_geo_meta
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Calculating WRF-Iceland regridding weights...."
                 err_handler.log_msg(config_options, mpi_config)
-            calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config)
+            calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
             # Read in the RAP height field, which is used for downscaling purposes.
@@ -2111,7 +2112,7 @@ def regrid_hourly_wrf_iceland(input_forcings, config_options, wrf_hydro_geo_meta
 
             # Regrid the height variable.
             if mpi_config.rank == 0:
-                var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                var_tmp = id_tmp.variables['surface_height'][0, :, :]
             else:
                 var_tmp = None
             err_handler.check_program_status(config_options, mpi_config)
@@ -2174,6 +2175,41 @@ def regrid_hourly_wrf_iceland(input_forcings, config_options, wrf_hydro_geo_meta
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
+
+        if nc_var == 'air_temperature_at_2m_agl':
+            # save temperature, then convert from Celsius to Kelvin
+            temp_c = var_sub_tmp.copy()
+            var_sub_tmp += 273.15
+
+        if nc_var == 'air_pressure_at_surface':
+            # save pressure, then convert from hPa to Pa
+            press_hpa = var_sub_tmp.copy()
+            var_sub_tmp *= 100
+
+        def spc_from_rh(temp_c, press_hpa, rh):
+            mass_h2o = 18.01534
+            mass_air = 28.9644
+
+            def h2o_psat(t):
+                pwat = 6.107799961 + t * (4.436518521e-1 + t * (1.428945805e-2 + t * (
+                            2.650648471e-4 + t * (3.031240396e-6 + t * (2.034080948e-8 + t * 6.136820929e-11)))))
+                pice = 6.109177956 + t * (5.034698970e-1 + t * (1.886013408e-2 + t * (
+                            4.176223716e-4 + t * (5.824720280e-6 + t * (4.838803174e-8 + t * 1.838826904e-10)))))
+                return np.minimum(pwat, pice)
+
+            psat = h2o_psat(temp_c)
+            ph2o = psat * rh / 100
+
+            vmr = ph2o / press_hpa
+            return vmr * mass_h2o / (vmr * mass_h2o + (1.0 - vmr) * mass_air)
+
+        if nc_var == 'relative_humidity_at_2m_agl':
+            # convert relative humidity to specific humidity
+            # requires that temp_c and press_hpa have already been cached
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Converting relative humidity (%) to specific humidity (kg/kg)"
+                err_handler.log_msg(config_options, mpi_config)
+            var_sub_tmp = spc_from_rh(temp_c, press_hpa, var_sub_tmp)
 
         try:
             input_forcings.esmf_field_in.data[:, :] = var_sub_tmp

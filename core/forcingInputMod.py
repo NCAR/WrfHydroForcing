@@ -336,8 +336,8 @@ class input_forcings:
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface'],
-            20: ['air_temperature_at_2m_agl', 'relative_humidity_at_2m_agl', 'U_true_at_10m_agl', 'V_true_at_10m_agl',
-                 'lwe_precipitation_rate', 'downward_shortwave_flux', 'downward_longwave_flux', 'air_pressure_at_surface']
+            20: ['air_temperature_at_2m_agl', 'air_pressure_at_surface', 'U_true_at_10m_agl', 'V_true_at_10m_agl',
+                 'lwe_precipitation_rate', 'downward_shortwave_flux', 'downward_longwave_flux', 'relative_humidity_at_2m_agl']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -387,7 +387,7 @@ class input_forcings:
             17: [7, 2],
             18: [4, 5, 0, 1, 3, 6],
             19: [4,5,0,1,3,7,2,6],
-            20: [4,5,0,1,3,7,2,6]
+            20: [4,6,0,1,3,7,2,5]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 

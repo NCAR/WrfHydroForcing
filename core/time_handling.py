@@ -1887,13 +1887,13 @@ def find_hourly_wrf_iceland_neighbors(input_forcings, config_options, d_current,
 
     # First find the current wrf forecast cycle that we are using.
     if config_options.ana_flag:
-        ana_cycle = config_options.first_fcst_cycle + datetime.timedelta(hours=2)
-        wrf_shift = ((ana_cycle.hour // 6) * 6) - 6
+        cycle = config_options.first_fcst_cycle + datetime.timedelta(hours=2)
+    else:   # short_range
+        cycle = config_options.current_fcst_cycle
 
-        current_wrf_cycle = ana_cycle - datetime.timedelta(hours=ana_cycle.hour - wrf_shift)
-        current_wrf_hour = (config_options.current_fcst_cycle - datetime.timedelta(hours=wrf_shift)).hour
-    else:
-        current_wrf_hour = config_options.current_fcst_cycle
+    wrf_shift = ((cycle.hour // 6) * 6) - 6
+    current_wrf_cycle = cycle - datetime.timedelta(hours=cycle.hour - wrf_shift)
+    current_wrf_hour = (config_options.current_fcst_cycle - datetime.timedelta(hours=wrf_shift)).hour
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing WRF-Iceland from forecast cycle: " + \
