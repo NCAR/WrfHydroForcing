@@ -2236,7 +2236,7 @@ def regrid_hourly_wrf_iceland(input_forcings, config_options, wrf_hydro_geo_meta
         err_handler.check_program_status(config_options, mpi_config)
 
         # Convert the hourly precipitation total to a rate of mm/s
-        if nc_var == 'APCP':
+        if nc_var == 'lwe_precipitation_rate':
             try:
                 ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
                 input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 3600.0
