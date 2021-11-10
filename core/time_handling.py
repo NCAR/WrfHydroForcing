@@ -1896,7 +1896,7 @@ def find_hourly_wrf_iceland_neighbors(input_forcings, config_options, d_current,
     else:   # short_range
         cycle = config_options.first_fcst_cycle
         current_wrf_hour = (cycle.hour % 6) + config_options.current_output_step
-        wrf_shift = ((cycle.hour // 6) * 6) - 6
+        wrf_shift = ((cycle.hour // 6) * 6)
         current_wrf_cycle = cycle - datetime.timedelta(hours=cycle.hour - wrf_shift)
 
     if mpi_config.rank == 0:
