@@ -1070,7 +1070,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
                   " -netcdf " + input_forcings.tmpFile
             id_tmp, lat_var, lon_var = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
-                                      config_options, mpi_config, inputVar=None)
+                                                        config_options, mpi_config, inputVar=None)
             err_handler.check_program_status(config_options, mpi_config)
         else:
             create_link("GFS", input_forcings.file_in2, input_forcings.tmpFile, config_options, mpi_config)

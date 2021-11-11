@@ -466,7 +466,7 @@ class OutputObj:
         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
 
-def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
+def open_grib2(grib_file_in, nc_file_out, Wgrib2Cmd, config_options, mpi_config,
                inputVar):
     """
     Generic function to convert a GRIB2 file into a NetCDF file. Function
@@ -481,14 +481,15 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     # MpiConfig.comm.barrier()
 
     # Run wgrib2 command to convert GRIB2 file to NetCDF.
-    if MpiConfig.rank == 0:
+    lat_var = lon_var = None
+    if mpi_config.rank == 0:
         # Check to see if output file already exists. If so, delete it and
         # override.
-        ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
-        err_handler.log_msg(ConfigOptions, MpiConfig)
-        if os.path.isfile(NetCdfFileOut):
-            ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-            err_handler.log_warning(ConfigOptions, MpiConfig)
+        config_options.statusMsg = "Reading in GRIB2 file: " + grib_file_in
+        err_handler.log_msg(config_options, mpi_config)
+        if os.path.isfile(nc_file_out):
+            config_options.statusMsg = "Overriding temporary NetCDF file: " + nc_file_out
+            err_handler.log_warning(config_options, mpi_config)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
             if not os.environ.get('MFE_SILENT'):
@@ -496,7 +497,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
 
             # set up GRIB2TABLE if needed:
             if not os.environ.get('GRIB2TABLE'):
-                g2path = os.path.join(ConfigOptions.scratch_dir, "grib2.tbl")
+                g2path = os.path.join(config_options.scratch_dir, "grib2.tbl")
                 with open(g2path, 'wt') as g2t:
                     g2t.write(
                             "209:1:0:0:161:1:6:30:MultiSensorQPE01H:"
@@ -515,9 +516,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             #out, err = cmdOutput.communicate()
             #exitcode = cmdOutput.returncode
         except:
-            ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
-                                   NetCdfFileOut
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            config_options.errMsg = "Unable to convert: " + grib_file_in + " to " + nc_file_out
+            err_handler.log_critical(config_options, mpi_config)
             idTmp = None
             pass
 
@@ -527,57 +527,69 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         exitcode = None
 
         # Ensure file exists.
-        if not os.path.isfile(NetCdfFileOut):
-            ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
+        if not os.path.isfile(nc_file_out):
+            config_options.errMsg = "Expected NetCDF file: " + nc_file_out + \
                                    " not found. It's possible the GRIB2 variable was not found."
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            err_handler.log_critical(config_options, mpi_config)
             idTmp = None
             pass
 
         # Open the NetCDF file.
         try:
-            idTmp = Dataset(NetCdfFileOut,'r')
+            idTmp = Dataset(nc_file_out,'r')
         except:
-            ConfigOptions.errMsg = "Unable to open input NetCDF file: " + \
-                                   NetCdfFileOut
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            config_options.errMsg = "Unable to open input NetCDF file: " + nc_file_out
+            err_handler.log_critical(config_options, mpi_config)
             idTmp = None
             pass
 
         if idTmp is not None:
+            # find the lat/lon, which may be in a metadata file
+            grid_src = config_options.grid_meta
+            if grid_src is None:
+                grid_id = idTmp
+            else:
+                grid_id = Dataset(grid_src, 'r')
+
             # Check for expected lat/lon variables.
-            if 'latitude' not in idTmp.variables.keys():
-                ConfigOptions.statusMsg = "Unable to locate latitude from: " + \
-                                       GribFileIn
-                err_handler.log_warning(ConfigOptions, MpiConfig)
-                # idTmp = None
-                pass
-        if idTmp is not None:
-            if 'longitude' not in idTmp.variables.keys():
-                ConfigOptions.statusMsg = "Unable to locate longitude from: " + \
-                                       GribFileIn
-                err_handler.log_warning(ConfigOptions, MpiConfig)
-                # idTmp = None
-                pass
+            # TODO: make the lat/lon name choices configurable
+
+            lat_key = {"latitude", "XLAT", "Lat"} & set(grid_id.variables.keys())
+            if len(lat_key) == 1:
+                lat_var = grid_id.variables[lat_key.pop()]
+            else:
+                config_options.errMsg = "Unable to determine latitude from: " + \
+                                        (grid_src if grid_src is not None else nc_file)
+                err_handler.log_critical(config_options, mpi_config)
+
+            lon_key = {"longitude", "XLONG", "Lon"} & set(grid_id.variables.keys())
+            if len(lon_key) == 1:
+                lon_var = grid_id.variables[lon_key.pop()]
+            else:
+                config_options.errMsg = "Unable to locate longitude from: " + \
+                                        (grid_src if grid_src is not None else nc_file_out)
+                err_handler.log_critical(config_options, mpi_config)
 
         if idTmp is not None and inputVar is not None:
             # Loop through all the expected variables.
             if inputVar not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate expected variable: " + \
-                                       inputVar + " in: " + NetCdfFileOut
-                err_handler.log_critical(ConfigOptions, MpiConfig)
+                config_options.errMsg = "Unable to locate expected variable: " + \
+                                       inputVar + " in: " + nc_file_out
+                err_handler.log_critical(config_options, mpi_config)
                 idTmp = None
                 pass
     else:
         idTmp = None
+        lat_var = None
+        lon_var = None
 
     # Ensure all processors are synced up before outputting.
     # MpiConfig.comm.barrier()  ## THIS HAPPENS IN check_program_status
 
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # Return the NetCDF file handle back to the user.
-    return idTmp
+    return idTmp, lat_var, lon_var
 
 
 def open_netcdf_forcing(nc_file, config_options, MpiConfig, open_on_all_procs=False,):
