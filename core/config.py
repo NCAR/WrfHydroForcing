@@ -820,7 +820,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 4:
+            if optTmp < 0 or optTmp > 5:
                 err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                            'configuration file.')
 

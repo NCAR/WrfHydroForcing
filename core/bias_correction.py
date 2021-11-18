@@ -12,6 +12,8 @@ import time
 import numpy as np
 from netCDF4 import Dataset
 
+from .forcingInputMod import input_forcings as InputForcings
+from .config import ConfigOptions
 from core import err_handler
 
 PARAM_NX = 384
@@ -42,9 +44,14 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
         1: cfsv2_nldas_nwm_bias_correct,
         2: ncar_tbl_correction,
         3: ncar_temp_gfs_bias_correct,
-        4: ncar_temp_hrrr_bias_correct
+        4: ncar_temp_hrrr_bias_correct,
+        5: gridded_temp_bias_correct
     }
-    bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
+    if input_forcings.t2dBiasCorrectOpt != 5:
+        bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
+    else:
+        bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, geo_meta_wrf_hydro,
+                                                                   mpi_config, 0)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to humidity bias correction.
@@ -1478,3 +1485,107 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         config_options.errMsg = "Unable to extract ESMF field data for CFSv2: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
+
+
+def gridded_temp_bias_correct(input_forcings: InputForcings, config_options: ConfigOptions,
+                              geo_meta, mpi_config, force_num):
+    """
+    Function that applies an apriori temperature adjustment to modeled 2-meter temperature by
+    adding a grid of values from an external file. It's assumed this correction grid has
+    already been regridded to the final output WRF-Hydro grid.
+
+    :param input_forcings:
+    :param config_options:
+    :param geo_meta:
+    :param mpi_config:
+    :param force_num:
+    :return:
+    """
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Applying external grid for temperaturen bias correction"
+        err_handler.log_msg(config_options, mpi_config)
+
+    if input_forcings.temperature_corr_grid is None:
+        # We have not read in our temperature corection file. Read it in, do extensive checks,
+        # scatter the correction grid out to individual processors, then apply the
+        # correction  to the 2-meter temperature grid.
+        temp_corr = None
+        if mpi_config.rank == 0:
+            # Compose the path to the lapse rate grid file.
+            bias_path = os.path.join(input_forcings.paramDir, "temperature_bias_corr.nc")
+            if not os.path.isfile(bias_path):
+                config_options.errMsg = "Expected temperature bias parameter file: " + \
+                                        bias_path + " does not exist."
+                err_handler.log_critical(config_options, mpi_config)
+                return
+            
+            # Open the lapse rate file. Check for the expected variable, along with
+            # the dimension size to make sure everything matches up.
+            temp_bias_ds = None
+            try:
+                temp_bias_ds = Dataset(bias_path,'r')
+            except:
+                config_options.errMsg = "Unable to open parameter file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+            if not 'temperature_corr' in temp_bias_ds.variables.keys():
+                config_options.errMsg = "Expected 'temperature_corr' variable not located in parameter " \
+                                       "file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+            try:
+                temp_corr = temp_bias_ds.variables['temperature_corr'][:, :]
+            except:
+                config_options.errMsg = "Unable to extracte 'temperature_corr' variable from parameter: " \
+                                        "file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+
+            # Check dimensions to ensure they match up to the output grid.
+            if temp_corr.shape[1] != geo_meta.nx_global:
+                config_options.errMsg = "X-Dimension size mismatch between output grid and temperature bias " \
+                                        "correction grid from parameter file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+            if temp_corr.shape[0] != geo_meta.ny_global:
+                config_options.errMsg = "Y-Dimension size mismatch between output grid and temperature bias " \
+                                        "correction grid from parameter file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+
+            # Close the temperature bias correction file.
+            try:
+                temp_bias_ds.close()
+            except:
+                config_options.errMsg = "Unable to close parameter file: " + bias_path
+                err_handler.log_critical(config_options, mpi_config)
+
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Scatter the lapse rate grid to the other processors.
+        input_forcings.temperature_corr_grid = mpi_config.scatter_array(geo_meta, temp_corr, config_options)
+        err_handler.check_program_status(config_options, mpi_config)
+
+    # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
+    temperature_grid_tmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+    try:
+        indNdv = np.where(input_forcings.final_forcings == config_options.globalNdv)
+    except:
+        config_options.errMsg = "Unable to perform NDV search on input " + \
+                                input_forcings.productName + " regridded forcings."
+        err_handler.log_critical(config_options, mpi_config)
+        return
+    try:
+        indValid = np.where(temperature_grid_tmp != config_options.globalNdv)
+    except:
+        config_options.errMsg = "Unable to perform search for valid values on input " + \
+                                input_forcings.productName + " regridded temperature forcings."
+        err_handler.log_critical(config_options, mpi_config)
+        return
+    try:
+        config_options.statusMsg = "Applying gridded temperature bias correction"
+        err_handler.log_msg(config_options, mpi_config)
+        temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + input_forcings.temperature_corr_grid[indValid]
+    except:
+        config_options.errMsg = "Unable to apply temperature bias correction values to input " + \
+                                input_forcings.productName + " regridded temperature forcings."
+        err_handler.log_critical(config_options, mpi_config)
+        return
+
+    input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = temperature_grid_tmp
+    input_forcings.final_forcings[indNdv] = config_options.globalNdv

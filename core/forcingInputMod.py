@@ -49,6 +49,7 @@ class input_forcings:
         self.timeInterpOpt = None
         self.t2dDownscaleOpt = None
         self.lapseGrid = None
+        self.temperature_corr_grid = None
         self.rqiClimoGrid = None
         self.swDowscaleOpt = None
         self.precipDownscaleOpt = None
