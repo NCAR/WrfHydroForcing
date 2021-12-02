@@ -1159,6 +1159,26 @@ class ConfigOptions:
                     err_handler.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration file. '
                                                'Please choose a value of 0-2 for each corresponding input forcing')
 
+            # Read in max time option
+            try:
+                self.supp_pcp_max_hours = json.loads(config['SuppForcing']['SuppPcpMaxHours'])
+            except (KeyError, configparser.NoOptionError):
+                self.supp_pcp_max_hours = None      # if missing, don't care, just assume all time
+
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper SuppPcpMaxHours options specified in the '
+                                           'configuration file.')
+
+            if type(self.supp_pcp_max_hours) is list:
+                if len(self.supp_pcp_max_hours) != self.number_supp_pcp:
+                    err_handler.err_out_screen('Number of SuppPcpMaxHours ({}) must match the number '
+                                               'of SuppPcp inputs ({}) in the configuration file, or '
+                                               'supply a single threshold for all inputs'.format(
+                            len(self.supp_pcp_max_hours), self.number_supp_pcp))
+            elif type(self.supp_pcp_max_hours) is float:
+                # Support 'classic' mode of single threshold
+                self.supp_pcp_max_hours = [self.supp_pcp_max_hours] * self.number_supp_pcp
+
             # Read in the SuppPcpInputOffsets options.
             try:
                 self.supp_input_offsets = json.loads(config['SuppForcing']['SuppPcpInputOffsets'])
@@ -1231,3 +1251,11 @@ class ConfigOptions:
                                        f'This number ({len(self.customFcstFreq)}) must '
                                        f'match the frequency of custom input forcings selected '
                                        f'({self.number_custom_inputs}).')
+
+    @property
+    def use_data_at_current_time(self):
+        if self.supp_pcp_max_hours is not None:
+            hrs_since_start = self.current_output_date - self.current_fcst_cycle
+            return hrs_since_start <= datetime.timedelta(hours = self.supp_pcp_max_hours)
+        else:
+            return True 
