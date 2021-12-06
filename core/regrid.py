@@ -88,6 +88,7 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
     from netCDF4 import Dataset
     with Dataset(input_forcings.file_in2,'r') as ds:
         ds.set_auto_scale(True)
+        ds.set_auto_mask(False)
         for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
             var_tmp = None
             if mpi_config.rank == 0:
