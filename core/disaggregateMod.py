@@ -10,6 +10,7 @@ from netCDF4 import Dataset
 
 from core import err_handler
 
+test_enabled = True
 
 def disaggregate_factory(ConfigOptions):
     if len(ConfigOptions.supp_precip_forcings) == 1 and ConfigOptions.supp_precip_forcings[0] == 11:
@@ -20,210 +21,144 @@ def disaggregate_factory(ConfigOptions):
         return no_op_disaggregate
 
 
-def no_op_disaggregate(input_forcings, supplemental_precip, ConfigOptions, MpiConfig):
+def no_op_disaggregate(input_forcings, supplemental_precip, config_options, mpi_config):
     pass
 
 
-def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, MpiConfig):
+def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mpi_config):
     """
     Function for disaggregating 6hr SuppPcp data to 1hr Input data
     :param input_forcings:
     :param supplemental_precip:
-    :param ConfigOptions:
-    :param MpiConfig:
+    :param config_options:
+    :param mpi_config:
     :return:
     """
     # Check to make sure we have valid grids.
     if input_forcings.regridded_forcings2 is None or supplemental_precip.regridded_precip2 is None:
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = "Bypassing ext_ana_disaggregation routine due to missing input or supp pcp data"
-            err_handler.log_warning(ConfigOptions, MpiConfig)
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Bypassing ext_ana_disaggregation routine due to missing input or supp pcp data"
+            err_handler.log_warning(config_options, mpi_config)
         return
             
     if supplemental_precip.ext_ana != "STAGE4":
-        if MpiConfig.rank == 0:
-            ConfigOptions.statusMsg = f"Bypassing ext_ana_disaggregation routine due to supplemental_precip.ext_ana = {supplemental_precip.ext_ana}"
-            err_handler.log_msg(ConfigOptions, MpiConfig)
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"Bypassing ext_ana_disaggregation routine due to supplemental_precip.ext_ana = {supplemental_precip.ext_ana}"
+            err_handler.log_warning(config_options, mpi_config)
         return
     
     
-    #Print Inputs
+    #print("ext_ana_disaggregate RAINRATE input_forcings.regridded_forcings2[3,:,:]")
     #print(input_forcings.regridded_forcings2[3,:,:])
-    #print()
+    #print("ext_ana_disaggregate supplemental_precip.regridded_precip2[:,:]")
     #print(supplemental_precip.regridded_precip2[:,:])
- 
-    target_hh = Path(input_forcings.file_in2).stem[-4:-2]
-    _,_,_,beg_hh,end_hh,yyyymmdd = Path(supplemental_precip.file_in2).stem.split('_')
-    ana_data = []
+    #print("supplemental_precip.regridded_precip2[:,:].shape")
+    #print(supplemental_precip.regridded_precip2[:,:].shape)
+
     read_hours = 0
     found_target_hh = False
-    date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
-    end_date = date_iter + timedelta(hours=6)
-    #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included
-    #(begin_date,end_date]
-    date_iter += timedelta(hours=1)
-    while date_iter <= end_date:
-        tmp_file = f"{input_forcings.inDir}/{date_iter.strftime('%Y%m%d%H')}/{date_iter.strftime('%Y%m%d%H')}00.LDASIN_DOMAIN1"
-        if MpiConfig.rank == 0:
+    ana_data = []
+    if mpi_config.rank == 0:
+        target_hh = Path(input_forcings.file_in2).stem[-4:-2]
+        _,_,_,beg_hh,end_hh,yyyymmdd = Path(supplemental_precip.file_in2).stem.split('_')
+        date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
+        end_date = date_iter + timedelta(hours=6)
+        #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included
+        #(begin_date,end_date]
+        date_iter += timedelta(hours=1)
+        while date_iter <= end_date:
+            tmp_file = f"{input_forcings.inDir}/{date_iter.strftime('%Y%m%d%H')}/{date_iter.strftime('%Y%m%d%H')}00.LDASIN_DOMAIN1"
             if os.path.exists(tmp_file):
-                ConfigOptions.statusMsg = f"Reading {input_forcings.netcdf_var_names[3]} from {tmp_file} for disaggregation"
-                err_handler.log_msg(ConfigOptions, MpiConfig)
+                config_options.statusMsg = f"Reading {input_forcings.netcdf_var_names[3]} from {tmp_file} for disaggregation"
+                err_handler.log_msg(config_options, mpi_config)
                 with Dataset(tmp_file,'r') as ds:
                     try:
                         #Read in rainrate
                         data = ds.variables[input_forcings.netcdf_var_names[3]][0, :, :]
-                        data[data == ConfigOptions.globalNdv] = np.nan
+                        data[data == config_options.globalNdv] = np.nan
                         ana_data.append(data)
                         read_hours += 1
                         if date_iter.hour == int(target_hh):
                             found_target_hh = True
                     except (ValueError, KeyError, AttributeError) as err:
-                        ConfigOptions.errMsg = f"Unable to extract: RAINRATE from: {input_forcings.file_in2} ({str(err)})"
+                        config_options.errMsg = f"Unable to extract: RAINRATE from: {input_forcings.file_in2} ({str(err)})"
                         err_handler.log_critical(config_options, mpi_config)
             else:
-                ConfigOptions.statusMsg = f"Input file missing {tmp_file}"
-                err_handler.log_warning(ConfigOptions, MpiConfig)
-        err_handler.check_program_status(ConfigOptions, MpiConfig)
-        
-        date_iter += timedelta(hours=1)
+                config_options.statusMsg = f"Input file missing {tmp_file}"
+                err_handler.log_warning(config_options, mpi_config)
 
-    if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = f"Performing hourly disaggregation of {supplemental_precip.file_in2}"
-        err_handler.log_msg(ConfigOptions, MpiConfig)
-        if not found_target_hh:
-            ConfigOptions.statusMsg = f"Could not find AnA target_hh = {target_hh} for disaggregation. Setting output values to {ConfigOptions.globalNdv}."
-            err_handler.log_warning(ConfigOptions, MpiConfig)
-            supplemental_precip.regridded_precip2[:,:] = ConfigOptions.globalNdv
-            return
-        if read_hours != 6:
-            ConfigOptions.statusMsg = f"Could not find all 6 AnA files for disaggregation. Only found {read_hours}. Setting output values to {ConfigOptions.globalNdv}."
-            err_handler.log_warning(ConfigOptions, MpiConfig)
-            supplemental_precip.regridded_precip2[:,:] = ConfigOptions.globalNdv
-            return
+            date_iter += timedelta(hours=1)
 
-    ana_sum = sum(ana_data)
-    target_data = ana_data[(int(target_hh)-1)%6]
+    found_target_hh = mpi_config.broadcast_parameter(found_target_hh, config_options, param_type=bool)
+    err_handler.check_program_status(config_options, mpi_config)
+    if not found_target_hh:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"Could not find AnA target_hh = {target_hh} for disaggregation. Setting output values to {config_options.globalNdv}."
+            err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.regridded_precip2[:,:] = config_options.globalNdv
+        return
 
-    #TODO: disable test code
-    #Begin test code
-    test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
-    np.savetxt(test_file,supplemental_precip.regridded_precip2)
-    #End test code
+    read_hours = mpi_config.broadcast_parameter(read_hours, config_options, param_type=int)
+    err_handler.check_program_status(config_options, mpi_config)
+    if read_hours != 6:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"Could not find all 6 AnA files for disaggregation. Only found {read_hours} hours. Setting output values to {config_options.globalNdv}."
+            err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.regridded_precip2[:,:] = config_options.globalNdv
+        return
+
+    ana_sum = np.array([],dtype=np.float32)
+    target_data = np.array([],dtype=np.float32)
+    ana_all_zeros = np.array([],dtype=np.bool)
+    ana_no_zeros = np.array([],dtype=np.bool)
+    target_data_no_zeros = np.array([],dtype=np.bool)
+    if mpi_config.rank == 0:
+        config_options.statusMsg = f"Performing hourly disaggregation of {supplemental_precip.file_in2}"
+        err_handler.log_msg(config_options, mpi_config)
+
+        ana_sum = sum(ana_data)
+        target_data = ana_data[(int(target_hh)-1)%6]
+
+        ana_zeros = [(a == 0).astype(int) for a in ana_data]
+        target_data_zeros = (target_data == 0)
+        target_data_no_zeros = ~target_data_zeros
+        ana_zeros_sum = sum(ana_zeros)
+        ana_all_zeros = (ana_zeros_sum == 6)
+        ana_no_zeros = (ana_zeros_sum == 0)
+
+    err_handler.check_program_status(config_options, mpi_config)
+    ana_sum = mpi_config.scatter_array(input_forcings, ana_sum, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+    target_data = mpi_config.scatter_array(input_forcings, target_data, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    ana_all_zeros = mpi_config.scatter_array(input_forcings, ana_all_zeros, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+    ana_no_zeros = mpi_config.scatter_array(input_forcings, ana_no_zeros, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+    target_data_no_zeros = mpi_config.scatter_array(input_forcings, target_data_no_zeros, config_options)
+    err_handler.check_program_status(config_options, mpi_config)
+    
+
+    if mpi_config.comm.Get_size() == 1 and test_enabled:
+        test_file = f"{config_options.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
+        np.savetxt(test_file,supplemental_precip.regridded_precip2)
+    
+        test_file = f"{config_options.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
+        np.savetxt(test_file,np.nan_to_num(np.select([ana_all_zeros,
+                                                      (ana_no_zeros | target_data_no_zeros)],
+                                                     [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),
+                                                      target_data/ana_sum],
+                                                     0),nan=config_options.globalNdv))
+
     #supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
-    ana_zeros = [(a == 0).astype(int) for a in ana_data]
-    target_data_zeros = (target_data == 0)
-    target_data_no_zeros = ~target_data_zeros
-    ana_zeros_sum = sum(ana_zeros)
-    ana_all_zeros = (ana_zeros_sum == 6)
-    ana_no_zeros = (ana_zeros_sum == 0)
-    #TODO: disable test code
-    #Begin test code
-    test_file = f"{ConfigOptions.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
-    np.savetxt(test_file,np.nan_to_num(np.select([ana_all_zeros,
-                                                  (ana_no_zeros | target_data_no_zeros)],
-                                                 [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),
-                                                  target_data/ana_sum],
-                                                 0),nan=ConfigOptions.globalNdv))
-    #End test code
     supplemental_precip.regridded_precip2[:,:] = np.select([ana_all_zeros,
                                                             (ana_no_zeros | target_data_no_zeros)],
                                                            [1/6.0*supplemental_precip.regridded_precip2[:,:],
                                                             supplemental_precip.regridded_precip2[:,:] * target_data/ana_sum],
                                                            0)
-    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=ConfigOptions.globalNdv) 
-     #TODO: disable test code
-    #Begin test code
-    test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6_disaggregation_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
-    np.savetxt(test_file,supplemental_precip.regridded_precip2)
-    #End test code
-    
+    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv) 
 
-# def ext_ana_disaggregate(input_forcings, supplemental_precip, ConfigOptions, MpiConfig):
-#     """
-#     Function for disaggregating 6hr SuppPcp data to 1hr Input data
-#     :param input_forcings:
-#     :param supplemental_precip:
-#     :param ConfigOptions:
-#     :param MpiConfig:
-#     :return:
-#     """
-#     # Check to make sure we have valid grids.
-#     if input_forcings.regridded_forcings2 is None or supplemental_precip.regridded_precip2 is None:
-#         if MpiConfig.rank == 0:
-#             ConfigOptions.statusMsg = "Bypassing ext_ana_disaggregation routine due to missing input or supp pcp data"
-#             err_handler.log_warning(ConfigOptions, MpiConfig)
-#         return
-            
-#     if supplemental_precip.ext_ana != "STAGE4":
-#         if MpiConfig.rank == 0:
-#             ConfigOptions.statusMsg = f"Bypassing ext_ana_disaggregation routine due to supplemental_precip.ext_ana = {supplemental_precip.ext_ana}"
-#             err_handler.log_msg(ConfigOptions, MpiConfig)
-#         return
-
-#     #print(input_forcings.regridded_forcings2[3,:,:])
-#     #print(supplemental_precip.regridded_precip2[:,:])
- 
-#     target_hh = Path(input_forcings.file_in2).stem[-4:-2]
-#     _,_,_,beg_hh,end_hh,yyyymmdd = Path(supplemental_precip.file_in2).stem.split('_')
-#     data_sum = None
-#     target_data = None
-#     date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
-#     end_date = date_iter + timedelta(hours=6)
-#     #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included
-#     #(begin_date,end_date]
-#     date_iter += timedelta(hours=1)
-#     while date_iter <= end_date:
-#         tmp_file = f"{input_forcings.inDir}/{date_iter.strftime('%Y%m%d%H')}/{date_iter.strftime('%Y%m%d%H')}00.LDASIN_DOMAIN1"
-#         if MpiConfig.rank == 0:
-#             if os.path.exists(tmp_file):
-#                 ConfigOptions.statusMsg = f"Reading {input_forcings.netcdf_var_names[3]} from {tmp_file} for disaggregation"
-#                 err_handler.log_msg(ConfigOptions, MpiConfig)
-#                 with Dataset(tmp_file,'r') as ds:
-#                     try:
-#                         #Read in rainrate
-#                         data = ds.variables[input_forcings.netcdf_var_names[3]][0, :, :]
-#                         if data_sum is not None:
-#                             data_sum += data
-#                         else:
-#                             data_sum = np.copy(data)
-#                         if date_iter.hour == int(target_hh):
-#                             target_data = np.copy(data)
-    
-#                         del data
-#                     except (ValueError, KeyError, AttributeError) as err:
-#                         ConfigOptions.errMsg = f"Unable to extract: {input_forcings.netcdf_var_names[force_count]} from: {input_forcings.file_in2} ({str(err)})"
-#                         err_handler.log_critical(config_options, mpi_config)
-#             else:
-#                 ConfigOptions.statusMsg = f"Input file missing {tmp_file}"
-#                 err_handler.log_warning(ConfigOptions, MpiConfig)
-#         err_handler.check_program_status(ConfigOptions, MpiConfig)
-        
-#         date_iter += timedelta(hours=1)
-
-#     if MpiConfig.rank == 0:
-#         ConfigOptions.statusMsg = f"Performing disaggregation of {supplemental_precip.file_in2} using the {target_hh} hour fraction of the sum of hourly ExtAnA files RAINRATE"
-#         err_handler.log_msg(ConfigOptions, MpiConfig)
-#         if target_data is None:
-#             target_data = np.empty(data_sum.shape)
-#             target_data[:] = np.nan
-#             ConfigOptions.statusMsg = f"Could not find ExtAnA target_hh = {target_hh} for disaggregation. Setting values to {ConfigOptions.globalNdv}."
-#             err_handler.log_warning(ConfigOptions, MpiConfig)
-
-#     #TODO: disable test code
-#     #Begin test code
-#     test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
-#     np.savetxt(test_file,supplemental_precip.regridded_precip2)
-#     #End test code
-#     #supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
-#     #TODO: disable test code
-#     #Begin test code
-#     test_file = f"{ConfigOptions.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
-#     np.savetxt(test_file,np.nan_to_num(target_data/data_sum,nan=ConfigOptions.globalNdv))
-#     #End test code
-#     supplemental_precip.regridded_precip2[:,:] *= target_data/data_sum
-#     np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=ConfigOptions.globalNdv) 
-#      #TODO: disable test code
-#     #Begin test code
-#     test_file = f"{ConfigOptions.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6_disaggregation_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
-#     np.savetxt(test_file,supplemental_precip.regridded_precip2)
-#     #End test code
+    if mpi_config.comm.Get_size() == 1 and test_enabled:
+        test_file = f"{config_options.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6_disaggregation_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
+        np.savetxt(test_file,supplemental_precip.regridded_precip2)

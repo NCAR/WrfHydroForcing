@@ -51,7 +51,7 @@ def create_link(name, input_file, tmpFile, config_options, mpi_config):
 
 def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
-    Function for handling regridding of Alaska ExtAna data.
+    Function for handling regridding of Alaska ExtAna data. Data was already regridded in the prior run of the AnA stage so just read data in.
     :param input_forcings:
     :param config_options:
     :param wrf_hydro_geo_meta:
@@ -77,42 +77,88 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         err_handler.log_msg(config_options, mpi_config)
         return
 
+    if mpi_config.rank == 0:
+        from netCDF4 import Dataset
+        try:
+            ds = Dataset(input_forcings.file_in2,'r')
+        except:
+            ConfigOptions.errMsg = f"Unable to open input NetCDF file: {input_forcings.file_in}"
+            err_handler.log_critical(ConfigOptions, MpiConfig)
+        
+        ds.set_auto_scale(True)
+        ds.set_auto_mask(False)
+
     if input_forcings.nx_global is None or input_forcings.ny_global is None:
         # This is the first timestep.
+        if mpi_config.rank == 0:
+            input_forcings.ny_global = ds.dimensions['y'].size
+            input_forcings.nx_global = ds.dimensions['x'].size
+
+        input_forcings.ny_global = mpi_config.broadcast_parameter(input_forcings.ny_global,
+                                                              config_options, param_type=int)
+        err_handler.check_program_status(config_options, mpi_config)
+        input_forcings.nx_global = mpi_config.broadcast_parameter(input_forcings.nx_global,
+                                                              config_options, param_type=int)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+        # noinspection PyTypeChecker
+            input_forcings.esmf_grid_in = ESMF.Grid(np.array([input_forcings.ny_global, input_forcings.nx_global]),
+                                                    staggerloc=ESMF.StaggerLoc.CENTER,
+                                                    coord_sys=ESMF.CoordSys.SPH_DEG)
+        except ESMF.ESMPyException as esmf_error:
+            config_options.errMsg = f"Unable to create source ESMF grid from netCDF file: {input_forcings.file_in} ({str(esmf_error)})"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.x_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][1]
+            input_forcings.x_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][1]
+            input_forcings.y_lower_bound = input_forcings.esmf_grid_in.lower_bounds[ESMF.StaggerLoc.CENTER][0]
+            input_forcings.y_upper_bound = input_forcings.esmf_grid_in.upper_bounds[ESMF.StaggerLoc.CENTER][0]
+            input_forcings.nx_local = input_forcings.x_upper_bound - input_forcings.x_lower_bound
+            input_forcings.ny_local = input_forcings.y_upper_bound - input_forcings.y_lower_bound
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = f"Unable to extract local X/Y boundaries from global grid from netCDF file: {input_forcings.file_in} ({str(err)})"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
         # Create out regridded numpy arrays to hold the regridded data.
         input_forcings.regridded_forcings1 = np.empty([8, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
         input_forcings.regridded_forcings2 = np.empty([8, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
-
-    from netCDF4 import Dataset
-    with Dataset(input_forcings.file_in2,'r') as ds:
-        ds.set_auto_scale(True)
-        ds.set_auto_mask(False)
-        for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
-            var_tmp = None
-            if mpi_config.rank == 0:
-                config_options.statusMsg = f"Processing input AK AnA variable: {nc_var} from {input_forcings.file_in2}"
-                err_handler.log_msg(config_options, mpi_config)
-                try:
-                    var_tmp = ds.variables[nc_var][0, :, :]
-                except (ValueError, KeyError, AttributeError) as err:
-                    config_options.errMsg = f"Unable to extract: {nc_var} from: {input_forcings.file_in2} ({str(err)})"
-                    err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
-
+        
+    for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
+        var_tmp = None
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"Processing input AK AnA variable: {nc_var} from {input_forcings.file_in2}"
+            err_handler.log_msg(config_options, mpi_config)
+            print(config_options.statusMsg,flush=True)
             try:
-                input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = var_tmp
+                var_tmp = ds.variables[nc_var][0, :, :]
+                var_tmp = np.float32(var_tmp)
             except (ValueError, KeyError, AttributeError) as err:
-                config_options.errMsg = "Unable to extract ExtAnA forcing data from the AK AnA field: " + str(err)
+                config_options.errMsg = f"Unable to extract: {nc_var} from: {input_forcings.file_in2} ({str(err)})"
                 err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+            
+        err_handler.check_program_status(config_options, mpi_config)
+        var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+        err_handler.check_program_status(config_options, mpi_config)
 
-            # If we are on the first timestep, set the previous regridded field to be
-            # the latest as there are no states for time 0.
-            if config_options.current_output_step == 1:
-                input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
-                    input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = var_sub_tmp
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to extract ExtAnA forcing data from the AK AnA field: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+        # If we are on the first timestep, set the previous regridded field to be
+        # the latest as there are no states for time 0.
+        if config_options.current_output_step == 1:
+            input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
+
+    if mpi_config.rank == 0:
+        ds.close()
 
 
 def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
