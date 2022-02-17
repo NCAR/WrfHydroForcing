@@ -2009,20 +2009,20 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure we have the necessary new file
-    if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+        if mpi_config.rank == 0:
             config_options.statusMsg = "Stage IV file {} not found, will attempt to use {} instead.".format(
-                    supplemental_precip.file_in2, supplemental_precip.file_in1)
+                supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
-            supplemental_precip.file_in2 = supplemental_precip.file_in1
-        if not os.path.isfile(supplemental_precip.file_in2):
-            if supplemental_precip.enforce == 1:
-                config_options.errMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + " not found."
-                err_handler.log_critical(config_options, mpi_config)
-            else:
-                config_options.statusMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + \
-                                           " not found. " + "Will not use in final layering."
-                err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.file_in2 = supplemental_precip.file_in1
+    if mpi_config.rank == 0 and not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.enforce == 1:
+            config_options.errMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + " not found."
+            err_handler.log_critical(config_options, mpi_config)
+        else:
+            config_options.statusMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + \
+                                       " not found. " + "Will not use in final layering."
+            err_handler.log_warning(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
@@ -2116,25 +2116,26 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure we have the necessary new file
-    if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+        if mpi_config.rank == 0:
             config_options.statusMsg = "MRMS file {} not found, will attempt to use {} instead.".format(
-                    supplemental_precip.file_in2, supplemental_precip.file_in1)
+                supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
-            supplemental_precip.file_in2 = supplemental_precip.file_in1
-        if not os.path.isfile(supplemental_precip.file_in2):
-            if supplemental_precip.enforce == 1:
-                config_options.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
-                err_handler.log_critical(config_options, mpi_config)
-            else:
-                config_options.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
-                                           " not found. " + "Will not use in final layering."
-                err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.file_in2 = supplemental_precip.file_in1
+    if mpi_config.rank == 0 and not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.enforce == 1:
+            config_options.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
+            err_handler.log_critical(config_options, mpi_config)
+        else:
+            config_options.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
+                                       " not found. " + "Will not use in final layering."
+            err_handler.log_warning(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     if not os.path.isfile(supplemental_precip.file_in2):
-        config_options.statusMsg = "Attempting to use Stage IV in place of MRMS"
-        err_handler.log_warning(config_options, mpi_config)
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"{supplemental_precip.file_in2} not found. Attempting to use Stage IV in place of MRMS"
+            err_handler.log_warning(config_options, mpi_config)
         _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
     else:
         supplemental_precip.ext_ana = "MRMS"
