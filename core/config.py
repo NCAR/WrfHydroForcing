@@ -124,8 +124,8 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 18:
-                err_handler.err_out_screen('Please specify InputForcings values between 1 and 18.')
+            if forceOpt < 0 or forceOpt > 20:
+                err_handler.err_out_screen('Please specify InputForcings values between 1 and 20.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -744,7 +744,10 @@ class ConfigOptions:
                 err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
-            if len(tmp_scale_param_dirs) < param_flag.sum():
+            if len(tmp_scale_param_dirs) == 1:
+                # single directory for all params
+                tmp_scale_param_dirs *= param_flag.sum()
+            elif len(tmp_scale_param_dirs) != param_flag.sum():
                 err_handler.err_out_screen('Please specify a downscaling parameter directory for each '
                                            'corresponding downscaling option that requires one.')
             # Loop through each downscaling parameter directory and make sure they exist.
@@ -1009,10 +1012,10 @@ class ConfigOptions:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
-                if suppOpt < 0 or suppOpt > 9:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 9.')
+                if suppOpt < 0 or suppOpt > 11:
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 11.')
                 # Read in RQI threshold to apply to radar products.
-                if suppOpt == 1 or suppOpt == 2:
+                if suppOpt in (1,2,7,10,11):
                     try:
                         self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
                     except KeyError:
@@ -1023,9 +1026,22 @@ class ConfigOptions:
                                                    'section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         err_handler.err_out_screen('Improper RqiMethod option in the configuration file.')
-                    # Make sure the RqiMethod makes sense.
-                    if self.rqiMethod < 0 or self.rqiMethod > 2:
-                        err_handler.err_out_screen('Please specify an RqiMethod of either 0, 1, or 2.')
+
+                    # Check that if we have more than one RqiMethod, it's the correct number
+                    if type(self.rqiMethod) is list:
+                        if len(self.rqiMethod) != self.number_supp_pcp:
+                            err_handler.err_out_screen('Number of RqiMethods ({}) must match the number '
+                                                       'of SuppPcp inputs ({}) in the configuration file, or '
+                                                       'supply a single method for all inputs'.format(
+                                                        len(self.rqiMethod), self.number_supp_pcp))
+                    elif type(self.rqiMethod) is int:
+                        # Support 'classic' mode of single method
+                        self.rqiMethod = [self.rqiMethod] * self.number_supp_pcp
+
+                    # Make sure the RqiMethod(s) makes sense.
+                    for method in self.rqiMethod:
+                        if method < 0 or method > 2:
+                            err_handler.err_out_screen('Please specify RqiMethods of either 0, 1, or 2.')
 
                     try:
                         self.rqiThresh = json.loads(config['SuppForcing']['RqiThreshold'])
@@ -1037,9 +1053,22 @@ class ConfigOptions:
                                                    'SuppForcing section in the configuration file.')
                     except json.decoder.JSONDecodeError:
                         err_handler.err_out_screen('Improper RqiThreshold option in the configuration file.')
+
+                    # Check that if we have more than one RqiThreshold, it's the correct number
+                    if type(self.rqiThresh) is list:
+                        if len(self.rqiThresh) != self.number_supp_pcp:
+                            err_handler.err_out_screen('Number of RqiThresholds ({}) must match the number '
+                                                       'of SuppPcp inputs ({}) in the configuration file, or '
+                                                       'supply a single threshold for all inputs'.format(
+                                                        len(self.rqiThresh), self.number_supp_pcp))
+                    elif type(self.rqiThresh) is float:
+                        # Support 'classic' mode of single threshold
+                        self.rqiThresh = [self.rqiThresh] * self.number_supp_pcp
+
                     # Make sure the RQI threshold makes sense.
-                    if self.rqiThresh < 0.0 or self.rqiThresh > 1.0:
-                        err_handler.err_out_screen('Please specify an RqiThreshold between 0.0 and 1.0.')
+                    for threshold in self.rqiThresh:
+                        if threshold < 0.0 or threshold > 1.0:
+                            err_handler.err_out_screen('Please specify RqiThresholds between 0.0 and 1.0.')
 
             # Read in the input directories for each supplemental precipitation product.
             try:
@@ -1050,15 +1079,23 @@ class ConfigOptions:
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                            'in the configuration file.')
-            if len(self.supp_precip_dirs) != self.number_supp_pcp:
-                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
-                                           'of SuppForcing in the configuration file.')
+        
             # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
             # or new line characters.
             for dirTmp in range(0, len(self.supp_precip_dirs)):
                 self.supp_precip_dirs[dirTmp] = self.supp_precip_dirs[dirTmp].strip()
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     err_handler.err_out_screen('Unable to locate supp pcp directory: ' + self.supp_precip_dirs[dirTmp])
+
+            #Special case for ExtAnA where we treat comma separated stage IV, MRMS data as one SuppPcp input 
+            if 11 in self.supp_precip_forcings:
+                if len(self.supp_precip_forcings) != 1:
+                    err_handler.err_out_screen('Alaska Stage IV/MRMS SuppPcp option is only supported as a standalone option')
+                self.supp_precip_dirs = [",".join(self.supp_precip_dirs)]
+
+            if len(self.supp_precip_dirs) != self.number_supp_pcp:
+                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
+                                           'of SuppForcing in the configuration file.')
 
             # Process supplemental precipitation enforcement options
             try:
@@ -1123,7 +1160,6 @@ class ConfigOptions:
                     err_handler.err_out_screen('Invalid SuppPcpTemporalInterpolation chosen in the configuration file. '
                                                'Please choose a value of 0-2 for each corresponding input forcing')
 
-            
             # Read in max time option
             try:
                 self.supp_pcp_max_hours = json.loads(config['SuppForcing']['SuppPcpMaxHours'])
@@ -1143,7 +1179,6 @@ class ConfigOptions:
             elif type(self.supp_pcp_max_hours) is float:
                 # Support 'classic' mode of single threshold
                 self.supp_pcp_max_hours = [self.supp_pcp_max_hours] * self.number_supp_pcp
-
 
             # Read in the SuppPcpInputOffsets options.
             try:
@@ -1217,7 +1252,7 @@ class ConfigOptions:
                                        f'This number ({len(self.customFcstFreq)}) must '
                                        f'match the frequency of custom input forcings selected '
                                        f'({self.number_custom_inputs}).')
-                                       
+
 
     @property
     def use_data_at_current_time(self):

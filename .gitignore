@@ -1,3 +1,6 @@
 /.idea/
 .DS_Store
-core/__pycache__/
+__pycache__
+*.err
+*.out
+*~
