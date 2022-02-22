@@ -3,6 +3,7 @@ Layering module for implementing various layering schemes in the WRF-Hydro forci
 Future functionality may include blenidng, etc.
 """
 import numpy as np
+from core import err_handler
 
 def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     """
@@ -55,6 +56,12 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
     indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.final_supp_precip
     layerOut = OutputObj.output_local[supplemental_precip.output_var_idx, :, :]
+
+    #TODO: review test layering for ExtAnA calculation to replace FE QPE with MPE RAINRATE
+    #If this isn't sufficient, replace QPE with MPE here:
+    #if supplemental_precip.keyValue == 11:
+    #    ConfigOptions.statusMsg = "Performing ExtAnA calculation"
+    #    err_handler.log_msg(ConfigOptions, MpiConfig)
 
     if len(indSet[0]) != 0:
         layerOut[indSet] = layerIn[indSet]

@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# script to run the runtime AK FE ExtAnA simulations
+# Usage: /opt/pbs/default/bin/qsub run_FE_AK_ExtAnA_nodes.pbs
+#        /opt/pbs/default/bin/qsub -v current_ymd=20210913 run_FE_AK_ExtAnA_nodes.pbs
+#
+#
+#PBS -N MFE_EXT_ANA_1node
+#PBS -A NRAL0017
+#PBS -l walltime=2:00:00
+#PBS -q regular
+#PBS -o ExtAnA1nodes.out
+#PBS -e ExtAnA1nodes.err
+#PBS -l select=1:ncpus=36:mpiprocs=36:mem=109GB
+
+module purge
+module load intel/18.0.5
+module load impi/2018.4.274
+module load netcdf/4.6.3
+
+rm -f *.err *.out
+
+source /glade/p/cisl/nwc/rcabell/mfe_venv/bin/activate
+
+export WGRIB2=/glade/u/home/zhangyx/software/grib2/wgrib2/wgrib2
+
+for hh in {00..23}
+do
+
+current_ymd=${current_ymd:=`date -u +%Y%m%d`}
+current_time="${current_ymd}${hh}"
+
+start_time=`perl /glade/p/cisl/nwc/fe_ak/ExtAnA/advance_cymdh.pl ${current_time} -24`
+start_ymdh=`echo ${start_time} | cut -c1-10`
+
+end_time=`perl /glade/p/cisl/nwc/fe_ak/AnA/advance_cymdh.pl ${start_time} +1`
+end_ymdh=`echo ${end_time} | cut -c1-10`
+
+file0="/glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config.bak"
+file_swap="/glade/p/cisl/nwc/fe_ak/ExtAnA/template_swap"
+file1="/glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config"
+
+echo "Starting ${start_ymdh}-${end_ymdh}"
+sed "s/syyyymmdyhh/${start_ymdh}/g" ${file0} > ${file_swap}
+sed "s/eyyyymmdyhh/${end_ymdh}/g" ${file_swap} > ${file1}
+
+#Testing code
+#grep 'RefcstBDateProc' ${file1}
+#grep 'RefcstEDateProc' ${file1}
+
+rm -f ${file_swap}
+
+mkdir -p "/glade/p/cisl/nwc/fe_ak/ExtAnA/data/${start_ymdh}"
+#echo "time mpiexec python3 -E /glade/u/home/bpetzke/git/WrfHydroForcing/genForcing.py /glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA"
+mpirun -n 36 python  /glade/u/home/bpetzke/git/WrfHydroForcing/genForcing.py /glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA
+
+#echo "python /glade/u/home/bpetzke/git/WrfHydroForcing/genForcing.py /glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA"
+#python /glade/u/home/bpetzke/git/WrfHydroForcing/genForcing.py /glade/p/cisl/nwc/fe_ak/ExtAnA/template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA 
+
+done
+
+#echo "Waiting for processes to finish"
+#wait
+#echo "Exiting $0"
