@@ -806,11 +806,10 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     err_handler.check_program_status(config_options, mpi_config)
 
     # Ensure we have the necessary new file
-    if mpi_config.rank == 0:
-        if not os.path.isfile(input_forcings.file_in2):
-
-            # look for the `pgrb` equivalent:
-            input_forcings.file_in2 = input_forcings.file_in2.replace("bgrb", "pgrb")
+    if not os.path.isfile(input_forcings.file_in2):
+        # look for the `pgrb` equivalent:
+        input_forcings.file_in2 = input_forcings.file_in2.replace("bgrb", "pgrb")
+        if mpi_config.rank == 0:
             if not os.path.isfile(input_forcings.file_in2):
                 missing = input_forcings.file_in2.replace("pgrb", "[bgrb|pgrb]")
                 if input_forcings.enforce == 1:
@@ -826,12 +825,12 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
                     missing, input_forcings.file_in2)
                 err_handler.log_warning(config_options, mpi_config)
 
-    err_handler.check_program_status(config_options, mpi_config)
-
     # If the file is missing, set the local slab of arrays to missing.
     if not os.path.isfile(input_forcings.file_in2):
         if input_forcings.regridded_forcings2 is not None:
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
+
+    err_handler.check_program_status(config_options, mpi_config)
 
 
 def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
