@@ -86,8 +86,8 @@ class supplemental_precip:
             5: "CONUS_MRMS_1HR_MultiSensor",
             6: "Hawaii_MRMS_1HR_MultiSensor",
             7: "MRMS_LiquidWaterFraction",
-            8: "Amir1", #Amir merge
-            9: "Amir2", #Amir merge
+            8: "NBM_CORE_CONUS_APCP",
+            9: "NBM_CORE_ALASKA_APCP",
             10: "AK_MRMS",
             11: "AK_Stage_IV_Precip-MRMS"
         }
@@ -117,8 +117,8 @@ class supplemental_precip:
             5: None,
             6: None,
             7: None,
-            8: None, #Amir merge
-            9: None, #Amir merge
+            8: None,
+            9: None,
             10: None,
             11: None
         }
@@ -132,8 +132,8 @@ class supplemental_precip:
             5: ['BLAH'],
             6: ['BLAH'],
             7: ['BLAH'],
-            8: ['BLAH'], #Amir merge
-            9: ['BLAH'], #Amir merge
+            8: ['BLAH'],
+            9: ['BLAH'],
             10: ['BLAH'],
             11: ['BLAH']
         }
@@ -147,8 +147,8 @@ class supplemental_precip:
             5: ['MultiSensorQPE01H_0mabovemeansealevel'],
             6: ['MultiSensorQPE01H_0mabovemeansealevel'],
             7: ['sbcv2_lwf'],
-            8: ['AmirVar'], #Amir merge
-            9: ['AmirVar'], #Amir merge
+            8: ['APCP_surface'],
+            9: ['APCP_surface'],
             10: ['MultiSensorQPE01H_0mabovemeansealevel'],
             11: [] #Set dynamically since we have have Stage IV and MRMS
         }
@@ -162,8 +162,8 @@ class supplemental_precip:
             5: None,
             6: None,
             7: None,
-            8: None, #Amir merge
-            9: None, #Amir merge
+            8: None,
+            9: None,
             10: None,
             11: None
         }
@@ -177,8 +177,8 @@ class supplemental_precip:
             5: 3,
             6: 3,
             7: 8,        # LQFRAC
-            8: 3,        #Amir Merge
-            9: 3,        #Amir Merge
+            8: 3,
+            9: 3,
             10: 3,
             11: 3
         }
@@ -203,8 +203,8 @@ class supplemental_precip:
             5: time_handling.find_hourly_mrms_radar_neighbors,
             6: time_handling.find_hourly_mrms_radar_neighbors,
             7: time_handling.find_sbcv2_lwf_neighbors,
-            8: time_handling.find_hourly_mrms_radar_neighbors, #Amir merge
-            9: time_handling.find_hourly_mrms_radar_neighbors, #Amir merge
+            8: time_handling.find_hourly_nbm_apcp_neighbors,
+            9: time_handling.find_hourly_nbm_apcp_neighbors,
             10: time_handling.find_hourly_mrms_radar_neighbors,
             11: time_handling.find_ak_ext_ana_precip_neighbors
         }
@@ -239,8 +239,8 @@ class supplemental_precip:
             5: regrid.regrid_mrms_hourly,
             6: regrid.regrid_mrms_hourly,
             7: regrid.regrid_sbcv2_liquid_water_fraction,
-            8: regrid.regrid_mrms_hourly, #Amir merge
-            9: regrid.regrid_mrms_hourly, #Amir merge
+            8: regrid.regrid_hourly_nbm_apcp,
+            9: regrid.regrid_hourly_nbm_apcp,
             10: regrid.regrid_mrms_hourly, 
             11: regrid.regrid_ak_ext_ana_pcp  
         }
@@ -309,8 +309,9 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
 
         InputDict[supp_pcp_key].userCycleOffset = ConfigOptions.supp_input_offsets[supp_pcp_tmp]
 
-        InputDict[supp_pcp_key].rqiMethod = ConfigOptions.rqiMethod[supp_pcp_tmp]
-        InputDict[supp_pcp_key].rqiThresh = ConfigOptions.rqiThresh[supp_pcp_tmp]
+        if ConfigOptions.rqiMethod is not None:
+            InputDict[supp_pcp_key].rqiMethod = ConfigOptions.rqiMethod[supp_pcp_tmp]
+            InputDict[supp_pcp_key].rqiThresh = ConfigOptions.rqiThresh[supp_pcp_tmp]
 
     return InputDict
 
