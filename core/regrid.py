@@ -2573,6 +2573,13 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     :param mpi_config:
     :return:
     """
+    # Do we want to use NBM data at this timestep? If not, log and continue
+    if not config_options.use_data_at_current_time:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Exceeded max hours for NBM precipitation, will not use NBM in final layering."
+            err_handler.log_msg(config_options, mpi_config)
+        return
+        
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.exists(supplemental_precip.file_in1):
@@ -2583,7 +2590,6 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
     # inputs have already been regridded and we can move on.
     if supplemental_precip.regridComplete:
         return
-
 
     nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
     if os.path.isfile(nbm_tmp_nc):

@@ -29,6 +29,7 @@ class ConfigOptions:
         self.supp_precip_param_dir = None
         self.input_force_mandatory = None
         self.supp_precip_mandatory = None
+        self.supp_pcp_max_hours = None
         self.number_inputs = None
         self.number_supp_pcp = None
         self.number_custom_inputs = 0
