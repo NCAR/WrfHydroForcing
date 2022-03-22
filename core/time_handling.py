@@ -2272,18 +2272,11 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     # Check to see if files are already set. If not, then reset, grids and
     # regridding objects to communicate things need to be re-established.
     if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
-        if config_options.current_output_step == 1:
-            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
-            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
-        else:
-            # The forecast window has shifted. Reset fields 2 to
-            # be fields 1.
-            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
-            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
         supplemental_precip.file_in1 = tmp_file1
         supplemental_precip.file_in2 = tmp_file2
         supplemental_precip.regridComplete = False
-
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:

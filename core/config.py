@@ -1253,7 +1253,6 @@ class ConfigOptions:
                                        f'match the frequency of custom input forcings selected '
                                        f'({self.number_custom_inputs}).')
 
-
     @property
     def use_data_at_current_time(self):
         if self.supp_pcp_max_hours is not None:
