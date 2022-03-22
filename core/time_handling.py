@@ -49,7 +49,7 @@ def calculate_lookback_window(config_options):
     #Special case for HRRR AK when we don't need/want more than one forecast cycle
     if 19 in config_options.input_forcings:
         n_fcst_steps = 0
-	
+
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
         seconds=n_fcst_steps * config_options.fcst_freq * 60)
@@ -275,6 +275,138 @@ def find_aorc_neighbors(input_forcings, config_options, d_current, mpi_config):
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 
 
+def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and after Alaska Extended Ana cycles based on the current timestep.
+    ExtAna inputs are outputs from a prior FE run.
+    :param input_forcings:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Processing Alaska ExtAnA Data. Calculating neighboring " \
+                                   "files for this output timestep"
+        err_handler.log_msg(config_options, mpi_config)
+
+    # First find the current ExtAnA forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
+    current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
+        minutes=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+    
+    ext_ana_horizon = 32
+
+    # If the user has specified a forcing horizon that is greater than what is available
+    # for this time period, throw an error.
+    if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > ext_ana_horizon:
+        config_options.errMsg = "User has specified a ExtAnA conus forecast horizon " + \
+                                "that is greater than the maximum allowed hours of: " + str(ext_ana_horizon)
+        err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Calculate the current forecast hour within this ExtAnA cycle.
+    dt_tmp = d_current - current_ext_ana_cycle
+    current_ext_ana_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
+
+    # Calculate the previous file to process.
+    min_since_last_output = (current_ext_ana_hour * 60) % 60
+    if min_since_last_output == 0:
+        min_since_last_output = 60
+    prev_ext_ana_date = d_current - datetime.timedelta(seconds=min_since_last_output * 60)
+    input_forcings.fcst_date1 = prev_ext_ana_date
+    if min_since_last_output == 60:
+        min_until_next_output = 0
+    else:
+        min_until_next_output = 60 - min_since_last_output
+    next_ext_ana_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
+    input_forcings.fcst_date2 = next_ext_ana_date
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dt_tmp = next_ext_ana_date - current_ext_ana_cycle
+    next_ext_ana_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour2 = next_ext_ana_forecast_hour
+    dt_tmp = prev_ext_ana_date - current_ext_ana_cycle
+    prev_ext_ana_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour1 = prev_ext_ana_forecast_hour
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If we are on the first ExtAnA forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prev_ext_ana_forecast_hour == 0:
+        prev_ext_ana_forecast_hour = 1
+
+    # Calculate expected file paths.
+    tmp_file1 = input_forcings.inDir + '/' + prev_ext_ana_date.strftime('%Y%m%d%H') + \
+                "/" + prev_ext_ana_date.strftime('%Y%m%d%H') +  "00" + \
+                ".LDASIN_DOMAIN1"
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous ExtAnA file being used: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+
+    tmp_file2 = input_forcings.inDir + '/' + next_ext_ana_date.strftime('%Y%m%d%H') + \
+                "/" + next_ext_ana_date.strftime('%Y%m%d%H') + "00" + \
+                ".LDASIN_DOMAIN1"
+    if mpi_config.rank == 0:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Next ExtAnA file being used: " + tmp_file2
+            err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+        if config_options.current_output_step == 1:
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in1 = tmp_file1
+            input_forcings.file_in2 = tmp_file2
+        else:
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            if input_forcings.regridded_forcings1 is None:
+                # if not np.any(input_forcings.regridded_forcings1):
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                               input_forcings.productName
+                    err_handler.log_msg(config_options, mpi_config)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in2 = tmp_file1
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+            else:
+                # The ExtAnA window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.file_in2 = tmp_file2
+        input_forcings.regridComplete = False
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.exists(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input ExtAnA file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input ExtAnA file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.exists(input_forcings.file_in2):
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
+
+
 def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
     Function to calculate the previous and after HRRR conus cycles based on the current timestep.
@@ -418,7 +550,9 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
 def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and after HRRR conus cycles based on the current timestep.
+    Function to calculate the previous and after HRRR Alaska cycles based on the current timestep.
+    This data differs from the HRRR conus because there is a forecast cycle every 3 hrs instead of
+    every hour.
     :param input_forcings:
     :param config_options:
     :param d_current:
@@ -441,26 +575,37 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
             current_hrrr_cycle -= datetime.timedelta(hours=6)
         else:
             current_hrrr_cycle -= datetime.timedelta(hours=3)
+
+        # Calculate the current forecast hour within this HRRR cycle.
+        dt_tmp = d_current - current_hrrr_cycle
+        current_hrrr_hour = int(dt_tmp.days * 24) + int(dt_tmp.seconds / 3600.0)
     else:
         current_hrrr_cycle = config_options.current_fcst_cycle - \
             datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
+
+        # Map the native forecast hour to the shifted HRRR cycles
+        hrrr_cycle = (current_hrrr_cycle.hour // 3 * 3) - 3
+        if hrrr_cycle < 0:
+            hrrr_cycle += 24
+
+        # throw out the first 3 hours of the cycle
+        current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
     
-    if current_hrrr_cycle.hour % 6 != 0:
-        hrrr_horizon = default_horizon
+    if current_hrrr_cycle.hour % 6 == 0:
+        hrrr_horizon = 48
     else:
-        hrrr_horizon = six_hr_horizon
+        hrrr_horizon = 18
+
+    # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
-    if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > hrrr_horizon:
-        config_options.errMsg = "User has specified a HRRR conus forecast horizon " + \
-                                "that is greater than the maximum allowed hours of: " + str(hrrr_horizon)
+    spec_horizon = (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0
+    if spec_horizon > hrrr_horizon:
+        config_options.errMsg = f"User has specified a HRRR Alaska forecast horizon {spec_horizon} " + \
+                                f"that is greater than the maximum allowed hours of: {hrrr_horizon}"
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
-
-    # Calculate the current forecast hour within this HRRR cycle.
-    dt_tmp = d_current - current_hrrr_cycle
-    current_hrrr_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
     # Calculate the previous file to process.
     min_since_last_output = (current_hrrr_hour * 60) % 60
@@ -1384,6 +1529,19 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+    elif supplemental_precip.keyValue == 10:
+        tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+        tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass2/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -1771,3 +1929,382 @@ def find_sbcv2_lwf_neighbors(input_forcings, config_options, d_current, mpi_conf
     if not os.path.isfile(input_forcings.file_in2):
         if input_forcings.regridded_precip2 is not None:
             input_forcings.regridded_precip2[:, :] = config_options.globalNdv
+
+
+def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config):
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next Stage IV files we will be using.
+    d_current_epoch = int(d_current.strftime("%s"))
+    six_hr_sec = 21600
+    #if we're at an even 6 hour multiple move the time back 6 hours as d_current is included at the end of the prior range
+    #(begin_date,end_date]
+    if d_current_epoch%six_hr_sec == 0:
+        d_current_epoch -= six_hr_sec
+    next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    d_prev_epoch = d_current_epoch-six_hr_sec
+    prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
+
+    # Set the input file frequency to be six-hourly.
+    supplemental_precip.input_frequency = 360.0
+
+    supplemental_precip.pcp_date1 = prev_stage4_date
+    supplemental_precip.pcp_date2 = next_stage4_date
+    #supplemental_precip.pcp_date2 = prev_stage4_date
+
+    next_hr_map = {"00":"06","06":"12","12":"18","18":"00"}
+
+    try:
+        #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
+        stage4_in_dir = supplemental_precip.inDir.split(',')[0]
+    except IndexError:
+        stage4_in_dir = None
+
+    # Calculate expected file paths.
+    if stage4_in_dir and supplemental_precip.keyValue == 11:
+        tmp_file1 = stage4_in_dir + "/" + \
+                    "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
+                    next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
+        tmp_file2 = stage4_in_dir + "/" + \
+                    "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
+                    next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
+    else:
+        tmp_file1 = tmp_file2 = ""
+
+    # Compose the RQI paths.
+    tmp_rqi_file1 = tmp_rqi_file2 = ""
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous Stage IV supplemental file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next Stage IV supplemental file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
+        if config_options.current_output_step == 1:
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+            # supplemental_precip.regridded_precip1[:,:] = supplemental_precip.regridded_precip2[:,:]
+            # supplemental_precip.regridded_rqi1[:, :] = supplemental_precip.regridded_rqi2[:, :]
+        supplemental_precip.file_in1 = tmp_file1
+        supplemental_precip.file_in2 = tmp_file2
+        supplemental_precip.rqi_file_in1 = tmp_rqi_file1
+        supplemental_precip.rqi_file_in2 = tmp_rqi_file2
+        supplemental_precip.regridComplete = False
+
+    # If either file does not exist, set to None. This will instruct downstream regridding steps to
+    # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
+    # added to the final output grids.
+
+    # if not os.path.isfile(tmp_file1) or not os.path.isfile(tmp_file2):
+    #    if MpiConfig.rank == 0:
+    #        ConfigOptions.statusMsg = "Stage IV files are missing. Will not process " \
+    #                                  "supplemental precipitation"
+    #        errMod.log_warning(ConfigOptions,MpiConfig)
+    #    supplemental_precip.file_in2 = None
+    #    supplemental_precip.file_in1 = None
+
+    # errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Ensure we have the necessary new file
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Stage IV file {} not found, will attempt to use {} instead.".format(
+                supplemental_precip.file_in2, supplemental_precip.file_in1)
+            err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.file_in2 = supplemental_precip.file_in1
+    if mpi_config.rank == 0 and not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.enforce == 1:
+            config_options.errMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + " not found."
+            err_handler.log_critical(config_options, mpi_config)
+        else:
+            config_options.statusMsg = "Expected input Stage IV file: " + supplemental_precip.file_in2 + \
+                                       " not found. " + "Will not use in final layering."
+            err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+    
+    supplemental_precip.ext_ana = "STAGE4"
+
+
+def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config):
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next MRMS files we will be using.
+    next_mrms_date = d_current
+    prev_mrms_date = d_current - datetime.timedelta(hours=1)
+
+    # Set the input file frequency to be hourly.
+    supplemental_precip.input_frequency = 60.0
+
+    supplemental_precip.pcp_date1 = prev_mrms_date
+    supplemental_precip.pcp_date2 = next_mrms_date
+
+    try:
+        #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
+        mrms_in_dir = supplemental_precip.inDir.split(',')[1]
+    except IndexError:
+        mrms_in_dir = None
+
+    # Calculate expected file paths.
+    if supplemental_precip.keyValue == 11:
+        tmp_file1 = mrms_in_dir + "/MultiSensor_QPE_01H_Pass1/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                    "0000.grib2.gz"
+        tmp_file2 = mrms_in_dir + "/MultiSensor_QPE_01H_Pass2/" + \
+                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
+                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
+                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
+                    "0000.grib2.gz"
+    else:
+        tmp_file1 = tmp_file2 = ""
+
+    # Compose the RQI paths.
+    tmp_rqi_file1 = tmp_rqi_file2 = ""
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous MRMS supplemental file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next MRMS supplemental file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
+        if config_options.current_output_step == 1:
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+            # supplemental_precip.regridded_precip1[:,:] = supplemental_precip.regridded_precip2[:,:]
+            # supplemental_precip.regridded_rqi1[:, :] = supplemental_precip.regridded_rqi2[:, :]
+        supplemental_precip.file_in1 = tmp_file1
+        supplemental_precip.file_in2 = tmp_file2
+        supplemental_precip.rqi_file_in1 = tmp_rqi_file1
+        supplemental_precip.rqi_file_in2 = tmp_rqi_file2
+        supplemental_precip.regridComplete = False
+
+    # If either file does not exist, set to None. This will instruct downstream regridding steps to
+    # set the regridded states to the global NDV. That ensures no supplemental precipitation will be
+    # added to the final output grids.
+
+    # if not os.path.isfile(tmp_file1) or not os.path.isfile(tmp_file2):
+    #    if MpiConfig.rank == 0:
+    #        ConfigOptions.statusMsg = "MRMS files are missing. Will not process " \
+    #                                  "supplemental precipitation"
+    #        errMod.log_warning(ConfigOptions,MpiConfig)
+    #    supplemental_precip.file_in2 = None
+    #    supplemental_precip.file_in1 = None
+
+    # errMod.check_program_status(ConfigOptions, MpiConfig)
+
+    # Ensure we have the necessary new file
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "MRMS file {} not found, will attempt to use {} instead.".format(
+                supplemental_precip.file_in2, supplemental_precip.file_in1)
+            err_handler.log_warning(config_options, mpi_config)
+        supplemental_precip.file_in2 = supplemental_precip.file_in1
+    if mpi_config.rank == 0 and not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.enforce == 1:
+            config_options.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
+            err_handler.log_critical(config_options, mpi_config)
+        else:
+            config_options.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
+                                       " not found. " + "Will not use in final layering."
+            err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    if not os.path.isfile(supplemental_precip.file_in2):
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"{supplemental_precip.file_in2} not found. Attempting to use Stage IV in place of MRMS"
+            err_handler.log_warning(config_options, mpi_config)
+        _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
+    else:
+        supplemental_precip.ext_ana = "MRMS"
+
+
+def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next Stage IV MPE files. 
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    if d_current > config_options.e_date_proc - datetime.timedelta(hours=7):
+        #print(f"Using MRMS hour {d_current}")
+        _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+    else:
+        #print(f"Using StageIV hour {d_current}")
+        _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
+
+
+def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next NBM/CORE/CONUS files. This
+    will also calculate the neighboring radar quality index (RQI) files as well.
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    nbm_out_freq = {
+    36: 60,
+    240: 360
+    }
+        
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next NBM files we will be using.
+    current_yr = d_current.year
+    current_mo = d_current.month
+    current_day = d_current.day
+    current_hr = d_current.hour
+    current_min = d_current.minute
+ 
+    # First find the current NBM forecast cycle that we are using.
+    current_nbm_cycle = config_options.current_fcst_cycle - \
+        datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
+
+    # Calculate the current forecast hour within this NBM cycle.
+    dt_tmp = d_current - current_nbm_cycle
+    current_nbm_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
+
+    # Set the input file frequency to be hourly for f001-f036 and 6-hourly beyond f036.
+    if current_nbm_hour <= 36:
+        supplemental_precip.input_frequency = 60.0
+    else:
+        supplemental_precip.input_frequency = 360.0
+            
+    # Calculate the previous file to process.
+    min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
+    if min_since_last_output == 0:
+        min_since_last_output = supplemental_precip.input_frequency
+    prev_nbm_date = d_current - datetime.timedelta(seconds=min_since_last_output*60)
+    supplemental_precip.fcst_date1 = prev_nbm_date
+    if min_since_last_output == supplemental_precip.input_frequency:
+        min_until_next_output = 0
+    else:
+        min_until_next_output = supplemental_precip.input_frequency - min_since_last_output
+    next_nbm_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
+    supplemental_precip.fcst_date2 = next_nbm_date
+
+    # Calculate the output forecast hours needed based on the prev/next dates.
+    dt_tmp = next_nbm_date - current_nbm_cycle
+    next_nbm_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
+    supplemental_precip.fcst_hour2 = next_nbm_forecast_hour
+    dt_tmp = prev_nbm_date - current_nbm_cycle
+    prev_nbm_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
+    supplemental_precip.fcst_hour1 = prev_nbm_forecast_hour
+    # If we are on the first NBM forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+    if prev_nbm_forecast_hour == 0:
+        prev_nbm_forecast_hour = 1
+
+    # Calculate expected file paths.
+    if supplemental_precip.keyValue == 8:
+        tmp_file1 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
+            + supplemental_precip.file_ext
+        tmp_file2 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
+            + supplemental_precip.file_ext
+    elif supplemental_precip.keyValue == 9:
+        tmp_file1 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".ak" \
+            + supplemental_precip.file_ext
+        tmp_file2 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".ak" \
+            + supplemental_precip.file_ext
+    else:
+        tmp_file1 = tmp_file2 = ""
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next NBM supplemental file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if supplemental_precip.file_in1 != tmp_file1 or supplemental_precip.file_in2 != tmp_file2:
+        supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+        supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        supplemental_precip.file_in1 = tmp_file1
+        supplemental_precip.file_in2 = tmp_file2
+        supplemental_precip.regridComplete = False
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == 8) or (supplemental_precip.keyValue == 9)):
+            config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
+                    supplemental_precip.file_in2, supplemental_precip.file_in1)
+            err_handler.log_warning(config_options, mpi_config)
+            supplemental_precip.file_in2 = supplemental_precip.file_in1
+        if not os.path.isfile(supplemental_precip.file_in2):
+            if supplemental_precip.enforce == 1:
+                config_options.errMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + \
+                                           " not found. " + "Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+                config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+
+    # Do we want to use NBM data at this timestep? If not, set the local slab of arrays to missing.
+    if not config_options.use_data_at_current_time:
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+        if supplemental_precip.regridded_precip1 is not None:
+            supplemental_precip.regridded_precip1[:, :] = config_options.globalNdv

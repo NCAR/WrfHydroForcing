@@ -5,6 +5,7 @@ from core import bias_correction
 from core import downscale
 from core import err_handler
 from core import layeringMod
+from core import disaggregateMod
 
 
 def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMod, MpiConfig, OutputObj):
@@ -32,6 +33,8 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
     # 'WrfHydroForcing.COMPLETE' flag in the directory. This will be
     # checked upon the beginning of this program to see if we
     # need to process any files.
+
+    disaggregate_fun = disaggregateMod.disaggregate_factory(ConfigOptions)
 
     for fcstCycleNum in range(ConfigOptions.nFcsts):
         ConfigOptions.current_fcst_cycle = ConfigOptions.b_date_proc + datetime.timedelta(
@@ -234,6 +237,9 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
                             # Run check on regridded fields for reasonable values that are not missing values.
                             err_handler.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
+                            err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+                            disaggregate_fun(input_forcings, suppPcpMod[suppPcpKey], ConfigOptions, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                             # Run temporal interpolation on the grids.

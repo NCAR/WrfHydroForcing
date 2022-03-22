@@ -12,11 +12,11 @@
 #PBS -l select=1:ncpus=36:mpiprocs=36:mem=109GB
 
 export WGRIB2=/glade/u/home/zhangyx/software/grib2/wgrib2/wgrib2
+export PATH=/glade/u/home/bpetzke/anaconda3/envs/wrfhydro/bin:$PATH
 
 rm -f *.err *.out
 
 module unload mpt
 module load impi
-#mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.2.config 2.2 ExtAnA
-#mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.1.config.orig 2.2 ExtAnA
-mpiexec python ../genForcing.py ./template_forcing_engine_ExtAnA.3.config.orig 2.2 ExtAnA
+#python ../genForcing.py ./template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA
+mpiexec -n 36 python ../genForcing.py ./template_forcing_engine_AK_ExtAnA_hourly.config 2.2 ExtAnA

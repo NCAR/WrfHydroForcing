@@ -124,8 +124,8 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 19:
-                err_handler.err_out_screen('Please specify InputForcings values between 1 and 19.')
+            if forceOpt < 0 or forceOpt > 20:
+                err_handler.err_out_screen('Please specify InputForcings values between 1 and 20.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -1012,10 +1012,10 @@ class ConfigOptions:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
-                if suppOpt < 0 or suppOpt > 7:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 7.')
+                if suppOpt < 0 or suppOpt > 11:
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 11.')
                 # Read in RQI threshold to apply to radar products.
-                if suppOpt in (1,2,7):
+                if suppOpt in (1,2,7,10,11):
                     try:
                         self.rqiMethod = json.loads(config['SuppForcing']['RqiMethod'])
                     except KeyError:
@@ -1079,15 +1079,23 @@ class ConfigOptions:
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                            'in the configuration file.')
-            if len(self.supp_precip_dirs) != self.number_supp_pcp:
-                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
-                                           'of SuppForcing in the configuration file.')
+        
             # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
             # or new line characters.
             for dirTmp in range(0, len(self.supp_precip_dirs)):
                 self.supp_precip_dirs[dirTmp] = self.supp_precip_dirs[dirTmp].strip()
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     err_handler.err_out_screen('Unable to locate supp pcp directory: ' + self.supp_precip_dirs[dirTmp])
+
+            #Special case for ExtAnA where we treat comma separated stage IV, MRMS data as one SuppPcp input 
+            if 11 in self.supp_precip_forcings:
+                if len(self.supp_precip_forcings) != 1:
+                    err_handler.err_out_screen('Alaska Stage IV/MRMS SuppPcp option is only supported as a standalone option')
+                self.supp_precip_dirs = [",".join(self.supp_precip_dirs)]
+
+            if len(self.supp_precip_dirs) != self.number_supp_pcp:
+                err_handler.err_out_screen('Number of SuppPcpDirectories must match the number '
+                                           'of SuppForcing in the configuration file.')
 
             # Process supplemental precipitation enforcement options
             try:
@@ -1248,7 +1256,7 @@ class ConfigOptions:
     @property
     def use_data_at_current_time(self):
         if self.supp_pcp_max_hours is not None:
-            hrs_since_start = (self.current_output_date - self.b_date_proc) / 3600.0
-            return hrs_since_start > self.supp_pcp_max_hours
+            hrs_since_start = self.current_output_date - self.current_fcst_cycle
+            return hrs_since_start <= datetime.timedelta(hours = self.supp_pcp_max_hours)
         else:
-            return True
+            return True 

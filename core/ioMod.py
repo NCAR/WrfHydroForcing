@@ -580,7 +580,7 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
     return idTmp
 
 
-def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False):
+def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_procs=False, lat_var="latitude", lon_var="longitude"):
     """
     Generic function to convert a NetCDF forcing file given a list of input forcing
     variables.
@@ -612,14 +612,14 @@ def open_netcdf_forcing(NetCdfFileIn, ConfigOptions, MpiConfig, open_on_all_proc
 
         if idTmp is not None:
             # Check for expected lat/lon variables.
-            if 'latitude' not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate latitude from: " + \
+            if lat_var not in idTmp.variables.keys():
+                ConfigOptions.errMsg = f"Unable to locate {lat_var} from: " + \
                                         NetCdfFileIn
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 idTmp = None
         if idTmp is not None:
-            if 'longitude' not in idTmp.variables.keys():
-                ConfigOptions.errMsg = "Unable to locate longitude from: " + \
+            if lon_var not in idTmp.variables.keys():
+                ConfigOptions.errMsg = f"Unable to locate {lon_var} from: " + \
                                         NetCdfFileIn
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 idTmp = None
