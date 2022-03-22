@@ -15,6 +15,8 @@ from core import ioMod
 from core import timeInterpMod
 
 # TODO: import these from forcingInputMod (not working currently ¯\_(ツ)_/¯)
+from core.config import ConfigOptions
+
 NETCDF = "NETCDF"
 GRIB2 = "GRIB2"
 
@@ -1744,7 +1746,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
     err_handler.check_program_status(config_options, mpi_config)
 
 
-def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
+def regrid_mrms_hourly(supplemental_precip, config_options: ConfigOptions, wrf_hydro_geo_meta, mpi_config):
     """
     Function for handling regridding hourly MRMS precipitation. An RQI mask file
     Is necessary to filter out poor precipitation estimates.
@@ -1754,6 +1756,14 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     :param mpi_config:
     :return:
     """
+
+    # Do we want to use MRMS data at this timestep? If not, log and continue
+    if not config_options.use_data_at_current_time:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Exceeded max hours for MRMS precipitation"
+            err_handler.log_msg(config_options, mpi_config)
+        return
+
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.isfile(supplemental_precip.file_in2):
