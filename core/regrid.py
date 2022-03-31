@@ -14,9 +14,6 @@ from core import err_handler
 from core import ioMod
 from core import timeInterpMod
 
-# TODO: import these from forcingInputMod (not working currently ¯\_(ツ)_/¯)
-from core.config import ConfigOptions
-
 NETCDF = "NETCDF"
 GRIB2 = "GRIB2"
 
@@ -84,8 +81,8 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         try:
             ds = Dataset(input_forcings.file_in2,'r')
         except:
-            ConfigOptions.errMsg = f"Unable to open input NetCDF file: {input_forcings.file_in}"
-            err_handler.log_critical(ConfigOptions, MpiConfig)
+            config_options.errMsg = f"Unable to open input NetCDF file: {input_forcings.file_in}"
+            err_handler.log_critical(config_options, mpi_config)
         
         ds.set_auto_scale(True)
         ds.set_auto_mask(False)
@@ -97,10 +94,10 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             input_forcings.nx_global = ds.dimensions['x'].size
 
         input_forcings.ny_global = mpi_config.broadcast_parameter(input_forcings.ny_global,
-                                                              config_options, param_type=int)
+                                                                  config_options, param_type=int)
         err_handler.check_program_status(config_options, mpi_config)
         input_forcings.nx_global = mpi_config.broadcast_parameter(input_forcings.nx_global,
-                                                              config_options, param_type=int)
+                                                                  config_options, param_type=int)
         err_handler.check_program_status(config_options, mpi_config)
 
         try:
@@ -1746,7 +1743,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
     err_handler.check_program_status(config_options, mpi_config)
 
 
-def regrid_mrms_hourly(supplemental_precip, config_options: ConfigOptions, wrf_hydro_geo_meta, mpi_config):
+def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config):
     """
     Function for handling regridding hourly MRMS precipitation. An RQI mask file
     Is necessary to filter out poor precipitation estimates.
