@@ -49,6 +49,9 @@ def calculate_lookback_window(config_options):
     #Special case for HRRR AK when we don't need/want more than one forecast cycle
     if 19 in config_options.input_forcings:
         n_fcst_steps = 0
+        config_options.nFcsts = int(n_fcst_steps) + 1
+        config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(seconds=config_options.look_back*60-config_options.fcst_freq*60)
+        return 
 
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(

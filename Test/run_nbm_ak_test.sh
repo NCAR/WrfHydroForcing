@@ -18,4 +18,5 @@ rm -f *.err *.out
 
 module unload mpt
 module load impi
-mpiexec -n 36 python ../genForcing.py ./template_forcing_engine_NBM_AK_test2.config 2.2 AnA
+#mpiexec -n 36 python ../genForcing.py ./template_forcing_engine_NBM_AK_test2.config 2.2 AnA
+mpiexec -n 36 python ../genForcing.py ./template_forcing_engine_NBM_AK_test.config 2.2 AnA
