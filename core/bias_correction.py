@@ -1231,6 +1231,8 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
     #     regridding object.
     # 6.) Place the data into the final output arrays for further processing (downscaling).
     # 7.) Reset variables for memory efficiency and exit the routine.
+    
+    np.seterr(all='ignore')
 
     if mpi_config.rank == 0:
         config_options.statusMsg = "Creating local CFS CDF arrays."
