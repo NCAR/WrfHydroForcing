@@ -1,4 +1,4 @@
-#--------------------------------------------------------------------
+
 # WRF-Hydro Forcing Engine Configuration File
 #
 # Input options to the forcing engine include:
@@ -43,6 +43,7 @@
 # 17 - NAM_Nest_3km_PuertoRico_Radiation-Only
 # 18 - WRF-ARW GRIB2 PuertoRico
 # 19 - HRRR GRIB2 Alaska production files
+# 20 - ExtAna HRRR AK FE output
 InputForcings = [19]
 
 # Specify the file type for each forcing (comma separated)
@@ -73,12 +74,12 @@ OutputFrequency = 60
 # and forecasts, sub-directories for each forecast cycle
 # will be generated. For retrospective processing, final
 # output files will be placed in this directory. 
-OutDir = /glade/scratch/bpetzke/ForcingEngine/Test/ExtAnA/Alaska 
+OutDir = /glade/p/ral/wsap/petzke/fe_ak/AnA/data
 
 # Specify a scratch directory that will be used 
 # for storage of temporary files. These files
 # will be removed automatically by the program. 
-ScratchDir = /glade/scratch/bpetzke/ForcingEngine/Test/ExtAnA/Alaska 
+ScratchDir = /glade/p/ral/wsap/petzke/fe_ak/AnA/data 
 
 # Flag to use floating point output vs scale_factor / add_offset byte packing in
 # the output files (the default)
@@ -119,14 +120,8 @@ LookBack = 180
 
 # If running reforecasts, specify a window below. This will override 
 # using the LookBack value to calculate a processing window. 
-#RefcstBDateProc = 202107150000 
-#RefcstEDateProc = 202107150100 
-#RefcstBDateProc = 202107150100 
-#RefcstEDateProc = 202107150200 
-#RefcstBDateProc = 202107150200 
-#RefcstEDateProc = 202107150300 
-RefcstBDateProc = 202107150300 
-RefcstEDateProc = 202107150400
+RefcstBDateProc = syyyymmdyhh00
+RefcstEDateProc = eyyyymmdyhh00
 
 # Specify a forecast frequency in minutes. This value specifies how often
 # to generate a set of forecast forcings. If generating hourly retrospective
@@ -293,7 +288,11 @@ DownscalingParamDirs = /glade/p/cisl/nwc/zhangyx/NWM_v21_Params/Alaska
 # 5 - CONUS MRMS MultiSensor Pass1 and Pass1
 # 6 - Hawaii MRMS MultiSensor Pass1 and Pass2
 # 7 - Alaska MRMS MultiSensor Pass1 and Pass2
-SuppPcp = [7]
+# 8 - Amir AK future option 1
+# 9 - Amir AK future option 2
+# 10 - Alaska MRMS (no liquid water fraction)
+# 11 - Alaska Stage IV NWS Precip
+SuppPcp = [10]
 
 # Specify the file type for each supplemental precipitation file (comma separated)
 # Valid types are GRIB1, GRIB2, and NETCDF
@@ -302,7 +301,6 @@ SuppPcpForcingTypes = [GRIB2]
 
 # Specify the correponding supplemental precipitation directories
 # that will be searched for input files.
-#SuppPcpDirectories = /glade/scratch/zhangyx/ForcingEngine/Forcing_Inputs/Alaska.MRMS
 SuppPcpDirectories = /glade/p/ral/allral/zhangyx/Alaska.MRMS
 
 # Specify whether the Supplemental Precips listed above are mandatory, or optional.
@@ -327,7 +325,7 @@ SuppPcpInputOffsets = [0]
 # 0 - Do not use any RQI filtering. Use all radar-based estimates.
 # 1 - Use hourly MRMS Radar Quality Index grids.
 # 2 - Use NWM monthly climatology grids (NWM only!!!!)
-RqiMethod = 2
+RqiMethod = 0
 
 # Optional RQI threshold to be used to mask out. Currently used for MRMS products.
 # Please choose a value from 0.0-1.0. Associated radar quality index files will be expected

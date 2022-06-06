@@ -594,10 +594,11 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
         # throw out the first 3 hours of the cycle
         current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
     
-    if current_hrrr_cycle.hour % 6 == 0:
-        hrrr_horizon = 48
-    else:
-        hrrr_horizon = 18
+    #if current_hrrr_cycle.hour % 6 == 0:
+    #    hrrr_horizon = 48
+    #else:
+    #    hrrr_horizon = 18
+    hrrr_horizon = 48
 
     # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
 
