@@ -52,7 +52,7 @@ InputForcings = [20]
 InputForcingTypes = [NETCDF]
 
 # Specify the input directories for each forcing product.
-InputForcingDirectories = /glade/p/cisl/nwc/fe_ak/AnA/data 
+InputForcingDirectories = /glade/p/ral/wsap/petzke/fe_ak/AnA/data 
 
 # Specify whether the input forcings listed above are mandatory, or optional.
 # This is important for layering contingencies if a product is missing,
@@ -74,12 +74,12 @@ OutputFrequency = 60
 # and forecasts, sub-directories for each forecast cycle
 # will be generated. For retrospective processing, final
 # output files will be placed in this directory. 
-OutDir = /glade/scratch/bpetzke/ForcingEngine/Test/ExtAnA/Alaska
+OutDir = /glade/p/ral/wsap/petzke/fe_ak/ExtAnA/data/syyyymmdyhh
 
 # Specify a scratch directory that will be used 
 # for storage of temporary files. These files
 # will be removed automatically by the program. 
-ScratchDir = /glade/scratch/bpetzke/ForcingEngine/Test/ExtAnA/Alaska 
+ScratchDir = /glade/p/ral/wsap/petzke/fe_ak/ExtAnA/data/syyyymmdyhh
 
 # Flag to use floating point output vs scale_factor / add_offset byte packing in
 # the output files (the default)
@@ -110,7 +110,7 @@ EDateProc = 202002050000
 # If this is AnA run, set AnAFlag to 1, otherwise 0.
 # Setting this flag will change the behavior of some Bias Correction routines as wel
 # as the ForecastInputOffsets options (see below for more information)
-AnAFlag = 0
+AnAFlag = 1
 
 # ONLY for realtime forecasting.
 # - Specify a lookback period in minutes to process data.
@@ -120,16 +120,10 @@ LookBack = 1920
 
 # If running reforecasts, specify a window below. This will override 
 # using the LookBack value to calculate a processing window. 
-#RefcstBDateProc = 202107150000 
-#RefcstEDateProc = 202107150100 
-#RefcstBDateProc = 202107150100 
-#RefcstEDateProc = 202107150200 
-#RefcstBDateProc = 202107150200 
-#RefcstEDateProc = 202107150300 
-#RefcstBDateProc = 202107150300 
-#RefcstEDateProc = 202107150400
-RefcstBDateProc = 202109121900
-RefcstEDateProc = 202109122000
+#RefcstBDateProc = 202109121900
+#RefcstEDateProc = 202109122000
+RefcstBDateProc = syyyymmdyhh00
+RefcstEDateProc = eyyyymmdyhh00
 
 # Specify a forecast frequency in minutes. This value specifies how often
 # to generate a set of forecast forcings. If generating hourly retrospective
@@ -310,7 +304,7 @@ SuppPcpForcingTypes = [GRIB2]
 
 # Specify the correponding supplemental precipitation directories
 # that will be searched for input files.
-SuppPcpDirectories = /glade/p/ral/allral/zhangyx/StageIV_Alaska/APRFC2,/glade/p/ral/allral/zhangyx/Alaska.MRMS
+SuppPcpDirectories = /glade/p/ral/wsap/petzke/fe_ak/ExtAnA/FAUX_APRFC2,/glade/p/ral/allral/zhangyx/Alaska.MRMS
 #SuppPcpDirectories = /glade/p/ral/allral/zhangyx/StageIV_Alaska/APFRC
 
 # Specify whether the Supplemental Precips listed above are mandatory, or optional.

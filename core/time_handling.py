@@ -49,6 +49,9 @@ def calculate_lookback_window(config_options):
     #Special case for HRRR AK when we don't need/want more than one forecast cycle
     if 19 in config_options.input_forcings:
         n_fcst_steps = 0
+        config_options.nFcsts = int(n_fcst_steps) + 1
+        config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(seconds=config_options.look_back*60-config_options.fcst_freq*60)
+        return 
 
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
@@ -591,10 +594,11 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
         # throw out the first 3 hours of the cycle
         current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
     
-    if current_hrrr_cycle.hour % 6 == 0:
-        hrrr_horizon = 48
-    else:
-        hrrr_horizon = 18
+    #if current_hrrr_cycle.hour % 6 == 0:
+    #    hrrr_horizon = 48
+    #else:
+    #    hrrr_horizon = 18
+    hrrr_horizon = 48
 
     # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
 
