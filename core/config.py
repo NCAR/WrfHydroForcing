@@ -1091,7 +1091,7 @@ def main():
     """
     Can be called directly to create a ConfigOptions object and dump it's values
     Can be used to compare values with config_orig.py
-    diff <(./config.py ../Test/template_forcing_engine_AnA_v2.yaml) <(./config_orig.py ../Test/template_forcing_engine_AnA_v2.config)
+    diff <(./config.py ../Test/template_forcing_engine_AnA_v2_example.yaml) <(./config_v1.py ../Test/template_forcing_engine_AnA_v2.config)
     """
     if len(sys.argv) < 2:
         print("%s config_yaml" % sys.argv[0])
