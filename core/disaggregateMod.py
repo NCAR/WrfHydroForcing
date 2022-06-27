@@ -60,7 +60,8 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     ana_data = []
     if mpi_config.rank == 0:
         target_hh = Path(input_forcings.file_in2).stem[-4:-2]
-        _,_,_,beg_hh,end_hh,yyyymmdd = Path(supplemental_precip.file_in2).stem.split('_')
+        _,yyyymmddhh,*_ = Path(supplemental_precip.file_in2).stem.split('.')
+        beg_hh,end_hh,yyyymmdd = yyyymmddhh[-2:], str(int(yyyymmddhh[-2:])+6).zfill(2), yyyymmddhh[:-2]
         date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
         end_date = date_iter + timedelta(hours=6)
         #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included

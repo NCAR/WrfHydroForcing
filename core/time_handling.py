@@ -1964,14 +1964,18 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
 
     # Calculate expected file paths.
     if stage4_in_dir and supplemental_precip.keyValue == 11:
+        # tmp_file1 = stage4_in_dir + "/" + \
+        #             "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
+        #             next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
+        #             supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
+        # tmp_file2 = stage4_in_dir + "/" + \
+        #             "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
+        #             next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
+        #             supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
         tmp_file1 = stage4_in_dir + "/" + \
-                    "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
-                    next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
+                    "st4_ak." + supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h.grb2')
         tmp_file2 = stage4_in_dir + "/" + \
-                    "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
-                    next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
+                    "st4_ak." + supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h.grb2')
     else:
         tmp_file1 = tmp_file2 = ""
 
