@@ -369,8 +369,13 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
     # solar zenith angle is the angle between straight up and the center of the sun's disc
     # the cosine of the sol_zen_ang is proportional to the solar intensity
     # (not accounting for humidity or cloud cover)
-    sol_zen_ang = r2d * np.arccos(np.sin(geo_meta_wrf_hydro.latitude_grid * d2r) * math.sin(decl) +
-                                  np.cos(geo_meta_wrf_hydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha))
+    sol_cos = np.sin(geo_meta_wrf_hydro.latitude_grid * d2r) * math.sin(decl) + np.cos(geo_meta_wrf_hydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha)
+    
+    # Check for any values outside of [-1,1] (this can happen due to floating point rounding)
+    sol_cos[np.where(sol_cos < -1.0)] = -1.0
+    sol_cos[np.where(sol_cos > 1.0)] = 1.0
+
+    sol_zen_ang = r2d * np.arccos(sol_cos)
 
     # Check for any values greater than 90 degrees.
     sol_zen_ang[np.where(sol_zen_ang > 90.0)] = 90.0

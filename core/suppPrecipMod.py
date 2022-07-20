@@ -312,6 +312,9 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         if ConfigOptions.rqiMethod is not None:
             InputDict[supp_pcp_key].rqiMethod = ConfigOptions.rqiMethod[supp_pcp_tmp]
             InputDict[supp_pcp_key].rqiThresh = ConfigOptions.rqiThresh[supp_pcp_tmp]
+        else:
+            InputDict[supp_pcp_key].rqiMethod = 0
+            InputDict[supp_pcp_key].rqiThresh = 1.0
 
     return InputDict
 
