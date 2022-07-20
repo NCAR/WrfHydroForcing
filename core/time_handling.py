@@ -296,7 +296,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     # First find the current ExtAnA forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-        minutes=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     
     ext_ana_horizon = 32
 
@@ -348,9 +348,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
         config_options.statusMsg = "Previous ExtAnA file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
-    tmp_file2 = input_forcings.inDir + '/' + next_ext_ana_date.strftime('%Y%m%d%H') + \
-                "/" + next_ext_ana_date.strftime('%Y%m%d%H') + "00" + \
-                ".LDASIN_DOMAIN1"
+    tmp_file2 = tmp_file1
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
             config_options.statusMsg = "Next ExtAnA file being used: " + tmp_file2
@@ -1939,22 +1937,22 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     # the previous/next Stage IV files we will be using.
     d_current_epoch = int(d_current.strftime("%s"))
     six_hr_sec = 21600
+    d_current_epoch -= 3600
+    d_current_epoch += six_hr_sec
     #if we're at an even 6 hour multiple move the time back 6 hours as d_current is included at the end of the prior range
     #(begin_date,end_date]
     if d_current_epoch%six_hr_sec == 0:
         d_current_epoch -= six_hr_sec
-    next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
-    d_prev_epoch = d_current_epoch-six_hr_sec
-    prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
-
+    #next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    #d_prev_epoch = d_current_epoch-six_hr_sec
+    #prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
+    prev_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    next_stage4_date = prev_stage4_date
     # Set the input file frequency to be six-hourly.
     supplemental_precip.input_frequency = 360.0
 
     supplemental_precip.pcp_date1 = prev_stage4_date
     supplemental_precip.pcp_date2 = next_stage4_date
-    #supplemental_precip.pcp_date2 = prev_stage4_date
-
-    next_hr_map = {"00":"06","06":"12","12":"18","18":"00"}
 
     try:
         #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
@@ -1963,19 +1961,13 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
         stage4_in_dir = None
 
     # Calculate expected file paths.
+    tmp_file_ext = ".grb2" if supplemental_precip.fileType == 'GRIB2' else ".grb2.nc"
     if stage4_in_dir and supplemental_precip.keyValue == 11:
-        # tmp_file1 = stage4_in_dir + "/" + \
-        #             "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
-        #             next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
-        #             supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
-        # tmp_file2 = stage4_in_dir + "/" + \
-        #             "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
-        #             next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
-        #             supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
-        tmp_file1 = stage4_in_dir + "/" + \
-                    "st4_ak." + supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h.grb2')
-        tmp_file2 = stage4_in_dir + "/" + \
-                    "st4_ak." + supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h.grb2')
+        tmp_file1 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
+        #if d_current_epoch%six_hr_sec == 0:
+        #    tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
+        #else:
+        tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -2054,8 +2046,9 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
 def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config):
     # First we need to find the nearest previous and next hour, which is
     # the previous/next MRMS files we will be using.
-    next_mrms_date = d_current
+    #next_mrms_date = d_current
     prev_mrms_date = d_current - datetime.timedelta(hours=1)
+    next_mrms_date = prev_mrms_date
 
     # Set the input file frequency to be hourly.
     supplemental_precip.input_frequency = 60.0
@@ -2170,7 +2163,8 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
     """
     if d_current > config_options.e_date_proc - datetime.timedelta(hours=7):
         #print(f"Using MRMS hour {d_current}")
-        _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+        #_find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+        supplemental_precip.ext_ana = "MRMS"
     else:
         #print(f"Using StageIV hour {d_current}")
         _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)

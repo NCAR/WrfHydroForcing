@@ -321,9 +321,10 @@ def regrid_ak_ext_ana_pcp(supplemental_precip, config_options, wrf_hydro_geo_met
         _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
         supplemental_precip.netcdf_var_names.pop()
     else: #MRMS
-        supplemental_precip.netcdf_var_names.append('MultiSensorQPE01H_0mabovemeansealevel')
-        regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
-        supplemental_precip.netcdf_var_names.pop()
+        #supplemental_precip.netcdf_var_names.append('MultiSensorQPE01H_0mabovemeansealevel')
+        #regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
+        #supplemental_precip.netcdf_var_names.pop()
+        pass
 
 
 def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):

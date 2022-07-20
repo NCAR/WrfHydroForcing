@@ -61,9 +61,10 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     if mpi_config.rank == 0:
         target_hh = Path(input_forcings.file_in2).stem[-4:-2]
         _,yyyymmddhh,*_ = Path(supplemental_precip.file_in2).stem.split('.')
-        beg_hh,end_hh,yyyymmdd = yyyymmddhh[-2:], str(int(yyyymmddhh[-2:])+6).zfill(2), yyyymmddhh[:-2]
-        date_iter = datetime.strptime(f"{yyyymmdd}{beg_hh}", '%Y%m%d%H')
+        #Stage IV files are initialized 6 hours ago
+        date_iter = datetime.strptime(f"{yyyymmddhh}", '%Y%m%d%H') - timedelta(hours=6)
         end_date = date_iter + timedelta(hours=6)
+        beg_hh,end_hh,yyyymmdd = date_iter.strftime('%H'), end_date.strftime('%H'), date_iter.strftime('%Y%m%d')
         #Advance the date_iter by 1 hour since the beginning of the Stage IV data in date range is excluded, the end is included
         #(begin_date,end_date]
         date_iter += timedelta(hours=1)
@@ -142,7 +143,7 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     
 
     if mpi_config.comm.Get_size() == 1 and test_enabled:
-        test_file = f"{config_options.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
+        test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
     
         test_file = f"{config_options.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
@@ -161,5 +162,5 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv) 
 
     if mpi_config.comm.Get_size() == 1 and test_enabled:
-        test_file = f"{config_options.scratch_dir}/stage_4_A_PCP_GDS5_SFC_acc6_disaggregation_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
+        test_file = f"{config_options.scratch_dir}/stage_4_acc6h_disaggregated_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
