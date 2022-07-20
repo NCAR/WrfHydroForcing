@@ -157,7 +157,7 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     supplemental_precip.regridded_precip2[:,:] = np.select([ana_all_zeros,
                                                             (ana_no_zeros | target_data_no_zeros)],
                                                            [1/6.0*supplemental_precip.regridded_precip2[:,:],
-                                                            supplemental_precip.regridded_precip2[:,:] * target_data/ana_sum],
+                                                            supplemental_precip.regridded_precip2[:,:] * np.clip(target_data/ana_sum,0,1)],
                                                            0)
     np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv) 
 
