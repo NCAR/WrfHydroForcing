@@ -2060,20 +2060,21 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         supplemental_precip.esmf_field_out.data
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Check for any RQI values below the threshold specified by the user.
-    # Set these values to global NDV.
-    try:
-        ind_filter = np.where(supplemental_precip.regridded_rqi2 < supplemental_precip.rqiThresh)
-        if len(ind_filter) > 0:
-            if mpi_config.rank == 0:
-                config_options.statusMsg = f"Removing {len(ind_filter)} MRMS cells below RQI threshold of {supplemental_precip.rqiThresh}"
-                err_handler.log_msg(config_options, mpi_config)
-        supplemental_precip.regridded_precip2[ind_filter] = config_options.globalNdv
-        del ind_filter
-    except (ValueError, AttributeError, KeyError, ArithmeticError) as npe:
-        config_options.errMsg = "Unable to run MRMS RQI threshold search: " + str(npe)
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+    if supplemental_precip.rqiMethod > 0:
+        # Check for any RQI values below the threshold specified by the user.
+        # Set these values to global NDV.
+        try:
+            ind_filter = np.where(supplemental_precip.regridded_rqi2 < supplemental_precip.rqiThresh)
+            if len(ind_filter) > 0:
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = f"Removing {len(ind_filter)} MRMS cells below RQI threshold of {supplemental_precip.rqiThresh}"
+                    err_handler.log_msg(config_options, mpi_config)
+            supplemental_precip.regridded_precip2[ind_filter] = config_options.globalNdv
+            del ind_filter
+        except (ValueError, AttributeError, KeyError, ArithmeticError) as npe:
+            config_options.errMsg = "Unable to run MRMS RQI threshold search: " + str(npe)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
     # Convert the hourly precipitation total to a rate of mm/s
     try:
