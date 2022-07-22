@@ -645,14 +645,14 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -960,13 +960,13 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + \
-            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + \
-            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
 
@@ -1283,6 +1283,9 @@ def find_cfsv2_neighbors(input_forcings, config_options, d_current, mpi_config):
         prev_cfs_date = next_cfs_date
 
     # Calculate expected file paths.
+    if input_forcings.fileType == 'GRIB2':
+        input_forcings.file_ext = '.grb2'
+
     tmp_file1 = input_forcings.inDir + "/cfs." + \
         current_cfs_cycle.strftime('%Y%m%d') + "/" + \
         current_cfs_cycle.strftime('%H') + "/" + \
@@ -1534,14 +1537,12 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     elif supplemental_precip.keyValue == 10:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    "MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass2/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    "MultiSensor_QPE_01H_Pass2_00.00_" + \
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
