@@ -122,7 +122,10 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                    model_init_time = ConfigOptions.current_fcst_cycle
+                    if ConfigOptions.ana_flag == 1:
+                        model_init_time -= datetime.timedelta(seconds=ConfigOptions.output_freq * 60)
+                    idOut.model_initialization_time = model_init_time.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
