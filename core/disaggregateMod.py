@@ -142,23 +142,18 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     err_handler.check_program_status(config_options, mpi_config)
     
 
+    disagg_factors = np.select([ana_all_zeros,(ana_no_zeros | target_data_no_zeros)],
+              [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),np.clip(target_data/ana_sum,0,1)],
+              0)
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
     
         test_file = f"{config_options.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
-        np.savetxt(test_file,np.nan_to_num(np.select([ana_all_zeros,
-                                                      (ana_no_zeros | target_data_no_zeros)],
-                                                     [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),
-                                                      target_data/ana_sum],
-                                                     0),nan=config_options.globalNdv))
+        np.savetxt(test_file,disagg_factors)
 
     #supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
-    supplemental_precip.regridded_precip2[:,:] = np.select([ana_all_zeros,
-                                                            (ana_no_zeros | target_data_no_zeros)],
-                                                           [1/6.0*supplemental_precip.regridded_precip2[:,:],
-                                                            supplemental_precip.regridded_precip2[:,:] * np.clip(target_data/ana_sum,0,1)],
-                                                           0)
+    supplemental_precip.regridded_precip2[:,:] *= disagg_factors
     np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv) 
 
     if mpi_config.comm.Get_size() == 1 and test_enabled:
