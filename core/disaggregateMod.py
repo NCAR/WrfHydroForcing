@@ -42,6 +42,8 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
         return
             
     if supplemental_precip.ext_ana != "STAGE4":
+        #Just copy RAINRATE straight over into the output
+        supplemental_precip.regridded_precip2[:,:] = input_forcings.regridded_forcings2[3,:,:]
         if mpi_config.rank == 0:
             config_options.statusMsg = f"Bypassing ext_ana_disaggregation routine due to supplemental_precip.ext_ana = {supplemental_precip.ext_ana}"
             err_handler.log_warning(config_options, mpi_config)
