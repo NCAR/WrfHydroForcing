@@ -39,6 +39,7 @@ class ConfigOptions:
         self.useCompression = 0
         self.useFloats = 0
         self.num_output_steps = None
+        self.actual_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
         self.refcst_flag = None
@@ -332,6 +333,7 @@ class ConfigOptions:
             # Calculate the number of output time steps
             dt_tmp = self.e_date_proc - self.b_date_proc
             self.num_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.output_freq)
+            self.actual_output_steps = self.num_output_steps
 
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
@@ -532,6 +534,7 @@ class ConfigOptions:
                                            'maximum of the forecast time horizons specified.')
             # Calculate the number of output time steps per forecast cycle.
             self.num_output_steps = int(self.cycle_length_minutes / self.output_freq)
+            self.actual_output_steps = self.num_output_steps
 
         # Process geospatial information
         try:
