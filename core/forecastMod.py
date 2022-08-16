@@ -47,6 +47,10 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         else:
             fcstCycleOutDir = ConfigOptions.output_dir + "/" + ConfigOptions.current_fcst_cycle.strftime('%Y%m%d%H')
 
+        # reset skips if present
+        for forceKey in ConfigOptions.input_forcings:
+            inputForcingMod[forceKey].skip = False
+
         # put all AnA output in the same directory
         if ConfigOptions.ana_flag:
             if ConfigOptions.ana_out_dir is None:
@@ -116,6 +120,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         # 4.) Downscale.
         # 5.) Layer, and output as necessary.
         ana_factor = 1 if ConfigOptions.ana_flag is False else 0
+        show_message = True
         for outStep in range(1, ConfigOptions.num_output_steps + 1):
             # Reset out final grids to missing values.
             OutputObj.output_local[:, :, :] = -9999.0
@@ -139,7 +144,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                 ConfigOptions.prev_output_date = ConfigOptions.current_output_date - datetime.timedelta(
                         seconds=ConfigOptions.output_freq * 60
                 )
-            if MpiConfig.rank == 0:
+            if MpiConfig.rank == 0 and show_message:
                 ConfigOptions.statusMsg = '========================================='
                 err_handler.log_msg(ConfigOptions, MpiConfig)
                 ConfigOptions.statusMsg = "Processing for output timestep: " + \
@@ -169,6 +174,11 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                     # Calculate the previous and next input cycle files from the inputs.
                     input_forcings.calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+                    # break loop if done early
+                    if input_forcings.skip is True:
+                        show_message = False            # just to avoid confusion
+                        break
 
                     # Regrid forcings.
                     input_forcings.regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
@@ -219,45 +229,46 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
                     if forceKey == 10:
                         ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
-
-                # Process supplemental precipitation if we specified in the configuration file.
-                if ConfigOptions.number_supp_pcp > 0:
-                    for suppPcpKey in ConfigOptions.supp_precip_forcings:
-                        # Like with input forcings, calculate the neighboring files to use.
-                        suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
-                        err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-                        # Regrid the supplemental precipitation.
-                        suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
-                        err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-                        if suppPcpMod[suppPcpKey].regridded_precip1 is not None \
-                                and suppPcpMod[suppPcpKey].regridded_precip2 is not None:
-                            # if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
-                            #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
-                            # Run check on regridded fields for reasonable values that are not missing values.
-                            err_handler.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
+                
+                else:
+                    # Process supplemental precipitation if we specified in the configuration file.
+                    if ConfigOptions.number_supp_pcp > 0:
+                        for suppPcpKey in ConfigOptions.supp_precip_forcings:
+                            # Like with input forcings, calculate the neighboring files to use.
+                            suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                            disaggregate_fun(input_forcings, suppPcpMod[suppPcpKey], ConfigOptions, MpiConfig)
+                            # Regrid the supplemental precipitation.
+                            suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                            # Run temporal interpolation on the grids.
-                            suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
-                            err_handler.check_program_status(ConfigOptions, MpiConfig)
+                            if suppPcpMod[suppPcpKey].regridded_precip1 is not None \
+                                    and suppPcpMod[suppPcpKey].regridded_precip2 is not None:
+                                # if np.any(suppPcpMod[suppPcpKey].regridded_precip1) and \
+                                #        np.any(suppPcpMod[suppPcpKey].regridded_precip2):
+                                # Run check on regridded fields for reasonable values that are not missing values.
+                                err_handler.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
+                                err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                            # Layer in the supplemental precipitation into the current output object.
-                            layeringMod.layer_supplemental_forcing(OutputObj, suppPcpMod[suppPcpKey],
-                                                                   ConfigOptions, MpiConfig)
-                            err_handler.check_program_status(ConfigOptions, MpiConfig)
+                                disaggregate_fun(input_forcings, suppPcpMod[suppPcpKey], ConfigOptions, MpiConfig)
+                                err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                # Call the output routines
-                #   adjust date for AnA if necessary
-                if ConfigOptions.ana_flag:
-                    OutputObj.outDate = file_date
+                                # Run temporal interpolation on the grids.
+                                suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
+                                err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-                OutputObj.output_final_ldasin(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
-                err_handler.check_program_status(ConfigOptions, MpiConfig)
+                                # Layer in the supplemental precipitation into the current output object.
+                                layeringMod.layer_supplemental_forcing(OutputObj, suppPcpMod[suppPcpKey],
+                                                                    ConfigOptions, MpiConfig)
+                                err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+                    # Call the output routines
+                    #   adjust date for AnA if necessary
+                    if ConfigOptions.ana_flag:
+                        OutputObj.outDate = file_date
+
+                    OutputObj.output_final_ldasin(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
+                    err_handler.check_program_status(ConfigOptions, MpiConfig)
 
         if (not ConfigOptions.ana_flag) or (fcstCycleNum == (ConfigOptions.nFcsts - 1)):
             if MpiConfig.rank == 0:

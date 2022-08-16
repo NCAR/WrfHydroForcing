@@ -2,6 +2,7 @@
 # calculations in the forcing engine.
 import datetime
 import math
+from operator import truediv
 import os
 
 import numpy as np
@@ -560,6 +561,11 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
     :param mpi_config:
     :return:
     """
+
+    # skip processing if flag set
+    if input_forcings.skip is True:
+        return
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing Conus HRRR AK Data. Calculating neighboring " \
                                    "files for this output timestep"
@@ -591,23 +597,19 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
         # throw out the first 3 hours of the cycle
         current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
+
+        current_hrrr_cycle -= datetime.timedelta(hours=current_hrrr_hour)
     
-    #if current_hrrr_cycle.hour % 6 == 0:
-    #    hrrr_horizon = 48
-    #else:
-    #    hrrr_horizon = 18
-    hrrr_horizon = 48
+    if current_hrrr_cycle.hour % 6 == 0:
+        hrrr_horizon = 48
+    else:
+        hrrr_horizon = 18
 
     # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
-
-    # If the user has specified a forcing horizon that is greater than what is available
-    # for this time period, throw an error.
-    spec_horizon = (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0
-    if spec_horizon > hrrr_horizon:
-        config_options.errMsg = f"User has specified a HRRR Alaska forecast horizon {spec_horizon} " + \
-                                f"that is greater than the maximum allowed hours of: {hrrr_horizon}"
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+    
+    # adjust horizon for this cycle
+    max_hours = hrrr_horizon - current_hrrr_hour
+    config_options.actual_output_steps = max_hours
 
     # Calculate the previous file to process.
     min_since_last_output = (current_hrrr_hour * 60) % 60
@@ -640,6 +642,11 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
     # no interpolation is required.
     if prev_hrrr_forecast_hour == 0:
         prev_hrrr_forecast_hour = 1
+
+    # Exit early if we're out of input data
+    if next_hrrr_forecast_hour > hrrr_horizon:
+        input_forcings.skip = True
+        return
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(

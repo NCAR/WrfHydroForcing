@@ -104,6 +104,7 @@ class input_forcings:
         self.regridded_precip1 = None
         self.regridded_precip2 = None
         self.border = None
+        self.skip = False
 
     def define_product(self):
         """
