@@ -1,9 +1,7 @@
 #!/bin/bash
 
-begin=20210902
-end=20210926
-#begin=20210903
-#end=20210903
+begin=20220725
+end=20220731
 
 while [ "$begin" -le "$end" ]; do
     next=$(date +%Y%m%d --date="$begin + 1 day")

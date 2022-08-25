@@ -143,10 +143,14 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     target_data_no_zeros = mpi_config.scatter_array(input_forcings, target_data_no_zeros, config_options)
     err_handler.check_program_status(config_options, mpi_config)
     
-
+    orig_err_settings = np.geterr()
+    #Ignore Warning: RuntimeWarning: invalid value encountered in true_divide
+    np.seterr(invalid='ignore')
     disagg_factors = np.select([ana_all_zeros,(ana_no_zeros | target_data_no_zeros)],
               [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),np.clip(target_data/ana_sum,0,1)],
               0)
+    np.seterr(**orig_err_settings)
+
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
