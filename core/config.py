@@ -97,6 +97,7 @@ class ConfigOptions:
         self.errFlag = 0
         self.nwmVersion = None
         self.nwmConfig = None
+        self.include_lqfraq = False
 
     def read_config(self):
         """
@@ -262,6 +263,20 @@ class ConfigOptions:
             err_handler.err_out_screen('Improper floatOutput value: {}'.format(config['Output']['floatOutput']))
         if self.useFloats < 0 or self.useFloats > 1:
             err_handler.err_out_screen('Please choose a floatOutput value of 0 or 1.')
+
+        # Read in lqfrac option
+        try:
+            self.include_lqfraq = int(config['Output'].get('includeLQFraq', 0))
+        except KeyError:
+            # err_handler.err_out_screen('Unable to locate includeLQFraq in the configuration file.')
+            self.include_lqfraq = 0
+        except configparser.NoOptionError:
+            # err_handler.err_out_screen('Unable to locate includeLQFraq in the configuration file.')
+            self.useFinclude_lqfraqloats = 0
+        except ValueError:
+            err_handler.err_out_screen('Improper includeLQFraq value: {}'.format(config['Output']['includeLQFraq']))
+        if self.include_lqfraq < 0 or self.include_lqfraq > 1:
+            err_handler.err_out_screen('Please choose a includeLQFraq value of 0 or 1.')
 
         # Read in retrospective options
         try:
