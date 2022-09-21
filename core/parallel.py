@@ -121,7 +121,7 @@ class MpiConfig:
                    geoMeta.x_lower_bound:geoMeta.x_upper_bound]
         return arraySub
 
-    def scatter_array_scatterv_no_cache(self,geoMeta,src_array,ConfigOptions):
+    def scatter_array_scatterv_no_cache(self, geoMeta, src_array, ConfigOptions):
         """
             Generic function for calling scatter functons based on
             the input dataset type.

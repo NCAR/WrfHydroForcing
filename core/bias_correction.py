@@ -3,6 +3,7 @@ Module file for incorporating bias correction for various input
 forcing variables. Calling tree will be guided based on user-specified
 options.
 """
+from functools import partial
 import math
 from math import tau as TWO_PI
 import os
@@ -11,6 +12,7 @@ import time
 
 import numpy as np
 from netCDF4 import Dataset
+from core.conus404_bias_correction import conus404_daymet_precip_bias_correction, conus404_daymet_temp_bias_correction
 
 from core import err_handler
 
@@ -42,7 +44,8 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
         1: cfsv2_nldas_nwm_bias_correct,
         2: ncar_tbl_correction,
         3: ncar_temp_gfs_bias_correct,
-        4: ncar_temp_hrrr_bias_correct
+        4: ncar_temp_hrrr_bias_correct,
+        5: partial(conus404_daymet_temp_bias_correction, geo_meta=geo_meta_wrf_hydro)
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
     err_handler.check_program_status(config_options, mpi_config)
@@ -105,7 +108,8 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
     # Dictionary for mapping to precipitation bias correction.
     bias_correct_precip = {
         0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        1: cfsv2_nldas_nwm_bias_correct,
+        2: partial(conus404_daymet_precip_bias_correction, geo_meta=geo_meta_wrf_hydro)
     }
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings, config_options, mpi_config, 4)
     err_handler.check_program_status(config_options, mpi_config)

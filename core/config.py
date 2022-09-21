@@ -839,7 +839,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 4:
+            if optTmp < 0 or optTmp > 5:
                 err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
                                            'configuration file.')
 
@@ -972,7 +972,7 @@ class ConfigOptions:
                                        'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.precipBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
+            if optTmp < 0 or optTmp > 2:
                 err_handler.err_out_screen('Invalid PrecipBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
                 # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
