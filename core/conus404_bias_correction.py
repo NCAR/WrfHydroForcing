@@ -31,6 +31,17 @@ def jday_for_date(in_date):
 
     return jday, adjusted
 
+def zoom(a, n):
+    zoomed = np.empty(shape=[e*n for e in a.shape], dtype=a.dtype)
+    for i in range(a.shape[0]):
+        base_i = i * n
+        for j in range(a.shape[1]):
+            base_j = j * n
+            for ii in range(n):
+                for jj in range(n):
+                    zoomed[base_i+ii, base_j+jj] = a[i, j]
+
+    return zoomed
 
 def apply_daymet_bias_correction(input_forcings, config_options, mpi_config, force_num, geo_meta, description, variable, operator):
     '''
