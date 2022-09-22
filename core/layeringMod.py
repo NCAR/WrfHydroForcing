@@ -19,18 +19,13 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
-    # Loop through the 8 forcing products to layer in:
-    # 0.) U-Wind (m/s)
-    # 1.) V-Wind (m/s)
-    # 2.) Surface incoming longwave radiation flux (W/m^2)
-    # 3.) Precipitation rate (mm/s)
-    # 4.) 2-meter temperature (K)
-    # 5.) 2-meter specific humidity (kg/kg)
-    # 6.) Surface pressure (Pa)
-    # 7.) Surface incoming shortwave radiation flux (W/m^2)
+    OutputEnum = ConfigOptions.OutputEnum
+    # Loop through the forcing products to layer in
 
-    for force_idx in range(0,8):
-        if force_idx in input_forcings.input_map_output:
+    for force_id in OutputEnum: #len of OutputEnum class
+        force_name = force_id.name
+        if force_name in input_forcings.input_map_output:
+            force_idx = input_forcings.input_map_output.index(force_name)
             outLayerCurrent = OutputObj.output_local[force_idx,:,:]
             layerIn = input_forcings.final_forcings[force_idx,:,:]
             indSet = np.where(layerIn != ConfigOptions.globalNdv)
@@ -53,9 +48,17 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
     :param MpiConfig:
     :return:
     """
+
+    OutputEnum = ConfigOptions.OutputEnum
     indSet = np.where(supplemental_precip.final_supp_precip != ConfigOptions.globalNdv)
     layerIn = supplemental_precip.final_supp_precip
-    layerOut = OutputObj.output_local[supplemental_precip.output_var_idx, :, :]
+    for ind, xvar in enumerate(OutputEnum):
+        if xvar.name == supplemental_precip.output_var_idx:
+            outId = ind
+            break
+        
+    
+    layerOut = OutputObj.output_local[outId, :, :]
 
     #TODO: review test layering for ExtAnA calculation to replace FE QPE with MPE RAINRATE
     #If this isn't sufficient, replace QPE with MPE here:
@@ -70,5 +73,5 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
         layerOut = layerOut
 
     # TODO: test that even does anything...?s
-    OutputObj.output_local[supplemental_precip.output_var_idx, :, :] = layerOut
+    OutputObj.output_local[outId, :, :] = layerOut
 

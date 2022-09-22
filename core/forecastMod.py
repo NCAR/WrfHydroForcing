@@ -169,15 +169,12 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                     # Calculate the previous and next input cycle files from the inputs.
                     input_forcings.calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # Regrid forcings.
                     input_forcings.regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # Run check on regridded fields for reasonable values that are not missing values.
                     err_handler.check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # If we are restarting a forecast cycle, re-calculate the neighboring files, and regrid the
                     # next set of forcings as the previous step just regridded the previous forcing.
                     if input_forcings.rstFlag == 1:
@@ -186,47 +183,39 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             # Set the forcings back to reflect we just regridded the previous set of inputs, not the next.
                             input_forcings.regridded_forcings1[:, :, :] = \
                                 input_forcings.regridded_forcings2[:, :, :]
-
                         # Re-calculate the neighbor files.
                         input_forcings.calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                         # Regrid the forcings for the end of the window.
                         input_forcings.regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                         input_forcings.rstFlag = 0
-
                     # Run temporal interpolation on the grids.
                     input_forcings.temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # Run bias correction.
                     bias_correction.run_bias_correction(input_forcings, ConfigOptions,
                                                         wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # Run downscaling on grids for this output timestep.
                     downscale.run_downscaling(input_forcings, ConfigOptions,
                                               wrfHydroGeoMeta, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                     # Layer in forcings from this product.
                     layeringMod.layer_final_forcings(OutputObj, input_forcings, ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
                     ConfigOptions.currentForceNum = ConfigOptions.currentForceNum + 1
 
-                    if forceKey == 10:
+                    if forceKey == "CUSTOM_1":
                         ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
-
                 # Process supplemental precipitation if we specified in the configuration file.
                 if ConfigOptions.number_supp_pcp > 0:
                     for suppPcpKey in ConfigOptions.supp_precip_forcings:
                         # Like with input forcings, calculate the neighboring files to use.
                         suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                         # Regrid the supplemental precipitation.
                         suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                         err_handler.check_program_status(ConfigOptions, MpiConfig)
@@ -238,14 +227,11 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             # Run check on regridded fields for reasonable values that are not missing values.
                             err_handler.check_supp_pcp_bounds(ConfigOptions, suppPcpMod[suppPcpKey], MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                             disaggregate_fun(input_forcings, suppPcpMod[suppPcpKey], ConfigOptions, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                             # Run temporal interpolation on the grids.
                             suppPcpMod[suppPcpKey].temporal_interpolate_inputs(ConfigOptions, MpiConfig)
                             err_handler.check_program_status(ConfigOptions, MpiConfig)
-
                             # Layer in the supplemental precipitation into the current output object.
                             layeringMod.layer_supplemental_forcing(OutputObj, suppPcpMod[suppPcpKey],
                                                                    ConfigOptions, MpiConfig)
