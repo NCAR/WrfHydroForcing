@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.ma as ma
 import mpi4py
 mpi4py.rc.threaded = False
 from mpi4py import MPI
@@ -194,7 +195,7 @@ class MpiConfig:
             # fill the send buffer
             for i in range(0,self.size):
                 start = offsets[i]
-                stop  = offsets[i]+counts[i]
+                stop = offsets[i]+counts[i]
                 sendbuf[start:stop] = src_array[y_lower[i]:y_upper[i],
                                                 x_lower[i]:x_upper[i]].flatten()
         else:
@@ -203,8 +204,8 @@ class MpiConfig:
         #create the recvbuffer
         if data_type_flag == 1:
             data_type = MPI.FLOAT
-            recvbuf=np.empty([counts[self.rank]],np.float32)
-        elif data_type_flag == 3: 
+            recvbuf = np.empty([counts[self.rank]], np.float32)
+        elif data_type_flag == 3:
             data_type = MPI.BOOL
             recvbuf = np.empty([counts[self.rank]], np.bool)
         else:
@@ -213,13 +214,13 @@ class MpiConfig:
 
         #scatter the data
         try:
-            self.comm.Scatterv( [sendbuf, counts, offsets, data_type], recvbuf, root=0)
+            self.comm.Scatterv([sendbuf, counts, offsets, data_type], recvbuf, root=0)
         except:
             ConfigOptions.errMsg = "Failed Scatterv from rank 0"
             err_handler.error_out(ConfigOptions)
             return None
 
-        subarray = np.reshape(recvbuf,[y_upper[self.rank] -y_lower[self.rank],x_upper[self.rank]- x_lower[self.rank]]).copy()
+        subarray = np.reshape(recvbuf, [y_upper[self.rank] - y_lower[self.rank], x_upper[self.rank] - x_lower[self.rank]]).copy()
         return subarray
 
     # use scatterv based scatter_array
