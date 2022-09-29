@@ -2241,8 +2241,15 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     if prev_nbm_forecast_hour == 0:
         prev_nbm_forecast_hour = 1
 
+    # if Alaska, shift to previous cycle and add 3 hours to forecast ('f')
+    if supplemental_precip.keyValue == 9:                       # ALASKA
+        current_nbm_cycle -= datetime.timedelta(hours=3)
+        next_nbm_forecast_hour += 3
+        supplemental_precip.fcst_hour1 += 3
+        supplemental_precip.fcst_hour2 += 3
+
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 8:
+    if supplemental_precip.keyValue == 8:                       # CONUS
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2255,7 +2262,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 9:
+    elif supplemental_precip.keyValue == 9:                     # ALASKA
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2272,8 +2279,8 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         tmp_file1 = tmp_file2 = ""
 
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
-        err_handler.log_msg(config_options, mpi_config)
+        # config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
+        # err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next NBM supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
