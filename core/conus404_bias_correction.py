@@ -25,16 +25,18 @@ def apply_daymet_bias_correction(input_forcings, config_options, mpi_config, for
 
     if mpi_config.rank == 0:
         # determine day-of-year
-        jday = input_forcings.fcst_date2.timetuple().tm_yday
+        jday = input_forcings.fcst_date1.timetuple().tm_yday
 
         # adjust as necessary for leap year
-        is_leap_year = datetime(jday, 12, 31).timetuple().tm_yday == 366
-        if not is_leap_year and jday >= 60:
+        adjusted = False
+        leap_year = datetime(input_forcings.fcst_date1.year, 12, 31).timetuple().tm_yday == 366
+        if (not leap_year) and jday >= 60:
+            adjusted = True
             jday -= 1
 
         if mpi_config.rank == 0:
             config_options.statusMsg = f"Performing CONUS404/Daymet {description} bias corrrection " \
-                                       f"for day {jday} of year {input_forcings.fcst_date2.year}"
+                                       f"for day {jday + 1 if adjusted else jday} of year {input_forcings.fcst_date1.year}"
             err_handler.log_msg(config_options, mpi_config)
 
         # open appropriate offset file
