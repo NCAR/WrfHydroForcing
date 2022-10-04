@@ -48,12 +48,6 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-    #Special case for HRRR AK when we don't need/want more than one forecast cycle
-    if 19 in config_options.input_forcings:
-        n_fcst_steps = 0
-        config_options.nFcsts = int(n_fcst_steps) + 1
-        config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(seconds=config_options.look_back*60-config_options.fcst_freq*60)
-        return 
 
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
@@ -700,17 +694,17 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
         current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
 
         current_hrrr_cycle -= datetime.timedelta(hours=current_hrrr_hour)
-    
+
     if current_hrrr_cycle.hour % 6 == 0:
         hrrr_horizon = 48
     else:
         hrrr_horizon = 18
 
     # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
-    
+
     # adjust horizon for this cycle
-    max_hours = hrrr_horizon - current_hrrr_hour
-    config_options.actual_output_steps = max_hours
+    # max_hours = hrrr_horizon - current_hrrr_hour
+    # config_options.actual_output_steps = max_hours
 
     # Calculate the previous file to process.
     min_since_last_output = (current_hrrr_hour * 60) % 60
@@ -751,14 +745,14 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "//hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "//hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
