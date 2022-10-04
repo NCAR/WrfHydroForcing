@@ -278,6 +278,23 @@ class ConfigOptions:
         if self.include_lqfraq < 0 or self.include_lqfraq > 1:
             err_handler.err_out_screen('Please choose a includeLQFraq value of 0 or 1.')
 
+        # Read AnA flag option
+        try:
+            # check both the Forecast section and if it's not there, the old BiasCorrection location
+            self.ana_flag = config['Forecast'].get('AnAFlag', config['BiasCorrection'].get('AnAFlag'))
+            if self.ana_flag is None:
+                raise KeyError
+            else:
+                self.ana_flag = int(self.ana_flag)
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
+        except ValueError:
+            err_handler.err_out_screen('Improper AnAFlag value ')
+        if self.ana_flag < 0 or self.ana_flag > 1:
+            err_handler.err_out_screen('Please choose a AnAFlag value of 0 or 1.')
+
         # Read in retrospective options
         try:
             self.retro_flag = int(config['Retrospective']['RetroFlag'])
@@ -348,7 +365,10 @@ class ConfigOptions:
             # Calculate the number of output time steps
             dt_tmp = self.e_date_proc - self.b_date_proc
             self.num_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.output_freq)
-            self.actual_output_steps = self.num_output_steps
+            if self.ana_flag:
+                self.actual_output_steps = np.int32(self.nFcsts)
+            else:
+                self.actual_output_steps = np.int32(self.num_output_steps)
 
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
@@ -549,7 +569,10 @@ class ConfigOptions:
                                            'maximum of the forecast time horizons specified.')
             # Calculate the number of output time steps per forecast cycle.
             self.num_output_steps = int(self.cycle_length_minutes / self.output_freq)
-            self.actual_output_steps = self.num_output_steps
+            if self.ana_flag:
+                self.actual_output_steps = np.int32(self.nFcsts)
+            else:
+                self.actual_output_steps = np.int32(self.num_output_steps)
 
         # Process geospatial information
         try:
@@ -791,23 +814,6 @@ class ConfigOptions:
             pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
 
         #   * Bias Correction Options *
-
-        # Read AnA flag option
-        try:
-            # check both the Forecast section and if it's not there, the old BiasCorrection location
-            self.ana_flag = config['Forecast'].get('AnAFlag', config['BiasCorrection'].get('AnAFlag'))
-            if self.ana_flag is None:
-                raise KeyError
-            else:
-                self.ana_flag = int(self.ana_flag)
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
-        except ValueError:
-            err_handler.err_out_screen('Improper AnAFlag value ')
-        if self.ana_flag < 0 or self.ana_flag > 1:
-            err_handler.err_out_screen('Please choose a AnAFlag value of 0 or 1.')
 
         # Read in temperature bias correction options
         try:
