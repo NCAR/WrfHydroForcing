@@ -2205,6 +2205,10 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     current_nbm_cycle = config_options.current_fcst_cycle - \
         datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
 
+    # if Alaska, shift to previous cycle and add 3 hours to forecast ('f') if using all NBM precip
+    if supplemental_precip.keyValue == 9:
+        current_nbm_cycle -= datetime.timedelta(hours=3)
+
     # Calculate the current forecast hour within this NBM cycle.
     dt_tmp = d_current - current_nbm_cycle
     current_nbm_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
@@ -2240,13 +2244,6 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     # no interpolation is required.
     if prev_nbm_forecast_hour == 0:
         prev_nbm_forecast_hour = 1
-
-    # if Alaska, shift to previous cycle and add 3 hours to forecast ('f')
-    if supplemental_precip.keyValue == 9:                       # ALASKA
-        current_nbm_cycle -= datetime.timedelta(hours=3)
-        next_nbm_forecast_hour += 3
-        supplemental_precip.fcst_hour1 += 3
-        supplemental_precip.fcst_hour2 += 3
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 8:                       # CONUS
