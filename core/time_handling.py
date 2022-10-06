@@ -2299,6 +2299,10 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     current_nbm_cycle = config_options.current_fcst_cycle - \
         datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
 
+    # if Alaska, shift to previous cycle and add 3 hours to forecast ('f') if using all NBM precip
+    if supplemental_precip.keyValue == 9:
+        current_nbm_cycle -= datetime.timedelta(hours=3)
+
     # Calculate the current forecast hour within this NBM cycle.
     dt_tmp = d_current - current_nbm_cycle
     current_nbm_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
@@ -2336,7 +2340,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         prev_nbm_forecast_hour = 1
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 8:
+    if supplemental_precip.keyValue == 8:                       # CONUS
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2349,7 +2353,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 9:
+    elif supplemental_precip.keyValue == 9:                     # ALASKA
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2366,8 +2370,8 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         tmp_file1 = tmp_file2 = ""
 
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
-        err_handler.log_msg(config_options, mpi_config)
+        # config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
+        # err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next NBM supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
