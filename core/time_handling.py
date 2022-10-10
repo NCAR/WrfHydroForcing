@@ -2183,10 +2183,10 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     :return:
     """
     nbm_out_freq = {
-    36: 60,
-    240: 360
+        36: 60,
+        240: 360
     }
-        
+
     # First we need to find the nearest previous and next hour, which is
     # the previous/next NBM files we will be using.
     current_yr = d_current.year
@@ -2194,13 +2194,13 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     current_day = d_current.day
     current_hr = d_current.hour
     current_min = d_current.minute
- 
+
     # First find the current NBM forecast cycle that we are using.
     current_nbm_cycle = config_options.current_fcst_cycle - \
         datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
 
-    # if Alaska, shift to previous cycle and add 3 hours to forecast ('f') if using all NBM precip
-    if supplemental_precip.keyValue == 9:
+    # if Alaska SR, shift to previous cycle and add 3 hours to forecast ('f') if using all NBM precip
+    if config_options.fcst_freq == 180 and supplemental_precip.keyValue == 9:
         current_nbm_cycle -= datetime.timedelta(hours=3)
 
     # Calculate the current forecast hour within this NBM cycle.
@@ -2212,7 +2212,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         supplemental_precip.input_frequency = 60.0
     else:
         supplemental_precip.input_frequency = 360.0
-            
+
     # Calculate the previous file to process.
     min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
     if min_since_last_output == 0:
