@@ -644,14 +644,14 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "//hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "//hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
