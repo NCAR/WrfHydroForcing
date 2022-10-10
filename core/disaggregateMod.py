@@ -151,9 +151,6 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
               0)
     np.seterr(**orig_err_settings)
 
-    disagg_factors = np.select([ana_all_zeros,(ana_no_zeros | target_data_no_zeros)],
-              [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),np.clip(target_data/ana_sum,0,1)],
-              0)
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
