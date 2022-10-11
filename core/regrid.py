@@ -2622,15 +2622,17 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
         return
 
     nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
-    if os.path.isfile(nbm_tmp_nc):
-        config_options.statusMsg = "Found old temporary file: " + \
-        						   nbm_tmp_nc + " - Removing....."
-        err_handler.log_warning(config_options, mpi_config)
-        try:
-            os.remove(nbm_tmp_nc)
-        except OSError:
-            config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
-            err_handler.log_critical(config_options, mpi_config)
+    if mpi_config.rank == 0:
+        if os.path.isfile(nbm_tmp_nc):
+            config_options.statusMsg = "Found old temporary file: " + \
+                                    nbm_tmp_nc + " - Removing....."
+            err_handler.log_warning(config_options, mpi_config)
+            try:
+                os.remove(nbm_tmp_nc)
+            except OSError:
+                config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
+                err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # Perform a GRIB dump to NetCDF for the precip data.
     fieldnbm_match1 = "\":APCP:\""
