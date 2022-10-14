@@ -276,7 +276,7 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
     # Convert the 6-hourly precipitation total to a rate of mm/s
     try:
         ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
-        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 21600.0
+        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
         del ind_valid
     except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
         config_options.errMsg = "Unable to run NDV search on STAGE IV supplemental precipitation: " + str(npe)
