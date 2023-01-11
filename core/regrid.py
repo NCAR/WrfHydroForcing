@@ -3089,6 +3089,7 @@ def calculate_weights(id_tmp, lat_var, lon_var, force_count, input_forcings, con
                                                    src_mask_values=np.array([0, config_options.globalNdv]),
                                                    regrid_method=ESMF.RegridMethod.BILINEAR,
                                                    unmapped_action=ESMF.UnmappedAction.IGNORE,
+                                                   extrap_method=ESMF.ExtrapMethod.CREEP_FILL,
                                                    filename=weight_file)
             end = time.monotonic()
 
