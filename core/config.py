@@ -62,6 +62,7 @@ class ConfigOptions:
         self.process_window = None
         self.geogrid = None
         self.spatial_meta = None
+        self.grid_meta = None
         self.ignored_border_widths = None
         self.regrid_opt = None
         self.weightsDir = None
@@ -276,7 +277,7 @@ class ConfigOptions:
         except ValueError:
             err_handler.err_out_screen('Improper includeLQFraq value: {}'.format(config['Output']['includeLQFraq']))
         if self.include_lqfraq < 0 or self.include_lqfraq > 1:
-            err_handler.err_out_screen('Please choose a includeLQFraq value of 0 or 1.')
+            err_handler.err_out_screen('Please choose an includeLQFraq value of 0 or 1.')
 
         # Read AnA flag option
         try:
@@ -596,6 +597,17 @@ class ConfigOptions:
             if not os.path.isfile(self.spatial_meta):
                 err_handler.err_out_screen('Unable to locate optional spatial metadata file: ' +
                                            self.spatial_meta)
+        # Check for the optional grid metadata file.
+        try:
+            self.grid_meta = config['Geospatial'].get('GridMeta', '')
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate Geospatial section  in the configuration file.')
+        if len(self.grid_meta) == 0:
+            # No spatial metadata file found.
+            self.grid_meta = None
+        else:
+            if not os.path.isfile(self.grid_meta):
+                err_handler.err_out_screen('Unable to locate optional grid metadata file: ' + self.grid_meta)
 
         # Check for the IgnoredBorderWidths
         try:
