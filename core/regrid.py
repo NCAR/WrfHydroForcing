@@ -2691,7 +2691,7 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
                 if mpi_config.rank == 0:
                     config_options.statusMsg = f"Calculating NBM {tag} regridding weights."
                     err_handler.log_msg(config_options, mpi_config)
-                calculate_weights(id_tmp, force_count, forcings_or_precip, config_options, mpi_config)
+                calculate_weights(id_tmp, force_count, forcings_or_precip, config_options, mpi_config, fill=True)
                 err_handler.check_program_status(config_options, mpi_config)
 
                 # Regrid the height variable.
@@ -2982,7 +2982,7 @@ def check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options, wr
 
 
 def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_config,
-                      lat_var="latitude", lon_var="longitude"):
+                      lat_var="latitude", lon_var="longitude", fill=False):
     """
     Function to calculate ESMF weights based on the output ESMF
     field previously calculated, along with input lat/lon grids,
@@ -3193,12 +3193,14 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
             err_handler.log_msg(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
         try:
+            extrap_method = ESMF.ExtrapMethod.CREEP_FILL if fill else ESMF.ExtrapMethod.NONE
             begin = time.monotonic()
             input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                                    input_forcings.esmf_field_out,
                                                    src_mask_values=np.array([0, config_options.globalNdv]),
                                                    regrid_method=ESMF.RegridMethod.BILINEAR,
                                                    unmapped_action=ESMF.UnmappedAction.IGNORE,
+                                                   extrap_method=extrap_method,
                                                    filename=weight_file)
             end = time.monotonic()
 
