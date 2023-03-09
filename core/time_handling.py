@@ -2172,7 +2172,7 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
         _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
 
 
-def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mpi_config):
     """
     Function to calculate the previous and next NBM/CORE/CONUS files. This
     will also calculate the neighboring radar quality index (RQI) files as well.
@@ -2240,7 +2240,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         prev_nbm_forecast_hour = 1
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 8:                       # CONUS
+    if supplemental_precip.keyValue == 8 or supplemental_precip.keyValue == 21:   # CONUS
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2253,7 +2253,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 9:                     # ALASKA
+    elif supplemental_precip.keyValue == 9:                                       # ALASKA
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
