@@ -188,11 +188,34 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
     # be created through the wgrib2 process.
     stage4_tmp_nc = config_options.scratch_dir + "/STAGEIV_TMP-{}.nc".format(mkfilename())
 
-    create_link("STAGEIV-PCP", supplemental_precip.file_in2, stage4_tmp_nc, config_options, mpi_config)
+    lat_var = "latitude"
+    lon_var = "longitude"
+    
+    if supplemental_precip.fileType != NETCDF:
+        # This file shouldn't exist.... but if it does (previously failed
+        # execution of the program), remove it.....
+        if mpi_config.rank == 0:
+            if os.path.isfile(stage4_tmp_nc):
+                config_options.statusMsg = "Found old temporary file: " + stage4_tmp_nc + " - Removing....."
+                err_handler.log_warning(config_options, mpi_config)
+                try:
+                    os.remove(stage4_tmp_nc)
+                except OSError:
+                    config_options.errMsg = f"Unable to remove temporary file: {stage4_tmp_nc}"
+                    err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
-    lat_var = "g5_lat_0"
-    lon_var = "g5_lon_1"
-    id_tmp = ioMod.open_netcdf_forcing(stage4_tmp_nc, config_options, mpi_config, False, lat_var, lon_var)
+        # Create a temporary NetCDF file from the GRIB2 file.
+        cmd = f'$WGRIB2 -match "APCP:surface:0-6 hour acc fcst" {supplemental_precip.file_in2} -netcdf {stage4_tmp_nc}'
+        if mpi_config.rank == 0:
+            config_options.statusMsg = f"WGRIB2 command: {cmd}"
+            err_handler.log_msg(config_options, mpi_config)
+        id_tmp = ioMod.open_grib2(supplemental_precip.file_in2, stage4_tmp_nc, cmd,
+                                  config_options, mpi_config, inputVar=None)
+        err_handler.check_program_status(config_options, mpi_config)
+    else:
+        create_link("STAGEIV-PCP", supplemental_precip.file_in2, stage4_tmp_nc, config_options, mpi_config)
+        id_tmp = ioMod.open_netcdf_forcing(stage4_tmp_nc, config_options, mpi_config, False, lat_var, lon_var)
 
     # Check to see if we need to calculate regridding weights.
     calc_regrid_flag = check_supp_pcp_regrid_status(id_tmp, supplemental_precip, config_options,
@@ -210,10 +233,10 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
     var_tmp = None
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
-            config_options.statusMsg = "Regridding STAGE IV 'A_PCP_GDS5_SFC_acc6h' Precipitation."
+            config_options.statusMsg = f"Regridding STAGE IV '{supplemental_precip.netcdf_var_names[-1]}' Precipitation."
             err_handler.log_msg(config_options, mpi_config)
         try:
-            var_tmp = id_tmp.variables['A_PCP_GDS5_SFC_acc6h'][:, :]
+            var_tmp = id_tmp.variables[supplemental_precip.netcdf_var_names[-1]][0,:,:]
         except (ValueError, KeyError, AttributeError) as err:
             config_options.errMsg = "Unable to extract precipitation from STAGE IV file: " + \
                                     supplemental_precip.file_in1 + " (" + str(err) + ")"
@@ -253,7 +276,7 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
     # Convert the 6-hourly precipitation total to a rate of mm/s
     try:
         ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
-        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 21600.0
+        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
         del ind_valid
     except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
         config_options.errMsg = "Unable to run NDV search on STAGE IV supplemental precipitation: " + str(npe)
@@ -293,13 +316,12 @@ def regrid_ak_ext_ana_pcp(supplemental_precip, config_options, wrf_hydro_geo_met
     """
 
     if supplemental_precip.ext_ana == "STAGE4":
-        supplemental_precip.netcdf_var_names.append('A_PCP_GDS5_SFC_acc6h')
+        supplemental_precip.netcdf_var_names.append('APCP_surface')
+        #supplemental_precip.netcdf_var_names.append('A_PCP_GDS5_SFC_acc6h')
         _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
         supplemental_precip.netcdf_var_names.pop()
     else: #MRMS
-        supplemental_precip.netcdf_var_names.append('MultiSensorQPE01H_0mabovemeansealevel')
-        regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, mpi_config)
-        supplemental_precip.netcdf_var_names.pop()
+        pass
 
 
 def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
@@ -2035,20 +2057,21 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
         supplemental_precip.esmf_field_out.data
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Check for any RQI values below the threshold specified by the user.
-    # Set these values to global NDV.
-    try:
-        ind_filter = np.where(supplemental_precip.regridded_rqi2 < supplemental_precip.rqiThresh)
-        if len(ind_filter) > 0:
-            if mpi_config.rank == 0:
-                config_options.statusMsg = f"Removing {len(ind_filter)} MRMS cells below RQI threshold of {supplemental_precip.rqiThresh}"
-                err_handler.log_msg(config_options, mpi_config)
-        supplemental_precip.regridded_precip2[ind_filter] = config_options.globalNdv
-        del ind_filter
-    except (ValueError, AttributeError, KeyError, ArithmeticError) as npe:
-        config_options.errMsg = "Unable to run MRMS RQI threshold search: " + str(npe)
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+    if supplemental_precip.rqiMethod > 0:
+        # Check for any RQI values below the threshold specified by the user.
+        # Set these values to global NDV.
+        try:
+            ind_filter = np.where(supplemental_precip.regridded_rqi2 < supplemental_precip.rqiThresh)
+            if len(ind_filter) > 0:
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = f"Removing {len(ind_filter)} MRMS cells below RQI threshold of {supplemental_precip.rqiThresh}"
+                    err_handler.log_msg(config_options, mpi_config)
+            supplemental_precip.regridded_precip2[ind_filter] = config_options.globalNdv
+            del ind_filter
+        except (ValueError, AttributeError, KeyError, ArithmeticError) as npe:
+            config_options.errMsg = "Unable to run MRMS RQI threshold search: " + str(npe)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
     # Convert the hourly precipitation total to a rate of mm/s
     try:
@@ -2599,15 +2622,17 @@ def regrid_hourly_nbm_apcp(supplemental_precip, config_options, wrf_hydro_geo_me
         return
 
     nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
-    if os.path.isfile(nbm_tmp_nc):
-        config_options.statusMsg = "Found old temporary file: " + \
-        						   nbm_tmp_nc + " - Removing....."
-        err_handler.log_warning(config_options, mpi_config)
-        try:
-            os.remove(nbm_tmp_nc)
-        except OSError:
-            config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
-            err_handler.log_critical(config_options, mpi_config)
+    if mpi_config.rank == 0:
+        if os.path.isfile(nbm_tmp_nc):
+            config_options.statusMsg = "Found old temporary file: " + \
+                                    nbm_tmp_nc + " - Removing....."
+            err_handler.log_warning(config_options, mpi_config)
+            try:
+                os.remove(nbm_tmp_nc)
+            except OSError:
+                config_options.errMsg = "Unable to remove file: " + nbm_tmp_nc
+                err_handler.log_critical(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
 
     # Perform a GRIB dump to NetCDF for the precip data.
     fieldnbm_match1 = "\":APCP:\""

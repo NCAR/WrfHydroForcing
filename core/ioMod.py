@@ -60,10 +60,13 @@ class OutputObj:
             'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0,6],
             'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0,1],
             'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
-                       'Surface downward short-wave radiation flux','time: point',0.001,0.0,3],
-            'LQFRAC': [8, '%', 'liquid_water_fraction', 'Fraction of precipitation that is liquid vs. frozen',
-                       'time: point', 0.1, 0.0, 3]
+                       'Surface downward short-wave radiation flux','time: point',0.001,0.0,3]
         }
+
+        if ConfigOptions.include_lqfraq:
+            output_variable_attribute_dict['LQFRAQ'] = [8, '%', 'liquid_water_fraction',
+                                                        'Fraction of precipitation that is liquid vs. frozen',
+                                                        'time: point', 0.1, 0.0, 3]
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
         # We will default to the regridding method chosen for the first input forcing selected.
@@ -123,9 +126,10 @@ class OutputObj:
                     break
                 try:
                     if ConfigOptions.ana_flag:
-                        idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
+                        model_init = ConfigOptions.b_date_proc - datetime.timedelta(minutes=ConfigOptions.output_freq)
                     else:
-                        idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                        model_init = ConfigOptions.current_fcst_cycle
+                    idOut.model_initialization_time = model_init.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
@@ -158,7 +162,7 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.model_total_valid_times = float(ConfigOptions.num_output_steps)
+                    idOut.model_total_valid_times = float(ConfigOptions.actual_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)

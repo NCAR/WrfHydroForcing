@@ -2,6 +2,7 @@
 # calculations in the forcing engine.
 import datetime
 import math
+from operator import truediv
 import os
 
 import numpy as np
@@ -46,12 +47,6 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-    #Special case for HRRR AK when we don't need/want more than one forecast cycle
-    if 19 in config_options.input_forcings:
-        n_fcst_steps = 0
-        config_options.nFcsts = int(n_fcst_steps) + 1
-        config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(seconds=config_options.look_back*60-config_options.fcst_freq*60)
-        return 
 
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
@@ -296,7 +291,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     # First find the current ExtAnA forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-        minutes=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
     
     ext_ana_horizon = 32
 
@@ -348,9 +343,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
         config_options.statusMsg = "Previous ExtAnA file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
-    tmp_file2 = input_forcings.inDir + '/' + next_ext_ana_date.strftime('%Y%m%d%H') + \
-                "/" + next_ext_ana_date.strftime('%Y%m%d%H') + "00" + \
-                ".LDASIN_DOMAIN1"
+    tmp_file2 = tmp_file1
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
             config_options.statusMsg = "Next ExtAnA file being used: " + tmp_file2
@@ -562,6 +555,11 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
     :param mpi_config:
     :return:
     """
+
+    # skip processing if flag set
+    if input_forcings.skip is True:
+        return
+
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing Conus HRRR AK Data. Calculating neighboring " \
                                    "files for this output timestep"
@@ -593,23 +591,19 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
         # throw out the first 3 hours of the cycle
         current_hrrr_hour = (current_hrrr_cycle.hour % 3) + 3
-    
-    #if current_hrrr_cycle.hour % 6 == 0:
-    #    hrrr_horizon = 48
-    #else:
-    #    hrrr_horizon = 18
-    hrrr_horizon = 48
+
+        current_hrrr_cycle -= datetime.timedelta(hours=current_hrrr_hour)
+
+    if current_hrrr_cycle.hour % 6 == 0:
+        hrrr_horizon = 48
+    else:
+        hrrr_horizon = 18
 
     # print(f"HRRR cycle is {current_hrrr_cycle}, hour is {current_hrrr_hour}")
 
-    # If the user has specified a forcing horizon that is greater than what is available
-    # for this time period, throw an error.
-    spec_horizon = (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0
-    if spec_horizon > hrrr_horizon:
-        config_options.errMsg = f"User has specified a HRRR Alaska forecast horizon {spec_horizon} " + \
-                                f"that is greater than the maximum allowed hours of: {hrrr_horizon}"
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+    # adjust horizon for this cycle
+    # max_hours = hrrr_horizon - current_hrrr_hour
+    # config_options.actual_output_steps = max_hours
 
     # Calculate the previous file to process.
     min_since_last_output = (current_hrrr_hour * 60) % 60
@@ -643,16 +637,21 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
     if prev_hrrr_forecast_hour == 0:
         prev_hrrr_forecast_hour = 1
 
+    # Exit early if we're out of input data
+    if next_hrrr_forecast_hour > hrrr_horizon:
+        input_forcings.skip = True
+        return
+
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/alaska/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + ".ak" + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -960,13 +959,13 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + \
-            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
             current_gfs_cycle.strftime('%H') + \
-            ('/' if input_forcings.fileType != NETCDF else '/atmos/') + "gfs.t" + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
 
@@ -1283,6 +1282,9 @@ def find_cfsv2_neighbors(input_forcings, config_options, d_current, mpi_config):
         prev_cfs_date = next_cfs_date
 
     # Calculate expected file paths.
+    if input_forcings.fileType == 'GRIB2':
+        input_forcings.file_ext = '.grb2'
+
     tmp_file1 = input_forcings.inDir + "/cfs." + \
         current_cfs_cycle.strftime('%Y%m%d') + "/" + \
         current_cfs_cycle.strftime('%H') + "/" + \
@@ -1534,14 +1536,12 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
     elif supplemental_precip.keyValue == 10:
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
+                    "MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date1.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass2/" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
-                    "MRMS_MultiSensor_QPE_01H_Pass2_00.00_" + \
+                    "MultiSensor_QPE_01H_Pass2_00.00_" + \
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
@@ -1939,22 +1939,22 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     # the previous/next Stage IV files we will be using.
     d_current_epoch = int(d_current.strftime("%s"))
     six_hr_sec = 21600
+    d_current_epoch -= 3600
+    d_current_epoch += six_hr_sec
     #if we're at an even 6 hour multiple move the time back 6 hours as d_current is included at the end of the prior range
     #(begin_date,end_date]
     if d_current_epoch%six_hr_sec == 0:
         d_current_epoch -= six_hr_sec
-    next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
-    d_prev_epoch = d_current_epoch-six_hr_sec
-    prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
-
+    #next_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    #d_prev_epoch = d_current_epoch-six_hr_sec
+    #prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
+    prev_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
+    next_stage4_date = prev_stage4_date
     # Set the input file frequency to be six-hourly.
     supplemental_precip.input_frequency = 360.0
 
     supplemental_precip.pcp_date1 = prev_stage4_date
     supplemental_precip.pcp_date2 = next_stage4_date
-    #supplemental_precip.pcp_date2 = prev_stage4_date
-
-    next_hr_map = {"00":"06","06":"12","12":"18","18":"00"}
 
     try:
         #Use comma delimited string with first part containing Stage IV data and second part containing MRMS
@@ -1963,15 +1963,13 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
         stage4_in_dir = None
 
     # Calculate expected file paths.
+    tmp_file_ext = ".grb2" if supplemental_precip.fileType == 'GRIB2' else ".grb2.nc"
     if stage4_in_dir and supplemental_precip.keyValue == 11:
-        tmp_file1 = stage4_in_dir + "/" + \
-                    "precip_acr_grid_" + supplemental_precip.pcp_date1.strftime('%H') + "_" + \
-                    next_hr_map[supplemental_precip.pcp_date1.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date1.strftime('%Y%m%d.nc')
-        tmp_file2 = stage4_in_dir + "/" + \
-                    "precip_acr_grid_" + supplemental_precip.pcp_date2.strftime('%H') + "_" + \
-                    next_hr_map[supplemental_precip.pcp_date2.strftime('%H')] + "_" + \
-                    supplemental_precip.pcp_date2.strftime('%Y%m%d.nc')
+        tmp_file1 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
+        #if d_current_epoch%six_hr_sec == 0:
+        #    tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
+        #else:
+        tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -2050,8 +2048,9 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
 def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config):
     # First we need to find the nearest previous and next hour, which is
     # the previous/next MRMS files we will be using.
-    next_mrms_date = d_current
+    #next_mrms_date = d_current
     prev_mrms_date = d_current - datetime.timedelta(hours=1)
+    next_mrms_date = prev_mrms_date
 
     # Set the input file frequency to be hourly.
     supplemental_precip.input_frequency = 60.0
@@ -2166,7 +2165,8 @@ def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_curr
     """
     if d_current > config_options.e_date_proc - datetime.timedelta(hours=7):
         #print(f"Using MRMS hour {d_current}")
-        _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+        #_find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current, mpi_config)
+        supplemental_precip.ext_ana = "MRMS"
     else:
         #print(f"Using StageIV hour {d_current}")
         _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_current, mpi_config)
@@ -2183,10 +2183,10 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     :return:
     """
     nbm_out_freq = {
-    36: 60,
-    240: 360
+        36: 60,
+        240: 360
     }
-        
+
     # First we need to find the nearest previous and next hour, which is
     # the previous/next NBM files we will be using.
     current_yr = d_current.year
@@ -2194,10 +2194,14 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
     current_day = d_current.day
     current_hr = d_current.hour
     current_min = d_current.minute
- 
+
     # First find the current NBM forecast cycle that we are using.
     current_nbm_cycle = config_options.current_fcst_cycle - \
         datetime.timedelta(seconds=supplemental_precip.userCycleOffset * 60.0)
+
+    # if Alaska SR, shift to previous cycle and add 3 hours to forecast ('f') if using all NBM precip
+    if config_options.fcst_freq == 180 and supplemental_precip.keyValue == 9:
+        current_nbm_cycle -= datetime.timedelta(hours=3)
 
     # Calculate the current forecast hour within this NBM cycle.
     dt_tmp = d_current - current_nbm_cycle
@@ -2208,7 +2212,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         supplemental_precip.input_frequency = 60.0
     else:
         supplemental_precip.input_frequency = 360.0
-            
+
     # Calculate the previous file to process.
     min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
     if min_since_last_output == 0:
@@ -2236,7 +2240,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         prev_nbm_forecast_hour = 1
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 8:
+    if supplemental_precip.keyValue == 8:                       # CONUS
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2249,7 +2253,7 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 9:
+    elif supplemental_precip.keyValue == 9:                     # ALASKA
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2266,8 +2270,8 @@ def find_hourly_nbm_apcp_neighbors(supplemental_precip, config_options, d_curren
         tmp_file1 = tmp_file2 = ""
 
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
-        err_handler.log_msg(config_options, mpi_config)
+        # config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
+        # err_handler.log_msg(config_options, mpi_config)
         config_options.statusMsg = "Next NBM supplemental file: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
