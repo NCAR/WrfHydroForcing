@@ -33,7 +33,7 @@ class OutputObj:
         self.output_local = np.empty([9, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
         #self.output_local[:,:,:] = self.out_ndv
 
-    def output_final_ldasin(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
+    def output_final_ldasin(self, ConfigOptions, geoMetaWrfHydro, MpiConfig):
         """
         Output routine to produce final LDASIN files for the WRF-Hydro
         modeling system. This function is assuming all regridding,
@@ -167,6 +167,12 @@ class OutputObj:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
+
+                if ConfigOptions.spatial_meta is not None:
+                    # apply spatial_global_atts to output globals attrs
+                    for k, v in geoMetaWrfHydro.spatial_global_atts.items():
+                        if k not in ("Source_Software", "history", "processing_notes"):     # don't add these
+                            idOut.setncattr(k, v)
 
                 # Create variables.
                 try:
