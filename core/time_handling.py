@@ -6,7 +6,7 @@ from operator import truediv
 import os
 
 import numpy as np
-
+from strenum import StrEnum
 from core import err_handler
 from core.forcingInputMod import input_forcings
 NETCDF = input_forcings.NETCDF
@@ -20,6 +20,7 @@ def calculate_lookback_window(config_options):
     :param config_options: Abstract class holding job information.
     :return: Updated abstract class with updated datetime variables.
     """
+    ForcingEnum = config_options.ForcingEnum
     # First calculate the current time in UTC.
     if config_options.realtime_flag:
         d_current_utc = datetime.datetime.utcnow()
@@ -47,11 +48,16 @@ def calculate_lookback_window(config_options):
     # beginning of the processing window.
     dt_tmp = d_current_utc - config_options.b_date_proc
     n_fcst_steps = math.floor((dt_tmp.days*1440+dt_tmp.seconds/60.0) / config_options.fcst_freq)
-
     config_options.nFcsts = int(n_fcst_steps) + 1
     config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(
         seconds=n_fcst_steps * config_options.fcst_freq * 60)
 
+    #Special case for HRRR AK when we don't need/want more than one forecast cycle
+    if str(ForcingEnum.HRRR_AK.name) in config_options.input_forcings:
+        n_fcst_steps = 0
+        config_options.nFcsts = int(n_fcst_steps) + 1
+        config_options.e_date_proc = config_options.b_date_proc + datetime.timedelta(seconds=config_options.look_back*60-config_options.fcst_freq*60)
+        return 
 
 def find_nldas_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
@@ -476,14 +482,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -1133,11 +1139,13 @@ def find_nam_nest_neighbors(input_forcings, config_options, d_current, mpi_confi
     if prev_nam_nest_forecast_hour == 0:
         prev_nam_nest_forecast_hour = 1
 
-    if input_forcings.keyValue == 13 or input_forcings.keyValue == 16:
+    ForcingEnum = config_options.ForcingEnum
+
+    if input_forcings.keyValue == str(ForcingEnum.NAM_NEST_HI.name) or input_forcings.keyValue == str(ForcingEnum.NAM_NEST_HI_RAD.name):
         domain_string = "hawaiinest"
-    elif input_forcings.keyValue == 14 or input_forcings.keyValue == 17:
+    elif input_forcings.keyValue == str(ForcingEnum.NAM_NEST_PR.name) or input_forcings.keyValue == str(ForcingEnum.NAM_NEST_PR_RAD.name):
         domain_string = "priconest"
-    elif input_forcings.keyValue == 15:
+    elif input_forcings.keyValue == str(ForcingEnum.NAM_NEST_AK.name):
         domain_string = "alaskanest"
     else:
         domain_string = ''
@@ -1497,9 +1505,10 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
     supplemental_precip.pcp_date1 = prev_mrms_date
     #supplemental_precip.pcp_date2 = next_mrms_date
     supplemental_precip.pcp_date2 = prev_mrms_date
-
+    
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 1:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS.name):
         tmp_file1 = supplemental_precip.inDir + "/RadarOnly_QPE/" + \
             "RadarOnly_QPE_01H_00.00_" + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -1511,7 +1520,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             "-" + supplemental_precip.pcp_date2.strftime('%H') + \
             "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
 
-    elif supplemental_precip.keyValue == 2:
+    elif supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_GAGE.name):
         tmp_file1 = supplemental_precip.inDir + "/GaugeCorr_QPE/" + \
                    "GaugeCorr_QPE_01H_00.00_" + \
                    supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -1523,7 +1532,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                    "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                    "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
 
-    elif supplemental_precip.keyValue == 5 or supplemental_precip.keyValue == 6:
+    elif supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_CONUS_MS.name) or supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_HI_MS.name):
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -1534,7 +1543,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
                     supplemental_precip.pcp_date2.strftime('%Y%m%d') + \
                     "-" + supplemental_precip.pcp_date2.strftime('%H') + \
                     "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
-    elif supplemental_precip.keyValue == 10:
+    elif supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_MRMS.name):
         tmp_file1 = supplemental_precip.inDir + "/MultiSensor_QPE_01H_Pass1/" + \
                     "MultiSensor_QPE_01H_Pass1_00.00_" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -1549,7 +1558,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
         tmp_file1 = tmp_file2 = ""
 
     # Compose the RQI paths.
-    if supplemental_precip.keyValue == 1 or supplemental_precip.keyValue == 2:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS.name) or supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_GAGE.name):
        tmp_rqi_file1 = supplemental_precip.inDir + "/RadarQualityIndex/" + \
            "RadarQualityIndex_00.00_" + \
            supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
@@ -1624,7 +1633,7 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == 5 or supplemental_precip.keyValue == 6):
+        if not os.path.isfile(supplemental_precip.file_in2) and (supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_CONUS_MS.name) or supplemental_precip.keyValue == str(SuppForcingPcpEnum.MRMS_HI_MS.name)):
             config_options.statusMsg = "MRMS file {} not found, will attempt to use {} instead.".format(
                     supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)
@@ -1684,10 +1693,12 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
         err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
+    ForcingEnum =  config_options.ForcingEnum
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
     # Apply some logic here to account for the ARW weirdness associated with the
     # odd forecast cycles.
     fcst_horizon = -1
-    if supplemental_precip.keyValue == 3:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.WRF_ARW_HI.name):
         # Data only available for 00/12 UTC cycles.
         if current_arw_cycle.hour != 0 and current_arw_cycle.hour != 12:
             if mpi_config.rank == 0:
@@ -1698,7 +1709,7 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
             supplemental_precip.file_in2 = None
             return
         fcst_horizon = 48
-    if supplemental_precip.keyValue == 4:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.WRF_ARW_PR.name):
         # Data only available for 06/18 UTC cycles.
         cycle = current_arw_cycle
         if cycle.hour != 6 and cycle.hour != 18:
@@ -1769,7 +1780,7 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
 
     # Calculate expected file paths.
     tmp_file1 = tmp_file2 = "(none)"
-    if supplemental_precip.keyValue == 3 or supplemental_precip.keyValue == 8:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.WRF_ARW_HI.name) or supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_OPT1.name) or supplemental_precip.keyValue == str(ForcingEnum.WRF_NEST_HI.name):
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
@@ -1778,7 +1789,7 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
             str(next_arw_forecast_hour).zfill(2) + '.hi' + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 4 or supplemental_precip.keyValue == 18:
+    elif supplemental_precip.keyValue == str(SuppForcingPcpEnum.WRF_ARW_PR.name): #or supplemental_precip.keyValue == str(ForcingEnum.WRF_NEST_HI.name):
         tmp_file1 = supplemental_precip.inDir + '/hiresw.' + \
             current_arw_cycle.strftime('%Y%m%d') + '/hiresw.t' + \
             current_arw_cycle.strftime('%H') + 'z.arw_2p5km.f' + \
@@ -1950,6 +1961,9 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     #prev_stage4_date = datetime.datetime.fromtimestamp(d_prev_epoch - d_prev_epoch%six_hr_sec)
     prev_stage4_date = datetime.datetime.fromtimestamp(d_current_epoch - d_current_epoch%six_hr_sec)
     next_stage4_date = prev_stage4_date
+
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
+
     # Set the input file frequency to be six-hourly.
     supplemental_precip.input_frequency = 360.0
 
@@ -1964,7 +1978,7 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
 
     # Calculate expected file paths.
     tmp_file_ext = ".grb2" if supplemental_precip.fileType == 'GRIB2' else ".grb2.nc"
-    if stage4_in_dir and supplemental_precip.keyValue == 11:
+    if stage4_in_dir and supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_NWS_IV.name):
         tmp_file1 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
         #if d_current_epoch%six_hr_sec == 0:
         #    tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
@@ -2021,7 +2035,7 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure we have the necessary new file
-    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_NWS_IV.name):
         if mpi_config.rank == 0:
             config_options.statusMsg = "Stage IV file {} not found, will attempt to use {} instead.".format(
                 supplemental_precip.file_in2, supplemental_precip.file_in1)
@@ -2052,6 +2066,8 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
     prev_mrms_date = d_current - datetime.timedelta(hours=1)
     next_mrms_date = prev_mrms_date
 
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
+
     # Set the input file frequency to be hourly.
     supplemental_precip.input_frequency = 60.0
 
@@ -2065,7 +2081,7 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
         mrms_in_dir = None
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 11:
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_NWS_IV.name):
         tmp_file1 = mrms_in_dir + "/MultiSensor_QPE_01H_Pass1/" + \
                     supplemental_precip.pcp_date1.strftime('%Y%m%d') + "/" + \
                     "MRMS_MultiSensor_QPE_01H_Pass1_00.00_" + \
@@ -2129,7 +2145,7 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
     # errMod.check_program_status(ConfigOptions, MpiConfig)
 
     # Ensure we have the necessary new file
-    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == 11:
+    if not os.path.isfile(supplemental_precip.file_in2) and supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_NWS_IV.name):
         if mpi_config.rank == 0:
             config_options.statusMsg = "MRMS file {} not found, will attempt to use {} instead.".format(
                 supplemental_precip.file_in2, supplemental_precip.file_in1)
@@ -2213,6 +2229,8 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
     else:
         supplemental_precip.input_frequency = 360.0
 
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
+
     # Calculate the previous file to process.
     min_since_last_output = (current_nbm_hour*60) % supplemental_precip.input_frequency
     if min_since_last_output == 0:
@@ -2240,7 +2258,7 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
         prev_nbm_forecast_hour = 1
 
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 8 or supplemental_precip.keyValue == 21:   # CONUS
+    if supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_OPT1.name):
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2253,7 +2271,7 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
             "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
             "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
             + supplemental_precip.file_ext
-    elif supplemental_precip.keyValue == 9:                                       # ALASKA
+    elif supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_OPT2.name):
         tmp_file1 = supplemental_precip.inDir + "/blend." + \
             current_nbm_cycle.strftime('%Y%m%d') + \
             "/" + current_nbm_cycle.strftime('%H') + \
@@ -2287,7 +2305,7 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
 
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
-        if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == 8) or (supplemental_precip.keyValue == 9)):
+        if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_OPT1.name)) or (supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_OPT2.name))):
             config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
                     supplemental_precip.file_in2, supplemental_precip.file_in1)
             err_handler.log_warning(config_options, mpi_config)

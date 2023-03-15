@@ -259,18 +259,21 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     :param MpiConfig:
     :return:
     """
+    OutputEnum = ConfigOptions.OutputEnum
     # Establish a range of values for each output variable.
     variable_range = {
-        'U2D': [0, -500.0, 500.0],
-        'V2D': [1, -500.0, 500.0],
-        'LWDOWN': [2, -1000.0, 10000.0],
-        'RAINRATE': [3, 0.0, 100.0],
-        'T2D': [4, 0.0, 400.0],
-        'Q2D': [5, -100.0, 100.0],
-        'PSFC': [6, 0.0, 2000000.0],
-        'SWDOWN': [7, 0.0, 5000.0]
+        OutputEnum.U2D.name     : [0, -500.0, 500.0],
+        OutputEnum.V2D.name     : [1, -500.0, 500.0],
+        OutputEnum.LWDOWN.name  : [2, -1000.0, 10000.0],
+        OutputEnum.RAINRATE.name: [3, 0.0, 100.0],
+        OutputEnum.T2D.name     : [4, 0.0, 400.0],
+        OutputEnum.Q2D.name     : [5, -100.0, 100.0],
+        OutputEnum.PSFC.name    : [6, 0.0, 2000000.0],
+        OutputEnum.SWDOWN.name  : [7, 0.0, 5000.0]
+        #OutputEnum.LQFRAC.name  : [8, ,]
     }
-    fvars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
+    #fvars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
+    fvars = [str(item.name) for item in OutputEnum]
 
     # If the regridded field is None type, return to the main program as this means no forcings
     # were found for this timestep.
@@ -280,7 +283,7 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     # Loop over all the variables. Check for reasonable ranges. If any values are
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
-        if fvars.index(varTmp) not in input_forcings.input_map_output:
+        if varTmp not in input_forcings.input_map_output:
             continue
 
         # First check to see if we have any data that is not missing.

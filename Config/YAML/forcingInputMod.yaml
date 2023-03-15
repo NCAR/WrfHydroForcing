@@ -1,0 +1,255 @@
+NLDAS:
+  product_name : NLDAS2_GRIB1
+  cycle_freq_minutes: 60
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF','DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                        '10 m above ground', '10 m above ground',
+                                        'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NARR:
+  product_name : NARR_GRIB1
+  cycle_freq_minutes: 180
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: None
+  netcdf_variables: None
+  grib_message_idx: None
+  input_map_to_outputs: None
+
+GFS_GLOBAL:
+  product_name : GFS_Production_GRIB2 
+  cycle_freq_minutes: 360
+  grib_vars_in : ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in : ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface'] 
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NAM_NEST_CONUS:
+  product_name : NAM_Conus_Nest_GRIB2
+  cycle_freq_minutes: 360
+  grib_vars_in: None
+  grib_levels_in: None
+  netcdf_variables: None
+  grib_message_idx: None
+  input_map_to_outputs: None
+
+HRRR:
+  product_name : HRRR_Conus_GRIB2
+  cycle_freq_minutes: 60
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+RAP:
+  product_name : RAP_Conus_GRIB2
+  cycle_freq_minutes: 60
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+CFS_V2:
+  product_name : CFSv2_6Hr_Global_GRIB2
+  cycle_freq_minutes: 360
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+WRF_NEST_HI:
+  product_name : WRF_ARW_Hawaii_GRIB2
+  cycle_freq_minutes: 1440
+  grib_vars_in : ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES']
+  grib_levels_in: ['80 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface']
+  netcdf_variables: ['TMP_80maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','PSFC']
+
+GFS_GLOBAL_25:
+  product_name : GFS_Production_025d_GRIB2
+  cycle_freq_minutes: 360
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: [33,34,39,40,43,88,91,6]
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+CUSTOM_1:
+  product_name : Custom_NetCDF_Hourly
+  cycle_freq_minutes: -9999
+  grib_vars_in: None
+  grib_levels_in: None
+  netcdf_variables: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+CUSTOM_2:
+  product_name : Custom_NetCDF_Hourly
+  cycle_freq_minutes: -9999
+  grib_vars_in: None
+  grib_levels_in: None
+  netcdf_variables: ['T2D', 'Q2D', 'U10', 'V10', 'RAINRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+CUSTOM_3:
+  product_name : AORC
+  cycle_freq_minutes: -9999
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP',
+                                         'DSWRF', 'DLWRF', 'PRES']
+  grib_levels_in: None
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NAM_NEST_HI:
+  product_name : NAM_Nest_3km_Hawaii
+  cycle_freq_minutes: 360
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NAM_NEST_PR:
+  product_name : NAM_Nest_3km_PuertoRico
+  cycle_freq_minutes: 360
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NAM_NEST_AK:
+  product_name : NAM_Nest_3km_Alaska
+  cycle_freq_minutes: 360
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+NAM_NEST_HI_RAD:
+  product_name : NAM_Nest_3km_Hawaii_Radiation-Only
+  cycle_freq_minutes: 360
+  grib_vars_in: ['DSWRF', 'DLWRF']
+  grib_levels_in: ['surface', 'surface']
+  netcdf_variables: ['DSWRF_surface', 'DLWRF_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['SWDOWN','LWDOWN']
+
+NAM_NEST_PR_RAD:
+  product_name : NAM_Nest_3km_PuertoRico_Radiation-Only
+  cycle_freq_minutes: 360
+  grib_vars_in: ['DSWRF', 'DLWRF']
+  grib_levels_in: ['surface', 'surface']
+  netcdf_variables: ['DSWRF_surface', 'DLWRF_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['SWDOWN','LWDOWN']
+
+WRF_ARW_PR:
+  product_name : WRF_ARW_PuertoRico_GRIB2
+  cycle_freq_minutes: 1440
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES']
+  grib_levels_in: ['80 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface']
+  netcdf_variables: ['TMP_80maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D', 'Q2D', 'U2D', 'V2D', 'RAINRATE', 'PSFC']
+
+HRRR_AK:
+  product_name : HRRR_Alaska_GRIB2
+  cycle_freq_minutes: 180
+  grib_vars_in: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
+                                         'DLWRF', 'PRES']
+  grib_levels_in: ['2 m above ground', '2 m above ground',
+                                         '10 m above ground', '10 m above ground',
+                                         'surface', 'surface', 'surface', 'surface']
+  netcdf_variables: ['TMP_2maboveground', 'SPFH_2maboveground',
+                                         'UGRD_10maboveground', 'VGRD_10maboveground',
+                                         'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                                         'PRES_surface']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']
+
+HRRR_AK_EXT:
+  product_name : Alaska_ExtAnA
+  cycle_freq_minutes: 60
+  grib_vars_in: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
+                                         'Q2D', 'PSFC', 'SWDOWN']
+  grib_levels_in: None
+  netcdf_variables: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
+                                         'Q2D', 'PSFC', 'SWDOWN']
+  grib_message_idx: None
+  input_map_to_outputs: ['T2D','Q2D','U2D','V2D','RAINRATE','SWDOWN','LWDOWN','PSFC']

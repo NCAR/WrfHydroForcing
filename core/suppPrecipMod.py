@@ -7,7 +7,9 @@ import numpy as np
 from core import time_handling
 from core import regrid
 from core import timeInterpMod
-
+from strenum import StrEnum
+from core.enumConfig import TemporalInterpEnum
+import yaml
 
 class supplemental_precip:
     """
@@ -71,6 +73,7 @@ class supplemental_precip:
         self.global_x_upper = None
         self.global_y_upper = None
         self.has_cache = False
+        self.suppPrecipModYaml = None
 
     def define_product(self):
         """
@@ -78,30 +81,26 @@ class supplemental_precip:
         forcing key value.
         :return:
         """
-        product_names = {
-            1: "MRMS_1HR_Radar_Only",
-            2: "MRMS_1HR_Gage_Corrected",
-            3: "WRF_ARW_Hawaii_2p5km_PCP",
-            4: "WRF_ARW_PuertoRico_2p5km_PCP",
-            5: "CONUS_MRMS_1HR_MultiSensor",
-            6: "Hawaii_MRMS_1HR_MultiSensor",
-            7: "MRMS_LiquidWaterFraction",
-            8: "NBM_CORE_CONUS_APCP",
-            9: "NBM_CORE_ALASKA_APCP",
-            10: "AK_MRMS",
-            11: "AK_Stage_IV_Precip-MRMS"
-        }
-        self.productName = product_names[self.keyValue]
 
-        ## DEFINED IN CONFIG
-        # product_types = {
-        #     1: "GRIB2",
-        #     2: "GRIB2",
-        #     3: "GRIB2",
-        #     4: "GRIB2",
-        #     5: "GRIB2"
-        # }
-        # self.fileType = product_types[self.keyValue]
+        yaml_stream = None
+        try:
+            yaml_stream = open(self.suppPrecipModYaml)
+            config = yaml.safe_load(yaml_stream)
+        except yaml.YAMLError as yaml_exc:
+            err_handler.err_out_screen('Error parsing the configuration file: %s\n%s' % (self.suppPrecipModYaml,yaml_exc))
+        except IOError:
+            err_handler.err_out_screen('Unable to open the configuration file: %s' % self.suppPrecipModYaml)
+        finally:
+            if yaml_stream:
+                yaml_stream.close()
+
+        try:
+            inputs = config[self.keyValue]
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate Input map in configuration file.')
+
+        self.productName = inputs["product_name"]
+
         if self.fileType == 'GRIB1':
             self.file_ext = '.grb'
         elif self.fileType == 'GRIB2':
@@ -109,80 +108,15 @@ class supplemental_precip:
         elif self.fileType == 'NETCDF':
             self.file_ext = '.nc'
 
-        grib_vars_in = {
-            1: None,
-            2: None,
-            3: None,
-            4: None,
-            5: None,
-            6: None,
-            7: None,
-            8: None,
-            9: None,
-            10: None,
-            11: None
-        }
-        self.grib_vars = grib_vars_in[self.keyValue]
+        self.grib_vars = inputs["grib_vars_in"]
 
-        grib_levels_in = {
-            1: ['BLAH'],
-            2: ['BLAH'],
-            3: ['BLAH'],
-            4: ['BLAH'],
-            5: ['BLAH'],
-            6: ['BLAH'],
-            7: ['BLAH'],
-            8: ['BLAH'],
-            9: ['BLAH'],
-            10: ['BLAH'],
-            11: ['BLAH']
-        }
-        self.grib_levels = grib_levels_in[self.keyValue]
+        self.grib_levels = inputs["grib_levels_in"]
 
-        netcdf_variables = {
-            1: ['RadarOnlyQPE01H_0mabovemeansealevel'],
-            2: ['GaugeCorrQPE01H_0mabovemeansealevel'],
-            3: ['APCP_surface'],
-            4: ['APCP_surface'],
-            5: ['MultiSensorQPE01H_0mabovemeansealevel'],
-            6: ['MultiSensorQPE01H_0mabovemeansealevel'],
-            7: ['sbcv2_lwf'],
-            8: ['APCP_surface'],
-            9: ['APCP_surface'],
-            10: ['MultiSensorQPE01H_0mabovemeansealevel'],
-            11: []  # Set dynamically since we have have Stage IV and MRMS
-        }
-        self.netcdf_var_names = netcdf_variables[self.keyValue]
+        self.netcdf_var_names = inputs["netcdf_variables"]
 
-        netcdf_rqi_variables = {
-            1: ['RadarQualityIndex_0mabovemeansealevel'],
-            2: ['RadarQualityIndex_0mabovemeansealevel'],
-            3: None,
-            4: None,
-            5: None,
-            6: None,
-            7: None,
-            8: None,
-            9: None,
-            10: None,
-            11: None
-        }
-        self.rqi_netcdf_var_names = netcdf_rqi_variables[self.keyValue]
+        self.rqi_netcdf_var_names = inputs["netcdf_rqi_variables"]
 
-        output_variables = {
-            1: 3,       # RAINRATE
-            2: 3,
-            3: 3,
-            4: 3,
-            5: 3,
-            6: 3,
-            7: 8,        # LQFRAC
-            8: 3,
-            9: 3,
-            10: 3,
-            11: 3
-        }
-        self.output_var_idx = output_variables[self.keyValue]
+        self.output_var_idx = inputs["output_variables"]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
@@ -195,29 +129,22 @@ class supplemental_precip:
         """
         # First calculate the current input cycle date this
         # WRF-Hydro output timestep corresponds to.
+        SuppForcingPcpEnum = ConfigOptions.SuppForcingPcpEnum
         find_neighbor_files = {
-            1: time_handling.find_hourly_mrms_radar_neighbors,
-            2: time_handling.find_hourly_mrms_radar_neighbors,
-            3: time_handling.find_hourly_wrf_arw_neighbors,
-            4: time_handling.find_hourly_wrf_arw_neighbors,
-            5: time_handling.find_hourly_mrms_radar_neighbors,
-            6: time_handling.find_hourly_mrms_radar_neighbors,
-            7: time_handling.find_sbcv2_lwf_neighbors,
-            8: time_handling.find_hourly_nbm_neighbors,
-            9: time_handling.find_hourly_nbm_neighbors,
-            10: time_handling.find_hourly_mrms_radar_neighbors,
-            11: time_handling.find_ak_ext_ana_precip_neighbors
+            str(SuppForcingPcpEnum.MRMS.name)         : time_handling.find_hourly_mrms_radar_neighbors,
+            str(SuppForcingPcpEnum.MRMS_GAGE.name)    : time_handling.find_hourly_mrms_radar_neighbors,
+            str(SuppForcingPcpEnum.WRF_ARW_HI.name)   : time_handling.find_hourly_wrf_arw_neighbors,
+            str(SuppForcingPcpEnum.WRF_ARW_PR.name)   : time_handling.find_hourly_wrf_arw_neighbors,
+            str(SuppForcingPcpEnum.MRMS_CONUS_MS.name): time_handling.find_hourly_mrms_radar_neighbors,
+            str(SuppForcingPcpEnum.MRMS_HI_MS.name)   : time_handling.find_hourly_mrms_radar_neighbors,
+            str(SuppForcingPcpEnum.MRMS_SBCV2.name)   : time_handling.find_sbcv2_lwf_neighbors,
+            str(SuppForcingPcpEnum.AK_OPT1.name)      : time_handling.find_hourly_nbm_apcp_neighbors,
+            str(SuppForcingPcpEnum.AK_OPT2.name)      : time_handling.find_hourly_nbm_apcp_neighbors,
+            str(SuppForcingPcpEnum.AK_MRMS.name)      : time_handling.find_hourly_mrms_radar_neighbors,
+            str(SuppForcingPcpEnum.AK_NWS_IV.name)    : time_handling.find_ak_ext_ana_precip_neighbors
         }
 
-        find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent, MpiConfig)
-        # try:
-        #    find_neighbor_files[self.keyValue](self,ConfigOptions,dCurrent,MpiConfig)
-        # except TypeError:
-        #    ConfigOptions.errMsg = "Unable to execute find_neighbor_files for " \
-        #                           "supplemental precipitation: " + self.productName
-        #    raise
-        # except:
-        #    raise
+        find_neighbor_files[SuppForcingPcpEnum(self.keyValue).name](self, ConfigOptions, dCurrent, MpiConfig)
 
     def regrid_inputs(self,ConfigOptions,wrfHyroGeoMeta,MpiConfig):
         """
@@ -231,26 +158,21 @@ class supplemental_precip:
         """
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
+        SuppForcingPcpEnum = ConfigOptions.SuppForcingPcpEnum
         regrid_inputs = {
-            1: regrid.regrid_mrms_hourly,
-            2: regrid.regrid_mrms_hourly,
-            3: regrid.regrid_hourly_wrf_arw_hi_res_pcp,
-            4: regrid.regrid_hourly_wrf_arw_hi_res_pcp,
-            5: regrid.regrid_mrms_hourly,
-            6: regrid.regrid_mrms_hourly,
-            7: regrid.regrid_sbcv2_liquid_water_fraction,
-            8: regrid.regrid_hourly_nbm,
-            9: regrid.regrid_hourly_nbm,
-            10: regrid.regrid_mrms_hourly, 
-            11: regrid.regrid_ak_ext_ana_pcp  
+            str(SuppForcingPcpEnum.MRMS.name)         : regrid.regrid_mrms_hourly,
+            str(SuppForcingPcpEnum.MRMS_GAGE.name)    : regrid.regrid_mrms_hourly,
+            str(SuppForcingPcpEnum.WRF_ARW_HI.name)   : regrid.regrid_hourly_wrf_arw_hi_res_pcp,
+            str(SuppForcingPcpEnum.WRF_ARW_PR.name)   : regrid.regrid_hourly_wrf_arw_hi_res_pcp,
+            str(SuppForcingPcpEnum.MRMS_CONUS_MS.name): regrid.regrid_mrms_hourly,
+            str(SuppForcingPcpEnum.MRMS_HI_MS.name)   : regrid.regrid_mrms_hourly,
+            str(SuppForcingPcpEnum.MRMS_SBCV2.name)   : regrid.regrid_sbcv2_liquid_water_fraction,
+            str(SuppForcingPcpEnum.AK_OPT1.name)      : regrid.regrid_hourly_nbm_apcp,
+            str(SuppForcingPcpEnum.AK_OPT2.name)      : regrid.regrid_hourly_nbm_apcp,
+            str(SuppForcingPcpEnum.AK_MRMS.name)      : regrid.regrid_mrms_hourly,
+            str(SuppForcingPcpEnum.AK_NWS_IV.name)    : regrid.regrid_ak_ext_ana_pcp
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
-        #try:
-        #    regrid_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
-        #except:
-        #    ConfigOptions.errMsg = "Unable to execute regrid_inputs for " + \
-        #        "input forcing: " + self.productName
-        #    raise
 
     def temporal_interpolate_inputs(self,ConfigOptions,MpiConfig):
         """
@@ -264,19 +186,12 @@ class supplemental_precip:
         :return:
         """
         temporal_interpolate_inputs = {
-            0: timeInterpMod.no_interpolation_supp_pcp,
-            1: timeInterpMod.nearest_neighbor_supp_pcp,
-            2: timeInterpMod.weighted_average_supp_pcp
+            str(TemporalInterpEnum.NONE.name)             : timeInterpMod.no_interpolation_supp_pcp,
+            str(TemporalInterpEnum.NEAREST_NEIGHBOR.name) : timeInterpMod.nearest_neighbor_supp_pcp,
+            str(TemporalInterpEnum.LINEAR_WEIGHT_AVG.name): timeInterpMod.weighted_average_supp_pcp
         }
-        temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
-        #temporal_interpolate_inputs[self.keyValue](self,ConfigOptions,MpiConfig)
-        #try:
-        #    temporal_interpolate_inputs[self.timeInterpOpt](self,ConfigOptions,MpiConfig)
-        #except:
-        #    ConfigOptions.errMsg = "Unable to execute temporal_interpolate_inputs " + \
-        #        " for input forcing: " + self.productName
-        #    raise
-
+        temporal_interpolate_inputs[TemporalInterpEnum(self.timeInterpOpt).name](self,ConfigOptions,MpiConfig)
+    
 def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
     Initial function to create an supplemental dictionary, which
@@ -298,6 +213,7 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
 
         InputDict[supp_pcp_key].inDir = ConfigOptions.supp_precip_dirs[supp_pcp_tmp]
         InputDict[supp_pcp_key].fileType = ConfigOptions.supp_precip_file_types[supp_pcp_tmp]
+        InputDict[supp_pcp_key].suppPrecipModYaml = ConfigOptions.suppPrecipModYaml
         InputDict[supp_pcp_key].define_product()
 
         # Initialize the local final grid of values
@@ -317,4 +233,3 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
             InputDict[supp_pcp_key].rqiThresh = 1.0
 
     return InputDict
-

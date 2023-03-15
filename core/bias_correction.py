@@ -11,9 +11,9 @@ import time
 
 import numpy as np
 from netCDF4 import Dataset
-
+from strenum import StrEnum
 from core import err_handler
-
+from core.enumConfig import BiasCorrTempEnum, BiasCorrPressEnum, BiasCorrHumidEnum, BiasCorrWindEnum, BiasCorrSwEnum, BiasCorrLwEnum, BiasCorrPrecipEnum, DownScaleHumidEnum
 PARAM_NX = 384
 PARAM_NY = 190
 
@@ -38,62 +38,63 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
     """
     # Dictionary for mapping to temperature bias correction.
     bias_correct_temperature = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_tbl_correction,
-        3: ncar_temp_gfs_bias_correct,
-        4: ncar_temp_hrrr_bias_correct
+        str(BiasCorrTempEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrTempEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct,
+        str(BiasCorrTempEnum.CUSTOM.name): ncar_tbl_correction,
+        str(BiasCorrTempEnum.GFS.name)   : ncar_temp_gfs_bias_correct,
+        str(BiasCorrTempEnum.HRRR.name)  : ncar_temp_hrrr_bias_correct
     }
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
+
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to humidity bias correction.
     bias_correct_humidity = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_tbl_correction
+        str(BiasCorrHumidEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrHumidEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct,
+        str(BiasCorrHumidEnum.CUSTOM.name): ncar_tbl_correction
     }
     bias_correct_humidity[input_forcings.q2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 1)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to surface pressure bias correction.
     bias_correct_pressure = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        str(BiasCorrPressEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrPressEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_pressure[input_forcings.psfcBiasCorrectOpt](input_forcings, config_options, mpi_config, 7)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to incoming shortwave radiation correction.
     bias_correct_sw = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_sw_hrrr_bias_correct
+        str(BiasCorrSwEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrSwEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct,
+        str(BiasCorrSwEnum.CUSTOM.name): ncar_sw_hrrr_bias_correct
     }
-    if input_forcings.swBiasCorrectOpt != 2:
+    if input_forcings.swBiasCorrectOpt != str(BiasCorrSwEnum.CUSTOM.name):
         bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, config_options, mpi_config, 5)
     else:
         bias_correct_sw[input_forcings.swBiasCorrectOpt](input_forcings, geo_meta_wrf_hydro,
-                                                         config_options, mpi_config, 5)
+                                                         config_options, mpi_config, force_sw_num)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to incoming longwave radiation correction.
     bias_correct_lw = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_blanket_adjustment_lw,
-        3: ncar_lwdown_gfs_bias_correct
+        str(BiasCorrLwEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrLwEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct,
+        str(BiasCorrLwEnum.CUSTOM.name): ncar_blanket_adjustment_lw,
+        str(BiasCorrLwEnum.GFS.name)   : ncar_lwdown_gfs_bias_correct
     }
     bias_correct_lw[input_forcings.lwBiasCorrectOpt](input_forcings, config_options, mpi_config, 6)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary for mapping to wind bias correction.
     bias_correct_wind = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct,
-        2: ncar_tbl_correction,
-        3: ncar_wspd_gfs_bias_correct,
-        4: ncar_wspd_hrrr_bias_correct
+        str(BiasCorrWindEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrWindEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct,
+        str(BiasCorrWindEnum.CUSTOM.name): ncar_tbl_correction,
+        str(BiasCorrWindEnum.GFS.name)   : ncar_wspd_gfs_bias_correct,
+        str(BiasCorrWindEnum.HRRR.name)  : ncar_wspd_hrrr_bias_correct
     }
     # Run for U-Wind
     bias_correct_wind[input_forcings.windBiasCorrectOpt](input_forcings, config_options, mpi_config, 2)
@@ -104,15 +105,15 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
 
     # Dictionary for mapping to precipitation bias correction.
     bias_correct_precip = {
-        0: no_bias_correct,
-        1: cfsv2_nldas_nwm_bias_correct
+        str(BiasCorrPrecipEnum.NONE.name)  : no_bias_correct,
+        str(BiasCorrPrecipEnum.CFS_V2.name): cfsv2_nldas_nwm_bias_correct
     }
     bias_correct_precip[input_forcings.precipBiasCorrectOpt](input_forcings, config_options, mpi_config, 4)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Assign the temperature/pressure grids to temporary placeholders here.
     # these will be used if 2-meter specific humidity is downscaled.
-    if input_forcings.q2dDownscaleOpt != 0:
+    if input_forcings.q2dDownscaleOpt != str(DownScaleHumidEnum.NONE.name):
         input_forcings.t2dTmp = input_forcings.final_forcings[4, :, :] * 1.0
         input_forcings.psfcTmp = input_forcings.final_forcings[6, :, :] * 1.0
     else:
@@ -176,8 +177,14 @@ def ncar_tbl_correction(input_forcings, config_options, mpi_config, force_num):
 
     # Extract local array of values to perform adjustment on.
     force_tmp = None
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
+
     try:
-        force_tmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        force_tmp = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_num] + \
                                 " from local forcing object for: " + input_forcings.productName + \
@@ -206,7 +213,7 @@ def ncar_tbl_correction(input_forcings, config_options, mpi_config, force_num):
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = force_tmp[:, :]
+        input_forcings.final_forcings[outId, :, :] = force_tmp[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary LW array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -263,10 +270,16 @@ def ncar_blanket_adjustment_lw(input_forcings, config_options, mpi_config, force
                     diurnal_ampl_SR * math.sin(diurnal_offs_SR + hh / 24 * 2*math.pi) + \
                     monthly_ampl_SR * math.sin(monthly_offs_SR + MM / 12 * 2*math.pi)
 
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
+
     # Perform adjustment.
     lw_tmp = None
     try:
-        lw_tmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        lw_tmp = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming LW from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -291,7 +304,7 @@ def ncar_blanket_adjustment_lw(input_forcings, config_options, mpi_config, force
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = lw_tmp[:, :]
+        input_forcings.final_forcings[outId, :, :] = lw_tmp[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary LW array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -384,9 +397,15 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
     # a local grid. We will perform the bias correction on this grid, based on forecast
     # hour and datetime information. Once a correction has taken place, we will place
     # the corrected field back into the forcing object.
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
+
     sw_tmp = None
     try:
-        sw_tmp = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        sw_tmp = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming shortwave forcing from object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -476,9 +495,15 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     #     config_options.statusMsg = f"\tAnAFlag = {config_options.ana_flag} {bias_corr}"
     #     err_handler.log_msg(config_options, mpi_config)
 
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+        if xvar.name == input_forcings.input_map_output[force_num]:
+            outId = ind
+            break
+
     temp_in = None
     try:
-        temp_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        temp_in = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming temperature from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -503,7 +528,7 @@ def ncar_temp_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = temp_in[:, :]
+        input_forcings.final_forcings[outId, :, :] = temp_in[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary temperature array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -532,9 +557,15 @@ def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force
 
     bias_corr = net_bias_mr + fhr_mult_mr * fhr + diurnal_ampl_mr * math.sin(diurnal_offs_mr + hh / 24 * TWO_PI)
 
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
+
     temp_in = None
     try:
-        temp_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        temp_in = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming temperature from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -559,7 +590,7 @@ def ncar_temp_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = temp_in[:, :]
+        input_forcings.final_forcings[outId, :, :] = temp_in[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary temperature array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -590,9 +621,15 @@ def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, for
     bias_corr = lwdown_net_bias_mr + lwdown_fhr_mult_mr * fhr + lwdown_diurnal_ampl_mr * \
                 math.sin(lwdown_diurnal_offs_mr + hh / 24 * TWO_PI)
 
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
+
     lwdown_in = None
     try:
-        lwdown_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        lwdown_in = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming longwave from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -617,7 +654,7 @@ def ncar_lwdown_gfs_bias_correct(input_forcings, config_options, mpi_config, for
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = lwdown_in[:, :]
+        input_forcings.final_forcings[outId, :, :] = lwdown_in[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary longwave array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -643,9 +680,17 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     # need to get wind speed from U, V components
     ugrd_idx = input_forcings.grib_vars.index('UGRD')
     vgrd_idx = input_forcings.grib_vars.index('VGRD')
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[ugrd_idx]:
+                u_in = ind
+            elif xvar.name == input_forcings.input_map_output[vgrd_idx]:
+                v_in = ind
+            else:
+                continue
 
-    ugrid_in = input_forcings.final_forcings[input_forcings.input_map_output[ugrd_idx], :, :]
-    vgrid_in = input_forcings.final_forcings[input_forcings.input_map_output[vgrd_idx], :, :]
+    ugrid_in = input_forcings.final_forcings[u_in, :, :]
+    vgrid_in = input_forcings.final_forcings[v_in, :, :]
 
     wdir = np.arctan2(vgrid_in, ugrid_in)
     wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
@@ -685,10 +730,15 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
     # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
 
     bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
-
+   
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break 
     wind_in = None
     try:
-        wind_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        wind_in = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming windspeed from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -713,7 +763,7 @@ def ncar_wspd_hrrr_bias_correct(input_forcings, config_options, mpi_config, forc
         err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = wind_in[:, :]
+        input_forcings.final_forcings[outId, :, :] = wind_in[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary windspeed array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -744,8 +794,16 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     ugrd_idx = input_forcings.grib_vars.index('UGRD')
     vgrd_idx = input_forcings.grib_vars.index('VGRD')
 
-    ugrid_in = input_forcings.final_forcings[input_forcings.input_map_output[ugrd_idx], :, :]
-    vgrid_in = input_forcings.final_forcings[input_forcings.input_map_output[vgrd_idx], :, :]
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[ugrd_idx]:
+                u_in = ind
+            elif xvar.name == input_forcings.input_map_output[vgrd_idx]:
+                v_in = ind
+            else:
+                continue
+
+    ugrid_in = input_forcings.final_forcings[u_in, :, :]
+    vgrid_in = input_forcings.final_forcings[v_in, :, :]
 
     wdir = np.arctan2(vgrid_in, ugrid_in)
     wspd = np.sqrt(np.square(ugrid_in) + np.square(vgrid_in))
@@ -762,7 +820,11 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
 
     bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
-
+    OutputEnum = config_options.OutputEnum
+    for ind, xvar in enumerate(OutputEnum):
+            if xvar.name == input_forcings.input_map_output[force_num]:
+                outId = ind
+                break
     wind_in = None
     try:
         wind_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]

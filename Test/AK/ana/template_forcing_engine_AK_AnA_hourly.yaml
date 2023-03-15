@@ -1,0 +1,63 @@
+Forecast:
+  AnAFlag: true
+  Frequency: 60
+  LookBack: 180
+  RefcstBDateProc: '202206052300'
+  RefcstEDateProc: '202206060000'
+  Shift: 0
+
+Geospatial:
+  GeogridIn: /glade/p/cisl/nwc/zhangyx/AlaskaNWM/DOMAIN/geo_em.d02.nc
+  SpatialMetaIn: /glade/p/cisl/nwc/zhangyx/AlaskaNWM/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc
+
+Input:
+- BiasCorrection:
+    Humidity: NONE
+    Longwave: CUSTOM
+    Precip: NONE
+    Pressure: NONE
+    Shortwave: CUSTOM
+    Temperature: HRRR
+    Wind: HRRR
+  Dir: /glade/p/ral/allral/zhangyx/HRRR_Alaska
+  Downscaling:
+    Humidity: REGRID_TEMP_PRESS
+    ParamDir: /glade/p/cisl/nwc/zhangyx/NWM_v21_Params/Alaska
+    Precip: NONE
+    Pressure: ELEV
+    Shortwave: ELEV
+    Temperature: LAPSE_675
+  Forcing: HRRR_AK
+  Horizon: 180
+  IgnoredBorderWidths: 10
+  Mandatory: true
+  Offset: 0
+  RegriddingOpt: ESMF_BILINEAR
+  TemporalInterp: NONE
+  Type: GRIB2
+
+Output:
+  CompressOutput: false
+  Dir: /glade/p/ral/wsap/petzke/fe_ak/AnA/data
+  FloatOutput: SCALE_OFFSET
+  Frequency: 60
+  ScratchDir: /glade/p/ral/wsap/petzke/fe_ak/AnA/data
+
+Regridding:
+  WeightsDir: null
+
+Retrospective:
+  Flag: false
+
+SuppForcing:
+- Pcp: AK_MRMS
+  PcpDir: /glade/p/ral/allral/zhangyx/Alaska.MRMS
+  PcpInputOffsets: 0
+  PcpMandatory: false
+  PcpParamDir: /glade/p/cisl/nwc/zhangyx/NWM_v21_Params/Alaska
+  PcpTemporalInterp: 0
+  PcpType: GRIB2
+  RegridOptPcp: 1
+  RqiMethod: NONE
+  RqiThreshold:
+  - 0.9
