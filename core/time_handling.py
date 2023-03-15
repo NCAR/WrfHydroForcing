@@ -1964,6 +1964,8 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
 
     SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
 
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
+
     # Set the input file frequency to be six-hourly.
     supplemental_precip.input_frequency = 360.0
 
@@ -1977,6 +1979,7 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
         stage4_in_dir = None
 
     # Calculate expected file paths.
+
     tmp_file_ext = ".grb2" if supplemental_precip.fileType == 'GRIB2' else ".grb2.nc"
     if stage4_in_dir and supplemental_precip.keyValue == str(SuppForcingPcpEnum.AK_NWS_IV.name):
         tmp_file1 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date1.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
@@ -1984,6 +1987,7 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
         #    tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
         #else:
         tmp_file2 = f"{stage4_in_dir}/st4_ak.{supplemental_precip.pcp_date2.strftime('%Y%m%d%H.06h')}{tmp_file_ext}"
+
     else:
         tmp_file1 = tmp_file2 = ""
 
@@ -2065,6 +2069,8 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
     #next_mrms_date = d_current
     prev_mrms_date = d_current - datetime.timedelta(hours=1)
     next_mrms_date = prev_mrms_date
+
+    SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
 
     SuppForcingPcpEnum = config_options.SuppForcingPcpEnum
 

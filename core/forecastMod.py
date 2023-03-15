@@ -221,6 +221,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
                     if forceKey == "CUSTOM_1":
                         ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
+
                 
                 
                     # Process supplemental precipitation if we specified in the configuration file.

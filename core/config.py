@@ -170,7 +170,6 @@ class ConfigOptions:
             err_handler.err_out_screen('Please pick Input[i][\'Forcing\'] from options: %s' % [str(item) for item in self.ForcingEnum])
 
         for forceOpt in self.input_forcings:
-
             # Keep tabs on how many custom input forcings we have.
             if "CUSTOM" in forceOpt:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -876,7 +875,6 @@ class ConfigOptions:
         # Calculate the beginning/ending processing dates if we are running realtime
         if self.realtime_flag:
             time_handling.calculate_lookback_window(self)
-
 
         try:
             suppforcings = config['SuppForcing']
