@@ -26,7 +26,7 @@ class OutputObj:
         self.output_local = None
         self.outPath = None
         self.outDate = None
-        self.out_ndv = -9999
+        self.out_ndv = -999999
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.

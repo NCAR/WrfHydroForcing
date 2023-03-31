@@ -93,7 +93,7 @@ class ConfigOptions:
         self.customFcstFreq = None
         self.rqiMethod = None
         self.rqiThresh = 1.0
-        self.globalNdv = -9999.0
+        self.globalNdv = -999999.0
         self.d_program_init = datetime.datetime.utcnow()
         self.errFlag = 0
         self.nwmVersion = None
@@ -1127,7 +1127,7 @@ class ConfigOptions:
             except configparser.NoOptionError:
                 err_handler.err_out_screen('Unable to locate SuppPcpDirectories in SuppForcing section '
                                            'in the configuration file.')
-        
+
             # Loop through and ensure all supp pcp directories exist. Also strip out any whitespace
             # or new line characters.
             for dirTmp in range(0, len(self.supp_precip_dirs)):
@@ -1135,7 +1135,7 @@ class ConfigOptions:
                 if not os.path.isdir(self.supp_precip_dirs[dirTmp]):
                     err_handler.err_out_screen('Unable to locate supp pcp directory: ' + self.supp_precip_dirs[dirTmp])
 
-            #Special case for ExtAnA where we treat comma separated stage IV, MRMS data as one SuppPcp input 
+            #Special case for ExtAnA where we treat comma separated stage IV, MRMS data as one SuppPcp input
             if 11 in self.supp_precip_forcings:
                 if len(self.supp_precip_forcings) != 1:
                     err_handler.err_out_screen('Alaska Stage IV/MRMS SuppPcp option is only supported as a standalone option')
@@ -1307,4 +1307,4 @@ class ConfigOptions:
             hrs_since_start = self.current_output_date - self.current_fcst_cycle
             return hrs_since_start <= datetime.timedelta(hours = self.supp_pcp_max_hours)
         else:
-            return True 
+            return True
