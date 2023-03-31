@@ -123,7 +123,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
         show_message = True
         for outStep in range(1, ConfigOptions.num_output_steps + 1):
             # Reset out final grids to missing values.
-            OutputObj.output_local[:, :, :] = -9999.0
+            OutputObj.output_local[:, :, :] = ConfigOptions.globalNdv
 
             ConfigOptions.current_output_step = outStep
             OutputObj.outDate = ConfigOptions.current_fcst_cycle + datetime.timedelta(
@@ -229,7 +229,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
                     if forceKey == 10:
                         ConfigOptions.currentCustomForceNum = ConfigOptions.currentCustomForceNum + 1
-                
+
                 else:
                     # Process supplemental precipitation if we specified in the configuration file.
                     if ConfigOptions.number_supp_pcp > 0:
