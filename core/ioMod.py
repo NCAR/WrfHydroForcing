@@ -171,7 +171,7 @@ class OutputObj:
                 if ConfigOptions.spatial_meta is not None:
                     # apply spatial_global_atts to output globals attrs
                     for k, v in geoMetaWrfHydro.spatial_global_atts.items():
-                        if k not in ("Source_Software", "history", "processing_notes"):     # don't add these
+                        if k not in ("Source_Software", "history", "processing_notes", "version"):     # don't add these
                             idOut.setncattr(k, v)
 
                 # Create variables.
