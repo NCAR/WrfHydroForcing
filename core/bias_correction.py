@@ -370,7 +370,7 @@ def ncar_sw_hrrr_bias_correct(input_forcings, geo_meta_wrf_hydro, config_options
     # the cosine of the sol_zen_ang is proportional to the solar intensity
     # (not accounting for humidity or cloud cover)
     sol_cos = np.sin(geo_meta_wrf_hydro.latitude_grid * d2r) * math.sin(decl) + np.cos(geo_meta_wrf_hydro.latitude_grid * d2r) * math.cos(decl) * np.cos(ha)
-    
+
     # Check for any values outside of [-1,1] (this can happen due to floating point rounding)
     sol_cos[np.where(sol_cos < -1.0)] = -1.0
     sol_cos[np.where(sol_cos > 1.0)] = 1.0
@@ -908,6 +908,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         # Open the NetCDF file.
         try:
             id_nldas_param = Dataset(nldas_param_file, 'r')
+            id_nldas_param.set_auto_mask(False)                 # don't mask missing since it won't survive broadcast
         except OSError as err:
             config_options.errMsg = "Unable to open parameter file: " + nldas_param_file + " (" + str(err) + ")"
             err_handler.log_critical(config_options, mpi_config)
@@ -1236,7 +1237,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
     #     regridding object.
     # 6.) Place the data into the final output arrays for further processing (downscaling).
     # 7.) Reset variables for memory efficiency and exit the routine.
-    
+
     np.seterr(all='ignore')
 
     if mpi_config.rank == 0:
