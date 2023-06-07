@@ -23,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # If you have a requirements.txt file
           git clone https://github.com/esmf-org/esmf.git
-          cd esmf/src/addon/ESMPy
+          cd esmf/src/addon/esmpy
           python setup.py install
           cd ../../../ 
 
