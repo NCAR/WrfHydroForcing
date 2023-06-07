@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.6.9  # Specify the desired Python version
+          python-version: 3.7  # Specify the desired Python version
 
       - name: Install dependencies
         run: |
