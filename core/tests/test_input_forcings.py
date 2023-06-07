@@ -1,6 +1,6 @@
 import pytest
-from core.config import ConfigOptions
-from core.forcingInputMod import input_forcings
+from WrfHydroForcing.core.config import ConfigOptions
+from WrfHydroForcing.core.forcingInputMod import input_forcings
 
 @pytest.fixture
 def config_options():

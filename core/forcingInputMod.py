@@ -6,12 +6,12 @@ initializing ESMF grids and regrid objects), etc
 """
 import numpy as np
 from strenum import StrEnum
-from core import time_handling
+from WrfHydroForcing.core import time_handling
 #from core import regrid
 #from core import timeInterpMod
 import yaml
-from core.enumConfig import TemporalInterpEnum
-from core.enumConfig import DownScaleHumidEnum
+from WrfHydroForcing.core.enumConfig import TemporalInterpEnum
+from WrfHydroForcing.core.enumConfig import DownScaleHumidEnum
 
 class input_forcings:
     """

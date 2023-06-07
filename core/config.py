@@ -10,8 +10,8 @@ import configparser
 import numpy as np
 import yaml
 from strenum import StrEnum
-from core import time_handling
-from core import err_handler
+from WrfHydroForcing.core import time_handling
+from WrfHydroForcing.core import err_handler
 
 
 class ConfigOptions:
