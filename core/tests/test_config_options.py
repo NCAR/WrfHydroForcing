@@ -1,5 +1,5 @@
 import pytest
-from WrfHydroForcing.core.config import ConfigOptions
+from core.config import ConfigOptions
 
 @pytest.mark.parametrize('invalid_config', [
     # Invalid values or types

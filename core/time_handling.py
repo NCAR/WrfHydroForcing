@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 from strenum import StrEnum
-from WrfHydroForcing.core import err_handler
+from core import err_handler
 #from core.forcingInputMod import input_forcings
 #NETCDF = input_forcings.NETCDF
 
