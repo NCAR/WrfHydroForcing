@@ -22,8 +22,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # If you have a requirements.txt file
-          export PYTHONPATH=$PYTHONPATH:/home/runner/work/WrfHydroForcing/WrfHydroForcing
-          export PYTHONPATH=$PYTHONPATH:/home/runner/work/WrfHydroForcing/WrfHydroForcing/core
+
+      - name: Set PYTHONPATH
+        run: echo "export PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
+      - name: Set PYTHONPATH
+        run: echo "export PYTHONPATH=${{ github.workspace }}/subdirectory" >> $GITHUB_ENV
 
       - name: Run pytest
         run: pytest
