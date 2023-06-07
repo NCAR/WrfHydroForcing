@@ -7,7 +7,7 @@ on:
 
 jobs:
   pytest:
-    runs-on: suse-12.4  # Use the desired operating system for the CI environment
+    runs-on: opensuse/latest   # Use the desired operating system for the CI environment
 
     steps:
       - name: Checkout code
