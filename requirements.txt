@@ -15,8 +15,7 @@ ipython-genutils==0.2.0
 isort==5.9.3
 jedi==0.17.2
 jupyter-client==7.1.2
-jupyter-core==4.9.2
-netCDF4==1.5.5
+netCDF4
 numpy==1.17.4
 pandas==1.1.2
 pytest
