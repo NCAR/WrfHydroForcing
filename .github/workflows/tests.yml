@@ -24,10 +24,10 @@ jobs:
           pip install -r requirements.txt  # If you have a requirements.txt file
 
       - name: Set PYTHONPATH
-        run: echo "export PYTHONPATH=/home/runner/work/WrfHydroForcing/WrfHydroForcing/" >> $GITHUB_ENV
+        run: echo "export PYTHONPATH=/home/runner/work/WrfHydroForcing/WrfHydroForcing/"
 
       - name: Set PYTHONPATH
-        run: echo "export PYTHONPATH=/home/runner/work/WrfHydroForcing/WrfHydroForcing/core/" >> $GITHUB_ENV
+        run: echo "export PYTHONPATH=/home/runner/work/WrfHydroForcing/WrfHydroForcing/core/"
 
       - name: Run pytest
         run: pytest
