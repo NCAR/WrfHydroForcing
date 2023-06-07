@@ -27,7 +27,7 @@ jobs:
         run: echo "export PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
       - name: Set PYTHONPATH
-        run: echo "export PYTHONPATH=${{ github.workspace }}/subdirectory" >> $GITHUB_ENV
+        run: echo "export PYTHONPATH=${{ github.workspace }}/core" >> $GITHUB_ENV
 
       - name: Run pytest
         run: pytest
