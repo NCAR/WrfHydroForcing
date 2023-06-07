@@ -131,6 +131,7 @@ class ConfigOptions:
         try:
             inputs = config['Input']
         except KeyError:
+            raise KeyError("Unable to locate Input map in configuration file.")
             err_handler.err_out_screen('Unable to locate Input map in configuration file.')
 
         if len(inputs) == 0:
@@ -289,8 +290,9 @@ class ConfigOptions:
         try:
             forecast = config['Forecast']
         except KeyError:
+            raise KeyError("Forecast not found in configuration file")
             err_handler.err_out_screen('Unable to locate Forecast map in configuration file.')
-
+ 
         # Read AnA flag option
         try:
             self.ana_flag = int(forecast['AnAFlag'])
@@ -300,7 +302,7 @@ class ConfigOptions:
             err_handler.err_out_screen('Improper Forecast[\'AnAFlag\'] value ')
         if self.ana_flag < 0 or self.ana_flag > 1:
             err_handler.err_out_screen('Please choose a Forecast[\'AnAFlag\'] value of 0 or 1.')
-        
+
         # Read in temperature bias correction options
         try:
             self.t2BiasCorrectOpt = [input['BiasCorrection']['Temperature'] for input in inputs]
@@ -516,6 +518,7 @@ class ConfigOptions:
         try:
             output = config['Output']
         except KeyError:
+            raise KeyError("Output not found in configuration file")
             err_handler.err_out_screen('Unable to locate Output map in configuration file.')
 
         # Read in the output frequency
@@ -586,23 +589,6 @@ class ConfigOptions:
             err_handler.err_out_screen('Improper includeLQFraq value: {}'.format(config['Output']['includeLQFraq']))
         if self.include_lqfraq < 0 or self.include_lqfraq > 1:
             err_handler.err_out_screen('Please choose an includeLQFraq value of 0 or 1.')
-
-        # Read AnA flag option
-        try:
-            # check both the Forecast section and if it's not there, the old BiasCorrection location
-            self.ana_flag = config['Forecast'].get('AnAFlag', config['BiasCorrection'].get('AnAFlag'))
-            if self.ana_flag is None:
-                raise KeyError
-            else:
-                self.ana_flag = int(self.ana_flag)
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate AnAFlag in the configuration file.')
-        except ValueError:
-            err_handler.err_out_screen('Improper AnAFlag value ')
-        if self.ana_flag < 0 or self.ana_flag > 1:
-            err_handler.err_out_screen('Please choose a AnAFlag value of 0 or 1.')
 
         # Read in retrospective options
         try:
@@ -687,8 +673,10 @@ class ConfigOptions:
                 if self.look_back <= 0 and self.look_back != -9999:
                     err_handler.err_out_screen('Please specify a positive LookBack or -9999 for realtime.')
             except ValueError:
+                raise ValueError("Improper value")
                 err_handler.err_out_screen('Improper LookBack value entered into the '
                                            'configuration file. Please check your entry.')
+                
             except KeyError:
                 err_handler.err_out_screen('Unable to locate LookBack in the configuration '
                                            'file. Please verify entries exist.')
@@ -707,6 +695,7 @@ class ConfigOptions:
                 try:
                     self.b_date_proc = datetime.datetime.strptime(beg_date_tmp, '%Y%m%d%H%M')
                 except ValueError:
+                    raise ValueError("Improper value")
                     err_handler.err_out_screen('Improper RefcstBDateProc value entered into the '
                                                'configuration file. Please check your entry.')
             else:

@@ -1,0 +1,67 @@
+Forecast:
+  AnAFlag: true
+  Frequency: 60
+  LookBack: 180
+  RefcstBDateProc: '202302261200'
+  RefcstEDateProc: '202302261800'
+  Shift: 0
+
+Geospatial:
+  GeogridIn: /glade/p/cisl/nwc/nwmv30_finals/Hawaii/DOMAIN_Default/geo_em.d01.1km_Hawaii_NWMv3.0.nc
+  SpatialMetaIn: /glade/p/cisl/nwc/nwmv30_finals/Hawaii/DOMAIN_Default/GEOGRID_LDASOUT_Spatial_Metadata_1km_Hawaii_NWMv3.0.nc
+
+Input:
+- BiasCorrection:
+    Humidity: NONE
+    Longwave: NONE
+    Precip: NONE
+    Pressure: NONE
+    Shortwave: NONE
+    Temperature: NONE
+    Wind: NONE
+  Dir: /glade/scratch/zhangyx/ForcingEngine/Forcing_Inputs/NAM.Hawaii
+  Downscaling:
+    Humidity: 1
+    ParamDir: NONE
+    Precip: NONE
+    Pressure: ELEV
+    Shortwave: ELEV
+    Temperature: LAPSE_675
+  Forcing: NAM_NEST_HI
+  Horizon: 60
+  IgnoredBorderWidths: 0.0
+  Mandatory: invalid
+  Offset: invalid
+  RegriddingOpt: ESMF_BILINEAR
+  TemporalInterp: NONE
+  Type: GRIB2
+
+Output:
+  CompressOutput: false
+  Dir: /glade/scratch/ishitas/ForcingEngine/Hawaii_AnA_withMRMS_test
+  FloatOutput: SCALE_OFFSET
+  Frequency: 60
+  ScratchDir: /glade/scratch/ishitas/ForcingEngine/Hawaii_AnA_withMRMS_test
+
+Regridding:
+  WeightsDir: null
+
+Retrospective:
+  Flag: false
+
+SuppForcing:
+- Pcp: MRMS
+  PcpDir: /glade/scratch/zhangyx/ForcingEngine/Forcing_Inputs/HIRESW.Hawaii
+  PcpInputOffsets: 0
+  PcpMandatory: false
+  PcpParamDir: /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/Puerto_Rico
+  PcpTemporalInterp: 0
+  PcpType: GRIB2
+  RegridOptPcp: 1
+  RqiMethod: NONE
+  RqiThreshold: 1.0
+
+YamlConfig:
+  forcingInputModYaml: '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/Config/YAML/forcingInputMod.yaml'
+  outputVarAttrYaml: '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/Config/YAML/outputVarAttr.yaml'
+  suppPrecipModYaml: '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/Config/YAML/suppPrecipMod.yaml'

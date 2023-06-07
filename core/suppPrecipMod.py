@@ -138,8 +138,8 @@ class supplemental_precip:
             str(SuppForcingPcpEnum.MRMS_CONUS_MS.name): time_handling.find_hourly_mrms_radar_neighbors,
             str(SuppForcingPcpEnum.MRMS_HI_MS.name)   : time_handling.find_hourly_mrms_radar_neighbors,
             str(SuppForcingPcpEnum.MRMS_SBCV2.name)   : time_handling.find_sbcv2_lwf_neighbors,
-            str(SuppForcingPcpEnum.AK_OPT1.name)      : time_handling.find_hourly_nbm_apcp_neighbors,
-            str(SuppForcingPcpEnum.AK_OPT2.name)      : time_handling.find_hourly_nbm_apcp_neighbors,
+            str(SuppForcingPcpEnum.AK_OPT1.name)      : time_handling.find_hourly_nbm_neighbors,
+            str(SuppForcingPcpEnum.AK_OPT2.name)      : time_handling.find_hourly_nbm_neighbors,
             str(SuppForcingPcpEnum.AK_MRMS.name)      : time_handling.find_hourly_mrms_radar_neighbors,
             str(SuppForcingPcpEnum.AK_NWS_IV.name)    : time_handling.find_ak_ext_ana_precip_neighbors
         }
@@ -167,8 +167,8 @@ class supplemental_precip:
             str(SuppForcingPcpEnum.MRMS_CONUS_MS.name): regrid.regrid_mrms_hourly,
             str(SuppForcingPcpEnum.MRMS_HI_MS.name)   : regrid.regrid_mrms_hourly,
             str(SuppForcingPcpEnum.MRMS_SBCV2.name)   : regrid.regrid_sbcv2_liquid_water_fraction,
-            str(SuppForcingPcpEnum.AK_OPT1.name)      : regrid.regrid_hourly_nbm_apcp,
-            str(SuppForcingPcpEnum.AK_OPT2.name)      : regrid.regrid_hourly_nbm_apcp,
+            str(SuppForcingPcpEnum.AK_OPT1.name)      : regrid.regrid_hourly_nbm,
+            str(SuppForcingPcpEnum.AK_OPT2.name)      : regrid.regrid_hourly_nbm,
             str(SuppForcingPcpEnum.AK_MRMS.name)      : regrid.regrid_mrms_hourly,
             str(SuppForcingPcpEnum.AK_NWS_IV.name)    : regrid.regrid_ak_ext_ana_pcp
         }

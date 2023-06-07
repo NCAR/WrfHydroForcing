@@ -7,8 +7,8 @@ initializing ESMF grids and regrid objects), etc
 import numpy as np
 from strenum import StrEnum
 from core import time_handling
-from core import regrid
-from core import timeInterpMod
+#from core import regrid
+#from core import timeInterpMod
 import yaml
 from core.enumConfig import TemporalInterpEnum
 from core.enumConfig import DownScaleHumidEnum
@@ -203,8 +203,9 @@ class input_forcings:
         """
         # Establish a mapping dictionary that will point the
         # code to the functions to that will regrid the data.
+        from core import regrid
         ForcingEnum = ConfigOptions.ForcingEnum
-
+           
         regrid_inputs = {
             str(ForcingEnum.NLDAS.name)          : regrid.regrid_conus_rap,
             str(ForcingEnum.GFS_GLOBAL.name)     : regrid.regrid_gfs,
@@ -238,6 +239,7 @@ class input_forcings:
         :param MpiConfig:
         :return:
         """
+        from core import timeInterpMod
         temporal_interpolate_inputs = {
             str(TemporalInterpEnum.NONE.name)             : timeInterpMod.no_interpolation,
             str(TemporalInterpEnum.NEAREST_NEIGHBOR.name) : timeInterpMod.nearest_neighbor,
