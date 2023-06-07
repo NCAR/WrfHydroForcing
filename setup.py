@@ -9,5 +9,5 @@ setup(
         author='Ryan Cabell',
         author_email='rcabell@ucar.edu',
         description='',
-        install_requires=['netCDF4', 'numpy', 'ESMPy']
+        install_requires=['netCDF4', 'numpy']
 )
