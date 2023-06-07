@@ -21,6 +21,5 @@ pytest
 pyaml==21.10.1
 PyYAML==6.0
 requests==2.27.1
-scipy==1.5.4
 StrEnum==0.4.8
 xarray==0.16.2
