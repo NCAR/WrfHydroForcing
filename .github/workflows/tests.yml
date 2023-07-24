@@ -40,7 +40,8 @@ jobs:
 
       - name: Install the package
         run: |
-          conda activate esmpy_env
+          source activate esmpy_env
+          pip install ESMPy
           python setup.py install
 
       - name: Run pytest
