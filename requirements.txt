@@ -16,3 +16,4 @@ pyaml
 PyYAML
 requests
 StrEnum
+ESMPy

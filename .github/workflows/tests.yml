@@ -37,12 +37,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # If you have a requirements.txt file
           conda install -c conda-forge esmpy
-
-      - name: Install the package
-        run: |
-          eval "$(conda shell.bash hook)"
-          source activate esmpy_env
-          pip install ESMPy
           python setup.py install
 
       - name: Run pytest
