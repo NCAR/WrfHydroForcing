@@ -28,7 +28,7 @@ jobs:
         run: |
           conda init bash
           conda create -n esmpy_env
-          conda activate esmpy_env
+          source activate esmpy_env
         shell: bash
 
       - name: Install dependencies
