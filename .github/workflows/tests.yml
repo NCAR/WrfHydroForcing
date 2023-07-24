@@ -24,7 +24,6 @@ jobs:
           channel: 'defaults'  # Specify the Conda channel you want to use
           python-version: 3.8  # Specify the Python version for the Conda environment
 
-      steps:
       - name: Set up Conda and initialize shell
         run: |
           conda init bash
