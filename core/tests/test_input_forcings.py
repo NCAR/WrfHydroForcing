@@ -4,7 +4,7 @@ from core.forcingInputMod import input_forcings
 
 @pytest.fixture
 def config_options():
-    config_path = '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/core/tests/configOptions_valid.yaml'
+    config_path = './yaml/configOptions_valid.yaml'
     yield ConfigOptions(config_path)
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def input_forcings_sample(config_options):
 
 def test_define_product(config_options, input_forcings_sample):
     force_key = config_options.input_forcings[0]
-    input_forcings_sample[force_key].forcingInputModYaml = "/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/core/tests/inputForcings_valid.yaml"
+    input_forcings_sample[force_key].forcingInputModYaml = "./yaml/inputForcings_valid.yaml"
     input_forcings_sample[force_key].define_product()
     # Assert expected values for valid configuration
     assert input_forcings_sample[force_key].cycleFreq == 360
@@ -26,11 +26,10 @@ def test_define_product(config_options, input_forcings_sample):
 
     # Add more assertions for other attributes
 
-@pytest.mark.parametrize('invalid_config', [
-    # Invalid values or types
-    '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/core/tests/inputForcings_invalid.yaml'
+@pytest.mark.parametrize('invalid_config', ['./yaml/inputForcings_invalid.yaml'
     # Add more invalid configurations
 ])
+
 def test_define_config_invalid(invalid_config):
     with pytest.raises(Exception):
         
@@ -45,14 +44,14 @@ def test_define_config_invalid(invalid_config):
     # Add more missing keys
 ])
 def test_define_config_missing(missing_key):
-    config = '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/core/tests/inputForcings_missing.yaml'
+    config = './yaml/inputForcings_missing.yaml'
     with pytest.raises(Exception):
         config_options = ConfigOptions(config)
         config_options.read_config()
 
 @pytest.mark.parametrize('empty_value', [
     # Empty values
-    '/glade/work/ishitas/FE_Development/merged_master_code/WrfHydroForcing/core/tests/inputForcings_empty.yaml'
+    './yaml/inputForcings_empty.yaml'
     # Add more empty values
 ])
 def test_define_config_empty(empty_value):
