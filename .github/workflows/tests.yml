@@ -28,6 +28,7 @@ jobs:
         run: |
           conda init bash
           conda create -n esmpy_env
+          eval "$(conda shell.bash hook)"
           source activate esmpy_env
         shell: bash
 
