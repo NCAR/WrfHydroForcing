@@ -40,6 +40,7 @@ jobs:
 
       - name: Install the package
         run: |
+          eval "$(conda shell.bash hook)"
           source activate esmpy_env
           pip install ESMPy
           python setup.py install
