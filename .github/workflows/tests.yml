@@ -40,6 +40,7 @@ jobs:
 
       - name: Install the package
         run: |
+          pip install ESMPy
           python setup.py install
 
       - name: Run pytest
