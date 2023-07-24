@@ -32,6 +32,31 @@ jobs:
           source activate esmpy_env
         shell: bash
 
+      - name: Set up ESMF and wgrib2
+        run: |
+          mkdir $HOME/.esmf-src \
+          cd $HOME/.esmf-src \
+          wget http://www.earthsystemmodeling.org/esmf_releases/public/ESMF_7_1_0r/esmf_7_1_0r_src.tar.gz \
+          tar xfz esmf_7_1_0r_src.tar.gz \
+          cd esmf \
+          export ESMF_DIR=$PWD \
+          export ESMF_COMM=mpich3 \
+          make \
+          make install
+
+          cd $HOME/.esmf-src/esmf/src/addon/ESMPy
+          python setup.py build --ESMFMKFILE=$HOME/.esmf-src/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpich3.default/esmf.mk install
+
+          cd $HOME
+          wget ftp://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz
+          tar xfz wgrib2.tgz
+          rm wgrib2.tgz
+          cd grib2
+          export CC=gcc
+          export FC=gfortran
+          make
+          make lib
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
