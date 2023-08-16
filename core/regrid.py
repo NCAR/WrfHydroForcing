@@ -83,7 +83,7 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         except:
             config_options.errMsg = f"Unable to open input NetCDF file: {input_forcings.file_in}"
             err_handler.log_critical(config_options, mpi_config)
-        
+
         ds.set_auto_scale(True)
         ds.set_auto_mask(False)
 
@@ -126,7 +126,7 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                                                       np.float32)
         input_forcings.regridded_forcings2 = np.empty([8, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
-        
+
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
         var_tmp = None
         if mpi_config.rank == 0:
@@ -139,7 +139,7 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = f"Unable to extract: {nc_var} from: {input_forcings.file_in2} ({str(err)})"
                 err_handler.log_critical(config_options, mpi_config)
-            
+
         err_handler.check_program_status(config_options, mpi_config)
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
@@ -190,7 +190,7 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
 
     lat_var = "latitude"
     lon_var = "longitude"
-    
+
     if supplemental_precip.fileType != NETCDF:
         # This file shouldn't exist.... but if it does (previously failed
         # execution of the program), remove it.....
@@ -2044,9 +2044,13 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
 
     # Set any pixel cells outside the input domain to the global missing value, and set negative precip values to 0
     try:
+        if len(np.argwhere(supplemental_precip.esmf_field_out.data < 0)) > 0:
+            supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = 0
+            config_options.statusMsg = "WARNING: Found negative precipitation values in MRMS data, setting to 0"
+            err_handler.log_warning(config_options, mpi_config)
+
         supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
             config_options.globalNdv
-        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = 0
 
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on MRMS supplemental precip: " + str(npe)
@@ -2609,7 +2613,7 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
             config_options.statusMsg = "Exceeded max hours for NBM data, will not use NBM in final layering."
             err_handler.log_msg(config_options, mpi_config)
         return
-        
+
     # If the expected file is missing, this means we are allowing missing files, simply
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.exists(forcings_or_precip.file_in1):
@@ -2707,7 +2711,7 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
 
                     terrain_tmp = os.path.join(config_options.scratch_dir, 'nbm_terrain_temp.nc')
                     cmd = f"$WGRIB2 {config_options.grid_meta} -netcdf {terrain_tmp}"
-                    hgt_tmp = ioMod.open_grib2(config_options.grid_meta, terrain_tmp, cmd, config_options,                                              
+                    hgt_tmp = ioMod.open_grib2(config_options.grid_meta, terrain_tmp, cmd, config_options,
                                                mpi_config, 'DIST_surface')
                     if mpi_config.rank == 0:
                         var_tmp = hgt_tmp.variables['DIST_surface'][0, :, :]
