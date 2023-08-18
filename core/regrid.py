@@ -2042,9 +2042,9 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     # Set any pixel cells outside the input domain to the global missing value, and set negative precip values to 0
     try:
         if len(np.argwhere(supplemental_precip.esmf_field_out.data < 0)) > 0:
-            supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = 0
-            config_options.statusMsg = "WARNING: Found negative precipitation values in MRMS data, setting to 0"
-            err_handler.log_warning(config_options, mpi_config)
+            supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = config_options.globalNdv
+            # config_options.statusMsg = "WARNING: Found negative precipitation values in MRMS data, setting to missing_value"
+            # err_handler.log_warning(config_options, mpi_config)
 
         supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = \
             config_options.globalNdv
