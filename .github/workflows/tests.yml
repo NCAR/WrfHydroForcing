@@ -34,14 +34,14 @@ jobs:
 
       - name: Set up ESMF and wgrib2
         run: |
-          mkdir $HOME/.esmf-src \
-          cd $HOME/.esmf-src \
-          wget http://www.earthsystemmodeling.org/esmf_releases/public/ESMF_7_1_0r/esmf_7_1_0r_src.tar.gz \
-          tar xfz esmf_7_1_0r_src.tar.gz \
-          cd esmf \
-          export ESMF_DIR=$PWD \
-          export ESMF_COMM=mpich3 \
-          make \
+          mkdir $HOME/.esmf-src
+          cd $HOME/.esmf-src
+          wget http://www.earthsystemmodeling.org/esmf_releases/public/ESMF_7_1_0r/esmf_7_1_0r_src.tar.gz
+          tar xfz esmf_7_1_0r_src.tar.gz
+          cd esmf
+          export ESMF_DIR=$PWD
+          export ESMF_COMM=mpich3
+          make
           make install
 
           cd $HOME/.esmf-src/esmf/src/addon/ESMPy
