@@ -7,13 +7,14 @@ import os.path
 
 import numpy as np
 from netCDF4 import Dataset
-
+from strenum import StrEnum
 from core import err_handler
+from core.enumConfig import SuppForcingPcpEnum
 
 test_enabled = True
 
 def disaggregate_factory(ConfigOptions):
-    if len(ConfigOptions.supp_precip_forcings) == 1 and ConfigOptions.supp_precip_forcings[0] == 11:
+    if len(ConfigOptions.supp_precip_forcings) == 1 and ConfigOptions.supp_precip_forcings[0] == str(SuppForcingPcpEnum.AK_NWS_IV):
         return ext_ana_disaggregate
     #Add new cases here
     #elif condition:

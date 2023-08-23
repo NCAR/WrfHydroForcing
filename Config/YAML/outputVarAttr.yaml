@@ -1,0 +1,89 @@
+U2D : 
+  ind                     : 0
+  units                   : 'm s-1'
+  standard_name           : 'x_wind'
+  long_name               : '10-m U-component of wind'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.001
+  add_offset              : 0.0
+  least_significant_digit : 3
+
+V2D : 
+  ind                     : 1
+  units                   : 'm s-1'
+  standard_name           : 'y_wind'
+  long_name               : '10-m V-component of wind'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.001
+  add_offset              : 0.0
+  least_significant_digit : 3
+
+LWDOWN :   
+  ind                     : 2
+  units                   : 'W m-2'
+  standard_name           : 'surface_downward_longwave_flux'
+  long_name               : 'Surface downward long-wave radiation flux'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.001
+  add_offset              : 0.0
+  least_significant_digit : 3
+
+RAINRATE :   
+  ind                     : 3
+  units                   : 'mm s^-1'
+  standard_name           : 'precipitation_flux'
+  long_name               : 'Surface Precipitation Rate'
+  cell_methods            : 'time: MEAN'
+  scale_factor            : 1.0
+  add_offset              : 0.0
+  least_significant_digit : 0
+
+T2D :   
+  ind                     : 4
+  units                   : 'K'
+  standard_name           : 'air_temperature'
+  long_name               : '2-m Air Temperature'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.01
+  add_offset              : 100.0
+  least_significant_digit : 2
+
+Q2D :   
+  ind                     : 5
+  units                   : 'kg kg-1'
+  standard_name           : 'surface_specific_humidity'
+  long_name               : '2-m Specific Humidity'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.000001
+  add_offset              : 0.0
+  least_significant_digit : 6
+
+PSFC :   
+  ind                     : 6
+  units                   : 'Pa'
+  standard_name           : 'air_pressure'
+  long_name               : 'Surface Pressure'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.1
+  add_offset              : 0.0
+  least_significant_digit : 1
+
+SWDOWN :
+  ind                     : 7
+  units                   : 'W m-2'
+  standard_name           : 'surface_downward_shortwave_flux'
+  long_name               : 'Surface downward short-wave radiation flux'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.001
+  add_offset              : 0.0
+  least_significant_digit : 3
+
+LQFRAC :   
+  ind                     : 8
+  units                   : '%'
+  standard_name           : 'liquid_water_fraction'
+  long_name               : 'Fraction of precipitation that is liquid vs. frozen'
+  cell_methods            : 'time: point'
+  scale_factor            : 0.1
+  add_offset              : 0.0
+  least_significant_digit : 3

@@ -1,0 +1,67 @@
+Forecast:
+  AnAFlag: true
+  Frequency: 60
+  LookBack: 180
+  RefcstBDateProc: '202302261200'
+  RefcstEDateProc: '202302261800'
+  Shift: 0
+
+Geospatial:
+  GeogridIn: config_data/DOMAIN_Default/geo_em.d01.1km_Hawaii_NWMv3.0.nc
+  SpatialMetaIn: config_data/DOMAIN_Default/GEOGRID_LDASOUT_Spatial_Metadata_1km_Hawaii_NWMv3.0.nc
+
+Input:
+- BiasCorrection:
+    Humidity: NONE
+    Longwave: NONE
+    Precip: NONE
+    Pressure: NONE
+    Shortwave: NONE
+    Temperature: NONE
+    Wind: NONE
+  Dir: config_data/NAM.Hawaii
+  Downscaling:
+    Humidity: REGRID_TEMP_PRESS
+    ParamDir: NONE
+    Precip: NONE
+    Pressure: ELEV
+    Shortwave: ELEV
+    Temperature: LAPSE_675
+  Forcing: NAM_NEST_HI
+  Horizon: 60
+  IgnoredBorderWidths: 0.0
+  Mandatory: true
+  Offset: 0
+  RegriddingOpt: ESMF_BILINEAR
+  TemporalInterp: NONE
+  Type: GRIB2
+
+Output:
+  CompressOutput: false
+  Dir: output/Hawaii_AnA_withMRMS_test
+  FloatOutput: SCALE_OFFSET
+  Frequency: 60
+  ScratchDir: output/Hawaii_AnA_withMRMS_test
+
+Regridding:
+  WeightsDir: null
+
+Retrospective:
+  Flag: false
+
+SuppForcing:
+- Pcp: MRMS
+  PcpDir: config_data/HIRESW.Hawaii
+  PcpInputOffsets: 0
+  PcpMandatory: false
+  PcpParamDir: config_data/Puerto_Rico
+  PcpTemporalInterp: 0
+  PcpType: GRIB2
+  RegridOptPcp: 1
+  RqiMethod: NONE
+  RqiThreshold: 1.0
+
+YamlConfig:
+  forcingInputModYaml: 'yaml/forcingInputMod.yaml'
+  outputVarAttrYaml: 'yaml/outputVarAttr.yaml'
+  suppPrecipModYaml: 'yaml/suppPrecipMod.yaml'
