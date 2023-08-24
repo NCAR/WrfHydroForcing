@@ -68,7 +68,10 @@ jobs:
           python setup.py install
 
       - name: Run pytest
-        run: pytest
+        run: |
+          pwd
+          cd core/tests
+          pytest
 
       # Optional: Generate test coverage report
       - name: Install coverage tool
