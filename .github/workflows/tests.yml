@@ -38,16 +38,17 @@ jobs:
 
           mkdir $HOME/.esmf-src
           cd $HOME/.esmf-src
-          wget https://github.com/esmf-org/esmf/archive/refs/tags/ESMF_7_1_0r.tar.gz
-          tar xfz ESMF_7_1_0r.tar.gz
-          cd esmf-ESMF_7_1_0r
+          wget https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz
+          tar xfz v8.5.0.tar.gz
+          ln -s esmf-8.5.0 esmf
+          cd esmf
           export ESMF_DIR=$PWD
           export ESMF_COMM=mpich3
           make
           make install
 
-          cd $HOME/.esmf-src/esmf-ESMF_7_1_0r/src/addon/ESMPy
-          python setup.py build --ESMFMKFILE=$HOME/.esmf-src/esmf-ESMF_7_1_0r/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpich3.default/esmf.mk install
+          cd $HOME/.esmf-src/esmf/src/addon/ESMPy
+          python setup.py build --ESMFMKFILE=$HOME/.esmf-src/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpich3.default/esmf.mk install
 
           cd $HOME
           wget ftp://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz
