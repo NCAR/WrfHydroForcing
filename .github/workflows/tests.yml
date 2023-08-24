@@ -21,7 +21,7 @@ jobs:
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          channel: 'defaults'  # Specify the Conda channel you want to use
+          channels: defaults  # Specify the Conda channel you want to use
           python-version: 3.8  # Specify the Python version for the Conda environment
 
       - name: Set up Conda and initialize shell
@@ -29,7 +29,7 @@ jobs:
           conda init bash
           conda create -n esmpy_env
           eval "$(conda shell.bash hook)"
-          source activate esmpy_env
+          conda activate esmpy_env
         shell: bash
 
       - name: Set up ESMF and wgrib2
