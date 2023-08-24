@@ -34,7 +34,7 @@ jobs:
 
       - name: Set up ESMF and wgrib2
         run: |
-          apt-get install mpich
+          sudo apt-get install mpich
 
           mkdir $HOME/.esmf-src
           cd $HOME/.esmf-src
