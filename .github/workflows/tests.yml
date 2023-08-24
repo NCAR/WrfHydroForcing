@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir $HOME/.esmf-src
           cd $HOME/.esmf-src
-          wget http://www.earthsystemmodeling.org/esmf_releases/public/ESMF_7_1_0r/esmf_7_1_0r_src.tar.gz
+          wget https://github.com/esmf-org/esmf/archive/refs/tags/ESMF_7_1_0r.tar.gz
           tar xfz esmf_7_1_0r_src.tar.gz
           cd esmf
           export ESMF_DIR=$PWD
