@@ -37,7 +37,7 @@ jobs:
           mkdir $HOME/.esmf-src
           cd $HOME/.esmf-src
           wget https://github.com/esmf-org/esmf/archive/refs/tags/ESMF_7_1_0r.tar.gz
-          tar xfz esmf_7_1_0r_src.tar.gz
+          tar xfz ESMF_7_1_0r.tar.gz
           cd esmf
           export ESMF_DIR=$PWD
           export ESMF_COMM=mpich3
