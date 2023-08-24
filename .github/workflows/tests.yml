@@ -47,13 +47,13 @@ jobs:
           make
           make install
 
-          cd $HOME/.esmf-src/esmf/src/addon/ESMPy
-          python setup.py build --ESMFMKFILE=$HOME/.esmf-src/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpich3.default/esmf.mk install
+          cd $HOME/.esmf-src/esmf/src/addon/esmpy
+          make install
 
           cd $HOME
-          wget ftp://ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz
-          tar xfz wgrib2.tgz
-          rm wgrib2.tgz
+          wget https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz.v3.1.2
+          tar xfz wgrib2.tgz.v3.1.2
+          rm wgrib2.tgz.v3.1.2
           cd grib2
           export CC=gcc
           export FC=gfortran
