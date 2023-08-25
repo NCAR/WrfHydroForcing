@@ -3,7 +3,12 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 
-import ESMF
+# ESMF was renamed to esmpy in v8.4.0
+try:
+    import esmpy as ESMF
+except ModuleNotFoundError:
+    import ESMF
+    
 import numpy as np
 
 from core import err_handler

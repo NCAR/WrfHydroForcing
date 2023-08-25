@@ -1,5 +1,6 @@
 import pytest
 from core.config import ConfigOptions
+from gdrive_download import maybe_download_testdata
 
 @pytest.mark.parametrize('invalid_config', [
     # Invalid values or types
@@ -7,6 +8,7 @@ from core.config import ConfigOptions
     # Add more invalid configurations
 ])
 def test_read_config_invalid(invalid_config):
+    maybe_download_testdata()
     with pytest.raises(Exception):
         config_options = ConfigOptions(invalid_config)
         config_options.read_config()
@@ -18,6 +20,7 @@ def test_read_config_invalid(invalid_config):
     # Add more missing keys
 ])
 def test_read_config_missing(missing_key):
+    maybe_download_testdata()
     config = 'yaml/configOptions_missing.yaml'
     with pytest.raises(Exception):
         config_options = ConfigOptions(config)
@@ -29,6 +32,7 @@ def test_read_config_missing(missing_key):
     # Add more empty values
 ])
 def test_read_config_empty(empty_value):
+    maybe_download_testdata()
     with pytest.raises(Exception):
         config_options = ConfigOptions(empty_value)
         config_options.read_config()

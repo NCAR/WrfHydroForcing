@@ -24,7 +24,7 @@ jobs:
           channels: defaults  # Specify the Conda channel you want to use
           python-version: 3.8  # Specify the Python version for the Conda environment
 
-      - name: Set up Conda and initialize shell
+      - name: Initialize conda environment and activate in shell
         run: |
           conda init bash
           conda create -n esmpy_env
@@ -32,7 +32,7 @@ jobs:
           conda activate esmpy_env
         shell: bash
 
-      - name: Set up ESMF and wgrib2
+      - name: Install mpich, ESMF and wgrib2
         run: |
           sudo apt-get install mpich
 
@@ -60,7 +60,7 @@ jobs:
           make
           make lib
 
-      - name: Install dependencies
+      - name: Install python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # If you have a requirements.txt file
@@ -69,7 +69,6 @@ jobs:
 
       - name: Run pytest
         run: |
-          pwd
           cd core/tests
           pytest
 

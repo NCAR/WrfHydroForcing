@@ -1,6 +1,11 @@
 import math
 
-import ESMF
+# ESMF was renamed to esmpy in v8.4.0
+try:
+    import esmpy as ESMF
+except ModuleNotFoundError:
+    import ESMF
+    
 import numpy as np
 from netCDF4 import Dataset
 

@@ -1,8 +1,12 @@
 import argparse
 import os
 
-import ESMF
-
+# ESMF was renamed to esmpy in v8.4.0
+try:
+    import esmpy as ESMF
+except ModuleNotFoundError:
+    import ESMF
+    
 from core import config
 from core import err_handler
 from core import forcingInputMod

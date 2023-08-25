@@ -1,14 +1,18 @@
 import pytest
 from core.config import ConfigOptions
 from core.forcingInputMod import input_forcings
+from gdrive_download import maybe_download_testdata
+
 
 @pytest.fixture
 def config_options():
+    maybe_download_testdata()
     config_path = './yaml/configOptions_valid.yaml'
     yield ConfigOptions(config_path)
 
 @pytest.fixture
 def input_forcings_sample(config_options):
+    maybe_download_testdata()
     config_options.read_config()
     force_key = config_options.input_forcings[0]
     InputDict = {}

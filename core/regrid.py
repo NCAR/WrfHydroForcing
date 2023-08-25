@@ -2,7 +2,11 @@
 """
 Regridding module file for regridding input forcing files.
 """
-import ESMF
+# ESMF was renamed to esmpy in v8.4.0
+try:
+    import esmpy as ESMF
+except ModuleNotFoundError:
+    import ESMF
 import os
 import sys
 import traceback
