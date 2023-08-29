@@ -6,7 +6,8 @@ def run():
     maybe_download_testdata()
 
     cmd = "pytest"
-    subprocess.run(cmd, shell=True)
+    test_proc = subprocess.run(cmd, shell=True)
+    exit(test_proc.returncode)
 
 
 if __name__ == "__main__":
