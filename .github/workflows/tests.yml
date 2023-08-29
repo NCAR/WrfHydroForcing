@@ -20,7 +20,7 @@ jobs:
           chmod -R 0777 $GITHUB_WORKSPACE/WrfHydroForcing && \
           docker run -t --name test_container \
            -v $GITHUB_WORKSPACE/WrfHydroForcing:/home/docker/WrfHydroForcing \
-           andygaydos/wrf_hydro_forcing:latest 
+           wrfhydro/wrf_hydro_forcing:latest 
 
       # - name: Copy test results from container
       #   if: ${{ always() }}
