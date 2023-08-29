@@ -17,7 +17,7 @@ jobs:
       
       - name: Run testing container
         run: |
-          chmod -r 0777 /home/docker/WrfHydroForcing && \
+          chmod -R 0777 $GITHUB_WORKSPACE/WrfHydroForcing && \
           docker run -t --name test_container \
            -v $GITHUB_WORKSPACE/WrfHydroForcing:/home/docker/WrfHydroForcing \
            andygaydos/wrf_hydro_forcing:latest 
