@@ -20,10 +20,18 @@ def maybe_download_testdata():
 
 def download_file_from_google_drive(id, destination):
     print('downloading google drive file id ' + id + ' to ' + destination)
-    URL = f"https://drive.google.com/file/d/{id}/view?usp=drive_link"
+    URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
-    response = session.get(URL, stream=True)
+
+    response = session.get(URL, params={'id': id, 'alt': 'media', 'confirm':'t'}
+                           , stream=True)
+    token = get_confirm_token(response)
+
+    if token:
+        params = {'id': id, 'confirm': token}
+        response = session.get(URL, params=params, stream=True)
+
     save_response_content(response, destination)
 
 
