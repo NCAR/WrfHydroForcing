@@ -9,5 +9,5 @@ setup(
         author='Ishita Srivastava',
         author_email='ishitas@ucar.edu',
         description='',
-        install_requires=['netCDF4', 'numpy', 'mpi4py','ESMPy']
+        install_requires=['netCDF4', 'numpy', 'mpi4py','esmpy']
 )

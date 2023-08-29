@@ -10,7 +10,7 @@ def maybe_download_testdata():
     if os.path.isdir("config_data"):
         return
     
-    id = "1lh45R0PZKqoKR5AuJF2USDrS0ipVbSMt"
+    id = "1qZbSpgUbi6Is5VlJzsvZ3R5w1WtA1uS3"
     outfile = "config_data.tar.gz"
 
     download_file_from_google_drive(id, outfile)

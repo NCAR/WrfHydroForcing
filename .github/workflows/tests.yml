@@ -11,73 +11,32 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/checkout@v3
         with:
-          python-version: 3.8  # Specify the desired Python version
-
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          channels: defaults  # Specify the Conda channel you want to use
-          python-version: 3.8  # Specify the Python version for the Conda environment
-
-      - name: Initialize conda environment and activate in shell
+          path: WrfHydroForcing
+      
+      - name: Run testing container
         run: |
-          conda init bash
-          conda create -n esmpy_env
-          eval "$(conda shell.bash hook)"
-          conda activate esmpy_env
-        shell: bash
+          docker run -t --name test_container \
+           -v $GITHUB_WORKSPACE/WrfHydroForcing:/home/docker/WrfHydroForcing \
+           andygaydos/wrf_hydro_forcing:latest 
 
-      - name: Install mpich, ESMF and wgrib2
-        run: |
-          sudo apt-get install mpich
+      # - name: Copy test results from container
+      #   if: ${{ always() }}
+      #   run: docker cp test_container:/home/docker/test_out $GITHUB_WORKSPACE/test_report
 
-          mkdir $HOME/.esmf-src
-          cd $HOME/.esmf-src
-          wget https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz
-          tar xfz v8.5.0.tar.gz
-          ln -s esmf-8.5.0 esmf
-          cd esmf
-          export ESMF_DIR=$PWD
-          export ESMF_COMM=mpich3
-          make
-          make install
 
-          cd $HOME/.esmf-src/esmf/src/addon/esmpy
-          make install
+      # - name: Run pytest
+      #   run: |
+      #     cd core/tests
+      #     pytest
 
-          cd $HOME
-          wget https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz.v3.1.2
-          tar xfz wgrib2.tgz.v3.1.2
-          rm wgrib2.tgz.v3.1.2
-          cd grib2
-          export CC=gcc
-          export FC=gfortran
-          make
-          make lib
+      # # Optional: Generate test coverage report
+      # - name: Install coverage tool
+      #   run: pip install coverage
 
-      - name: Install python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt  # If you have a requirements.txt file
-          conda install -c conda-forge esmpy
-          python setup.py install
+      # - name: Run pytest with coverage
+      #   run: coverage run -m pytest
 
-      - name: Run pytest
-        run: |
-          cd core/tests
-          pytest
-
-      # Optional: Generate test coverage report
-      - name: Install coverage tool
-        run: pip install coverage
-
-      - name: Run pytest with coverage
-        run: coverage run -m pytest
-
-      - name: Generate coverage report
-        run: coverage html -i
+      # - name: Generate coverage report
+      #   run: coverage html -i
