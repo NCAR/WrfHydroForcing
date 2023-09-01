@@ -140,7 +140,18 @@ class ConfigOptions:
         self.number_inputs = len(inputs)
        
         # Create Enums dynamically from the yaml files
-        self.forcingInputModYaml = config['YamlConfig']['forcingInputModYaml']
+        try:
+            yaml_config = config['YamlConfig']
+        except KeyError:
+            raise KeyError("Unable to locate YamlConfig in configuration file.")
+            err_handler.err_out_screen('Unable to locate YamlConfig in configuration file.')
+
+        try:
+            self.forcingInputModYaml = yaml_config['forcingInputModYaml']
+        except KeyError:
+            raise KeyError("Unable to locate forcingInputModYaml in configuration file.")
+            err_handler.err_out_screen('Unable to locate forcingInputModYaml in configuration file.')
+
         forcing_yaml_stream = open(self.forcingInputModYaml)
         forcingConfig = yaml.safe_load(forcing_yaml_stream)
         dynamicForcing = {}
@@ -148,15 +159,24 @@ class ConfigOptions:
             dynamicForcing[k] = k
         self.ForcingEnum = enum.Enum('ForcingEnum', dynamicForcing)
 
-        self.suppPrecipModYaml   = config['YamlConfig']['suppPrecipModYaml']
+        try:
+            self.suppPrecipModYaml   = yaml_config['suppPrecipModYaml']
+        except KeyError:
+            raise KeyError("Unable to locate suppPrecipModYaml in configuration file.")
+            err_handler.err_out_screen('Unable to locate suppPrecipModYaml in configuration file.')
+
         supp_yaml_stream = open(self.suppPrecipModYaml)
         suppConfig = yaml.safe_load(supp_yaml_stream)
         dynamicSupp = {}
         for k in suppConfig.keys():
             dynamicSupp[k] = k
         self.SuppForcingPcpEnum = enum.Enum('SuppForcingPcpEnum', dynamicSupp)
+        try:
+            self.outputVarAttrYaml  = yaml_config['outputVarAttrYaml']
+        except KeyError:
+            raise KeyError("Unable to locate outputVarAttrYaml in configuration file.")
+            err_handler.err_out_screen('Unable to locate outputVarAttrYaml in configuration file.')
 
-        self.outputVarAttrYaml  = config['YamlConfig']['outputVarAttrYaml']
         out_yaml_stream = open(self.outputVarAttrYaml)
         outConfig = yaml.safe_load(out_yaml_stream)
         dynamicOut = {}

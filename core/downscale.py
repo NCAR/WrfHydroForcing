@@ -764,15 +764,17 @@ def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,ConfigOptions,COSZEN,declin
 
     COSZEN[np.where(COSZEN < 1E-4)] = 1E-4
 
-    corr_frac = np.empty([ny, nx], np.int)
-    # shadow_mask = np.empty([ny,nx],np.int)
-    diffuse_frac = np.empty([ny, nx], np.int)
+    corr_frac = np.empty([ny, nx], int)
+
+    # shadow_mask = np.empty([ny,nx],int)
+    diffuse_frac = np.empty([ny, nx], int)
     corr_frac[:, :] = 0
     diffuse_frac[:, :] = 0
     # shadow_mask[:,:] = 0
 
     indTmp = np.where((GeoMetaWrfHydro.slope[:,:] == 0.0) &
                       (SWDOWN <= 10.0))
+
     corr_frac[indTmp] = 1
 
     term1 = np.sin(xxlat) * np.cos(hrang2d)

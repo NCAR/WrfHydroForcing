@@ -535,6 +535,11 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         err = None
         exitcode = None
 
+        # remove temporary grib2.tbl file
+        g2path = os.path.join(ConfigOptions.scratch_dir, "grib2.tbl")
+        if os.path.isfile(g2path):
+            os.remove(g2path)
+
         # Ensure file exists.
         if not os.path.isfile(NetCdfFileOut):
             ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \

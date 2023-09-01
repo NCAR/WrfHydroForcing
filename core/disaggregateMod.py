@@ -114,9 +114,9 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
 
     ana_sum = np.array([],dtype=np.float32)
     target_data = np.array([],dtype=np.float32)
-    ana_all_zeros = np.array([],dtype=np.bool)
-    ana_no_zeros = np.array([],dtype=np.bool)
-    target_data_no_zeros = np.array([],dtype=np.bool)
+    ana_all_zeros = np.array([],dtype=bool)
+    ana_no_zeros = np.array([],dtype=bool)
+    target_data_no_zeros = np.array([],dtype=bool)
     if mpi_config.rank == 0:
         config_options.statusMsg = f"Performing hourly disaggregation of {supplemental_precip.file_in2}"
         err_handler.log_msg(config_options, mpi_config)
