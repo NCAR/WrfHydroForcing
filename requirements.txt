@@ -7,11 +7,13 @@ charset-normalizer
 cycler
 decorator
 entrypoints
+h5py
 ipykernel
 ipython
-netCDF4
+netcdf4
 numpy
 pytest
+pytest-mpi
 pyaml
 PyYAML
 requests

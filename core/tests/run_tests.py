@@ -5,7 +5,7 @@ import subprocess
 def run():
     maybe_download_testdata()
 
-    cmd = "pytest"
+    cmd = "mpirun -n 4 python -m pytest --with-mpi"
     test_proc = subprocess.run(cmd, shell=True)
     exit(test_proc.returncode)
 
