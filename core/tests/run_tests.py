@@ -11,15 +11,15 @@ def run():
 
     failed = 0
 
-    print ("Testing without MPI...")
+    print ("Testing without mpirun...")
 
     cmd = "python -m pytest --with-mpi"
     test_proc = subprocess.run(cmd, shell=True)
     if test_proc.returncode != 0:
-        print("%s----Tests not using MPI failed!!!%s" % (COLOR_RED, COLOR_NORM))
+        print("%s----Tests not using mpirun failed!!!%s" % (COLOR_RED, COLOR_NORM))
         failed += 1
     else:
-        print("%s---- Tests not using MPI passed%s" % (COLOR_GREEN, COLOR_NORM))
+        print("%s---- Tests not using mpirun passed%s" % (COLOR_GREEN, COLOR_NORM))
 
     print ("Testing with 1 MPI process...")
 
