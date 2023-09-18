@@ -41,8 +41,7 @@ def run():
     else:
         print("%s---- MPI nprocs = 4 tests passed%s" % (COLOR_GREEN, COLOR_NORM))
 
-    
-    print ("Testing with 8 MPI processes...")
+    # print ("Testing with 8 MPI processes...")
 
     cmd = "mpirun -n 8 python -m pytest --with-mpi"
     test_proc = subprocess.run(cmd, shell=True)

@@ -44,6 +44,7 @@ def run_bias_correction(input_forcings, config_options, geo_meta_wrf_hydro, mpi_
         str(BiasCorrTempEnum.GFS.name)   : ncar_temp_gfs_bias_correct,
         str(BiasCorrTempEnum.HRRR.name)  : ncar_temp_hrrr_bias_correct
     }
+
     bias_correct_temperature[input_forcings.t2dBiasCorrectOpt](input_forcings, config_options, mpi_config, 0)
 
     err_handler.check_program_status(config_options, mpi_config)
@@ -794,6 +795,7 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     ugrd_idx = input_forcings.grib_vars.index('UGRD')
     vgrd_idx = input_forcings.grib_vars.index('VGRD')
 
+    OutputEnum = config_options.OutputEnum
     for ind, xvar in enumerate(OutputEnum):
             if xvar.name == input_forcings.input_map_output[ugrd_idx]:
                 u_in = ind
@@ -820,20 +822,19 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
     # TODO: cache the "other" value so we don't repeat this calculation unnecessarily
 
     bias_corrected = ugrid_out if force_num == ugrd_idx else vgrid_out
-    OutputEnum = config_options.OutputEnum
     for ind, xvar in enumerate(OutputEnum):
             if xvar.name == input_forcings.input_map_output[force_num]:
                 outId = ind
                 break
     wind_in = None
     try:
-        wind_in = input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :]
+        wind_in = input_forcings.final_forcings[outId, :, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract incoming windspeed from forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
         err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
-
+    
     ind_valid = None
     try:
         ind_valid = np.where(wind_in != config_options.globalNdv)
@@ -852,7 +853,7 @@ def ncar_wspd_gfs_bias_correct(input_forcings, config_options, mpi_config, force
         err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = wind_in[:, :]
+        input_forcings.final_forcings[outId, :, :] = wind_in[:, :]
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to place temporary windspeed array back into forcing object for: " + \
                                 input_forcings.productName + " (" + str(npe) + ")"
@@ -1079,6 +1080,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         nldas_param_1 = None
         nldas_param_2 = None
         nldas_zero_pcp = None
+      
     err_handler.check_program_status(config_options, mpi_config)
 
     # Scatter NLDAS parameters
