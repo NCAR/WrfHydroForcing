@@ -1317,12 +1317,15 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
         config_options.statusMsg = "Looping over local arrays to calculate bias corrections."
         err_handler.log_msg(config_options, mpi_config)
     # Process each of the pixel cells for this local processor on the CFS grid.
+    outId = None
+    for ind, xvar in enumerate(config_options.OutputEnum):
+        if xvar.name == input_forcings.input_map_output[force_num]:
+            outId = ind
+            break
     for x_local in range(0, input_forcings.nx_local):
         for y_local in range(0, input_forcings.ny_local):
-            cfs_prev_tmp = input_forcings.coarse_input_forcings1[input_forcings.input_map_output[force_num],
-                                                                 y_local, x_local]
-            cfs_next_tmp = input_forcings.coarse_input_forcings2[input_forcings.input_map_output[force_num],
-                                                                 y_local, x_local]
+            cfs_prev_tmp = input_forcings.coarse_input_forcings1[outId, y_local, x_local]
+            cfs_next_tmp = input_forcings.coarse_input_forcings2[outId, y_local, x_local]
 
             # Check for any missing parameter values. If any missing values exist,
             # set this flag to False. Further down, if it's False, we will simply
@@ -1544,7 +1547,7 @@ def cfsv2_nldas_nwm_bias_correct(input_forcings, config_options, mpi_config, for
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        input_forcings.final_forcings[input_forcings.input_map_output[force_num], :, :] = \
+        input_forcings.final_forcings[outId, :, :] = \
             input_forcings.esmf_field_out.data
     except NumpyExceptions as npe:
         config_options.errMsg = "Unable to extract ESMF field data for CFSv2: " + str(npe)

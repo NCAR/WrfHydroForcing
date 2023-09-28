@@ -421,25 +421,25 @@ class ConfigOptions:
         # Putting a constraint here that CFSv2-NLDAS bias correction (NWM only) is chosen, it must be turned on
         # for ALL variables.
         if self.runCfsNldasBiasCorrect:
-            if set(self.precipBiasCorrectOpt) != {'CFS_V2'}:
+            if self.precipBiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'Precipitation under this configuration.')
-            if min(self.lwBiasCorrectOpt) != {'CFS_V2'}:
+            if self.lwBiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'long-wave radiation under this configuration.')
-            if min(self.swBiasCorrectOpt) != {'CFS_V2'}:
+            if self.swBiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'short-wave radiation under this configuration.')
-            if min(self.t2BiasCorrectOpt) != {'CFS_V2'}:
+            if self.t2BiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'surface temperature under this configuration.')
-            if min(self.windBiasCorrect) != {'CFS_V2'}:
+            if self.windBiasCorrect != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'wind forcings under this configuration.')
-            if min(self.q2BiasCorrectOpt) != {'CFS_V2'}:
+            if self.q2BiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'specific humidity under this configuration.')
-            if min(self.psfcBiasCorrectOpt) != {'CFS_V2'}:
+            if self.psfcBiasCorrectOpt != ['CFS_V2']:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'surface pressure under this configuration.')
             # Make sure we don't have any other forcings activated. This can only be ran for CFSv2.
@@ -1078,7 +1078,7 @@ class ConfigOptions:
         for optTmp in self.input_forcings:
             if optTmp == 'CFS_V2':
                 try:
-                    self.cfsv2EnsMember = input['Ensembles']['cfsEnsNumber']
+                    self.cfsv2EnsMember = [input['Ensembles']['cfsEnsNumber'] for input in inputs if 'cfsEnsNumber' in input['Ensembles']][0]
                 except KeyError:
                     err_handler.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
                                                'section of the configuration file')

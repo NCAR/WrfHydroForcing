@@ -33,4 +33,11 @@ def config_options():
     config_options.read_config()
     yield config_options
 
+@pytest.fixture
+def config_options_cfs():
+    config_path = './yaml/configOptions_cfs.yaml'
+    config_options = ConfigOptions(config_path)
+    config_options.read_config()
+    yield config_options
+
 

@@ -15,6 +15,17 @@ import core.bias_correction as BC
 def date(datestr):
     return datetime.strptime(datestr, '%Y-%m-%d %H:%M:%S')
 
+var_list = {
+    'T2D': 300, 
+    'Q2D': 50.0,
+    'U2D': 2.5, 
+    'V2D': 1.5,
+    'RAINRATE': 2.5,
+    'SWDOWN': 400,
+    'LWDOWN': 400,
+    'PSFC': 90000
+}
+
 expected_values = {
     'no_bias_correct': [
         { 'index': (0,0), 'value': 1.5, 'tolerance': None}
@@ -94,6 +105,16 @@ expected_values = {
         { 'index': (0,0), 'value': 1.2559415578811088, 'tolerance': None, 'date': date('2023-04-01 06:00:00')},
         { 'index': (0,0), 'value': 1.1569214380849937, 'tolerance': None, 'date': date('2023-07-01 12:00:00')},
         { 'index': (0,0), 'value': 1.4612157296442718, 'tolerance': None, 'date': date('2023-10-01 18:00:00')}
+    ],
+    'cfsv2_nldas_nwm_bias_correct': [
+        { 'index': (0,0), 'value': 285, 'tolerance': None, 'var': 'T2D' },
+        { 'index': (0,0), 'value': 0.009524456432886543, 'tolerance': None, 'var': 'Q2D' },
+        { 'index': (0,0), 'value': 3.562956632266148, 'tolerance': None, 'var': 'U2D' },
+        { 'index': (0,0), 'value': 0.11510974533140078, 'tolerance': None, 'var': 'V2D' }, 
+        { 'index': (0,0), 'value': 0.01622283237712793, 'tolerance': None, 'var': 'RAINRATE' },
+        { 'index': (0,0), 'value': 0, 'tolerance': None, 'var': 'SWDOWN' },
+        { 'index': (0,0), 'value': 272, 'tolerance': None, 'var': 'LWDOWN' },
+        { 'index': (0,0), 'value': 49999 , 'tolerance': None, 'var': 'PSFC' }
     ]
 }
 
@@ -126,8 +147,34 @@ def unbiased_input_forcings(config_options,geo_meta):
 
     return input_forcings
 
-# input_map_output: ['T2D', 'Q2D', 'U2D', 'V2D', 'RAINRATE', 'SWDOWN', 'LWDOWN', 'PSFC']
-# OutputEnum: {'U2D': 'U2D', 'V2D': 'V2D', 'LWDOWN': 'LWDOWN', 'RAINRATE': 'RAINRATE', 'T2D': 'T2D', 'Q2D': 'Q2D', 'PSFC': 'PSFC', 'SWDOWN': 'SWDOWN', 'LQFRAC': 'LQFRAC'}
+@pytest.fixture
+def unbiased_input_forcings_cfs(config_options_cfs,geo_meta,mpi_meta):
+    """
+    Prepare the mock input forcing grid for CFS
+    """
+    # Don't run for mpi processes > 0, since the
+    # CFS and NLDAS parameters are spatially dependent and we're not sure
+    # how we are splitting up the grid.
+    if mpi_meta.size > 1:
+        return
+    config_options_cfs.read_config()
+
+    inputForcingMod = initDict(config_options_cfs,geo_meta)
+    input_forcings = inputForcingMod[config_options_cfs.input_forcings[0]]
+    # TODO Can we construct this path from the config file? Parts of the path are currently hard-coded
+    # im time_handling.py, however
+    input_forcings.file_in2 = "config_data/CFSv2/cfs.20190923/06/6hrly_grib_01/flxf2019100106.01.2019092306.grb2"
+    input_forcings.fcst_hour2 = 192
+    input_forcings.fcst_date1 = datetime.strptime("2019100106", "%Y%m%d%H%M")
+    input_forcings.fcst_date2 = input_forcings.fcst_date1
+
+    input_forcings.regrid_inputs(config_options_cfs,geo_meta,mpi_meta)
+
+    # put a value of 1.5 at every gridpoint, for 10 mock variables
+    input_forcings.final_forcings = np.full((10,geo_meta.ny_local, geo_meta.nx_local),1.5)
+    input_forcings.fcst_hour2 = 12
+
+    return input_forcings
 
 #####  No bias correction tests  #########
 @pytest.mark.mpi
@@ -499,26 +546,40 @@ def test_ncar_wspd_gfs_bias_correct_18z(config_options, unbiased_input_forcings,
     config_options.b_date_proc = date('2023-10-01 18:00:00')
     run_unit_test(config_options, mpi_meta, unbiased_input_forcings, type='ncar_wspd_gfs_bias_correct', var='U2D')
 
-# TODO: needs CFS-specific bias grid 
-# @pytest.mark.mpi
-# def test_cfsv2_nldas_nwm_bias_correct(config_options, unbiased_input_forcings, mpi_meta):
-#     run_and_compare(BC.cfsv2_nldas_nwm_bias_correct, config_options, unbiased_input_forcings, mpi_meta, compval=1.1326198378488306)
+#####  CFS bias correction tests  #########
+@pytest.mark.mpi
+def test_cfsv2_nldas_nwm_bias_correct(config_options_cfs, unbiased_input_forcings_cfs, mpi_meta,geo_meta):
+    # Don't run for mpi processes > 0, since the
+    # CFS and NLDAS parameters are spatially dependent and we're not sure
+    # how we are splitting up the grid.
+    if mpi_meta.size > 1:
+        return
+    for var in var_list:
+        val = var_list[var]
+        unbiased_input_forcings_cfs.final_forcings = np.full((10,geo_meta.ny_local, geo_meta.nx_local),val)
+        unbiased_input_forcings_cfs.coarse_input_forcings1 = np.full((10,geo_meta.ny_local, geo_meta.nx_local),val)
+        unbiased_input_forcings_cfs.coarse_input_forcings2 = np.full((10,geo_meta.ny_local, geo_meta.nx_local),val)
+        run_unit_test(config_options_cfs, mpi_meta, unbiased_input_forcings_cfs, type='cfsv2_nldas_nwm_bias_correct', var=var)
 
-
+##### Tests for the top-level 'run_bias_correction()' function #######
+@pytest.mark.mpi   
 def test_run_bias_correction1(unbiased_input_forcings, config_options, geo_meta, mpi_meta):
     unbiased_input_forcings.t2dBiasCorrectOpt = BiasCorrTempEnum.HRRR.name
 
     run_bias_correction(unbiased_input_forcings, config_options, geo_meta, mpi_meta, "ncar_temp_hrrr_bias_correct", varname='T2D')
 
+@pytest.mark.mpi
 def test_run_bias_correction2(unbiased_input_forcings, config_options, geo_meta, mpi_meta):
     unbiased_input_forcings.windBiasCorrectOpt = BiasCorrWindEnum.HRRR.name
 
     run_bias_correction(unbiased_input_forcings, config_options, geo_meta, mpi_meta, "ncar_wspd_hrrr_bias_correct", varname='U2D')
 
+@pytest.mark.mpi
 def test_run_bias_correction3(unbiased_input_forcings, config_options, geo_meta, mpi_meta):
     unbiased_input_forcings.q2dBiasCorrectOpt = BiasCorrHumidEnum.CUSTOM.name
 
     run_bias_correction(unbiased_input_forcings, config_options, geo_meta, mpi_meta, "ncar_tbl_correction", varname='Q2D')
+
 
 ############ Helper functions ################
 
