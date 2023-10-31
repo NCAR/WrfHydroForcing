@@ -1,8 +1,12 @@
 import argparse
 import os
 
-import ESMF
-
+# ESMF was renamed to esmpy in v8.4.0
+try:
+    import esmpy as ESMF
+except ModuleNotFoundError:
+    import ESMF
+    
 from core import config
 from core import err_handler
 from core import forcingInputMod
@@ -69,7 +73,6 @@ def main():
         err_handler.err_out_screen(job_meta.errMsg)
 
     # ESMF.Manager(debug=True)
-
     # Initialize our WRF-Hydro geospatial object, which contains
     # information about the modeling domain, local processor
     # grid boundaries, and ESMF grid objects/fields to be used
@@ -93,10 +96,9 @@ def main():
                          "Local grid Must have x/y dimension size of 2."
         err_handler.err_out_screen_para(job_meta.errMsg, mpi_meta)
     err_handler.check_program_status(job_meta, mpi_meta)
-
     # Initialize our output object, which includes local slabs from the output grid.
     try:
-        OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
+        OutputObj = ioMod.OutputObj(WrfHydroGeoMeta, job_meta)
     except Exception:
         err_handler.err_out_screen_para(job_meta, mpi_meta)
     err_handler.check_program_status(job_meta, mpi_meta)
@@ -112,6 +114,7 @@ def main():
         err_handler.err_out_screen_para(job_meta, mpi_meta)
     err_handler.check_program_status(job_meta, mpi_meta)
 
+   
     # If we have specified supplemental precipitation products, initialize
     # the supp class.
     if job_meta.number_supp_pcp > 0:

@@ -7,13 +7,14 @@ import os.path
 
 import numpy as np
 from netCDF4 import Dataset
-
+from strenum import StrEnum
 from core import err_handler
+from core.enumConfig import SuppForcingPcpEnum
 
 test_enabled = True
 
 def disaggregate_factory(ConfigOptions):
-    if len(ConfigOptions.supp_precip_forcings) == 1 and ConfigOptions.supp_precip_forcings[0] == 11:
+    if len(ConfigOptions.supp_precip_forcings) == 1 and ConfigOptions.supp_precip_forcings[0] == str(SuppForcingPcpEnum.AK_NWS_IV):
         return ext_ana_disaggregate
     #Add new cases here
     #elif condition:
@@ -113,9 +114,9 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
 
     ana_sum = np.array([],dtype=np.float32)
     target_data = np.array([],dtype=np.float32)
-    ana_all_zeros = np.array([],dtype=np.bool)
-    ana_no_zeros = np.array([],dtype=np.bool)
-    target_data_no_zeros = np.array([],dtype=np.bool)
+    ana_all_zeros = np.array([],dtype=bool)
+    ana_no_zeros = np.array([],dtype=bool)
+    target_data_no_zeros = np.array([],dtype=bool)
     if mpi_config.rank == 0:
         config_options.statusMsg = f"Performing hourly disaggregation of {supplemental_precip.file_in2}"
         err_handler.log_msg(config_options, mpi_config)
@@ -151,9 +152,6 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
               0)
     np.seterr(**orig_err_settings)
 
-    disagg_factors = np.select([ana_all_zeros,(ana_no_zeros | target_data_no_zeros)],
-              [1/6.0*np.ones(supplemental_precip.regridded_precip2[:,:].shape),np.clip(target_data/ana_sum,0,1)],
-              0)
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)

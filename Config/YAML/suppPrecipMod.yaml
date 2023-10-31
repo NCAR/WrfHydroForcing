@@ -1,0 +1,87 @@
+MRMS: 
+  product_name         : MRMS_1HR_Radar_Only
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['RadarOnlyQPE01H_0mabovemeansealevel']
+  netcdf_rqi_variables : ['RadarQualityIndex_0mabovemeansealevel']
+  output_variables     : RAINRATE
+
+MRMS_GAGE:   
+  product_name         : MRMS_1HR_Gage_Corrected
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['GaugeCorrQPE01H_0mabovemeansealevel']
+  netcdf_rqi_variables : ['RadarQualityIndex_0mabovemeansealevel']
+  output_variables     : RAINRATE
+
+WRF_ARW_HI:   
+  product_name         : WRF_ARW_Hawaii_2p5km_PCP
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['APCP_surface']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+WRF_ARW_PR:   
+  product_name         : WRF_ARW_PuertoRico_2p5km_PCP
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['APCP_surface']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+MRMS_CONUS_MS:   
+  product_name         : CONUS_MRMS_1HR_MultiSensor
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['MultiSensorQPE01H_0mabovemeansealevel']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+MRMS_HI_MS:   
+  product_name         : Hawaii_MRMS_1HR_MultiSensor
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['MultiSensorQPE01H_0mabovemeansealevel']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+MRMS_SBCV2:   
+  product_name         : MRMS_LiquidWaterFraction
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['sbcv2_lwf']
+  netcdf_rqi_variables : None
+  output_variables     : LQFRAC
+
+AK_OPT1:   
+  product_name         : NBM_CORE_CONUS_APCP
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['APCP_surface']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+AK_OPT2:   
+  product_name         : NBM_CORE_ALASKA_APCP
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['APCP_surface']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+AK_MRMS:   
+  product_name         : AK_MRMS
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : ['MultiSensorQPE01H_0mabovemeansealevel']
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE
+
+AK_NWS_IV:   
+  product_name         : AK_Stage_IV_Precip-MRMS
+  grib_vars_in         : None
+  grib_levels_in       : ['BLAH']
+  netcdf_variables     : []
+  netcdf_rqi_variables : None
+  output_variables     : RAINRATE

@@ -10,30 +10,30 @@ import math
 import os
 import shutil
 import subprocess
-
+import yaml
+from strenum import StrEnum
 import numpy as np
 from netCDF4 import Dataset
-
 from core import err_handler
-
+from core.enumConfig import RegriddingOptEnum
 
 class OutputObj:
     """
     Abstract class to hold local "slabs" of final output
     grids.
     """
-    def __init__(self,GeoMetaWrfHydro):
+    def __init__(self,GeoMetaWrfHydro,ConfigOptions):
         self.output_local = None
         self.outPath = None
         self.outDate = None
-        self.out_ndv = -9999
+        self.out_ndv = -999999
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
-        self.output_local = np.empty([9, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
+        self.output_local = np.empty([len(ConfigOptions.OutputEnum), GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
         #self.output_local[:,:,:] = self.out_ndv
 
-    def output_final_ldasin(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
+    def output_final_ldasin(self, ConfigOptions, geoMetaWrfHydro, MpiConfig):
         """
         Output routine to produce final LDASIN files for the WRF-Hydro
         modeling system. This function is assuming all regridding,
@@ -50,19 +50,20 @@ class OutputObj:
         :param MpiConfig:
         :return:
         """
-        output_variable_attribute_dict = {
-            'U2D': [0,'m s-1','x_wind','10-m U-component of wind','time: point',0.001,0.0,3],
-            'V2D': [1,'m s-1','y_wind','10-m V-component of wind','time: point',0.001,0.0,3],
-            'LWDOWN': [2,'W m-2','surface_downward_longwave_flux',
-                       'Surface downward long-wave radiation flux','time: point',0.001,0.0,3],
-            'RAINRATE': [3,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean',1.0,0.0,0],
-            'T2D': [4,'K','air_temperature','2-m Air Temperature','time: point',0.01,100.0,2],
-            'Q2D': [5,'kg kg-1','surface_specific_humidity','2-m Specific Humidity','time: point',0.000001,0.0,6],
-            'PSFC': [6,'Pa','air_pressure','Surface Pressure','time: point',0.1,0.0,1],
-            'SWDOWN': [7,'W m-2','surface_downward_shortwave_flux',
-                       'Surface downward short-wave radiation flux','time: point',0.001,0.0,3]
-        }
 
+        yaml_stream = None
+        try:
+            yaml_stream = open(ConfigOptions.outputVarAttrYaml)
+            config = yaml.safe_load(yaml_stream)
+        except yaml.YAMLError as yaml_exc:
+            err_handler.err_out_screen('Error parsing the configuration file: %s\n%s' % (ConfigOptions.outputVarAttrYaml,yaml_exc))
+        except IOError:
+            err_handler.err_out_screen('Unable to open the configuration file: %s' % ConfigOptions.outputVarAttrYaml)
+        finally:
+            if yaml_stream:
+                yaml_stream.close()
+        output_variable_attribute_dict = config
+        
         if ConfigOptions.include_lqfraq:
             output_variable_attribute_dict['LQFRAQ'] = [8, '%', 'liquid_water_fraction',
                                                         'Fraction of precipitation that is liquid vs. frozen',
@@ -70,11 +71,11 @@ class OutputObj:
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
         # We will default to the regridding method chosen for the first input forcing selected.
-        if ConfigOptions.regrid_opt[0] == 1:
+        if ConfigOptions.regrid_opt[0] == str(RegriddingOptEnum.ESMF_BILINEAR.name):
             regrid_att = "remapped via ESMF regrid_with_weights: Bilinear"
-        elif ConfigOptions.regrid_opt[0] == 2:
+        elif ConfigOptions.regrid_opt[0] == str(RegriddingOptEnum.ESMF_NEAREST_NEIGHBOR.name):
             regrid_att = "remapped via ESMF regrid_with_weights: Nearest Neighbor"
-        elif ConfigOptions.regrid_opt[0] == 3:
+        elif ConfigOptions.regrid_opt[0] == str(RegriddingOptEnum.ESMF_CONSERVATIVE_BILINEAR.name):
             regrid_att = "remapped via ESMF regrid_with_weights: Conservative Bilinear"
 
         # Ensure all processors are synced up before outputting.
@@ -125,10 +126,11 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 try:
-                    model_init_time = ConfigOptions.current_fcst_cycle
-                    if ConfigOptions.ana_flag == 1:
-                        model_init_time -= datetime.timedelta(seconds=ConfigOptions.output_freq * 60)
-                    idOut.model_initialization_time = model_init_time.strftime("%Y-%m-%d_%H:%M:00")
+                    if ConfigOptions.ana_flag:
+                        model_init = ConfigOptions.b_date_proc - datetime.timedelta(minutes=ConfigOptions.output_freq)
+                    else:
+                        model_init = ConfigOptions.current_fcst_cycle
+                    idOut.model_initialization_time = model_init.strftime("%Y-%m-%d_%H:%M:00")
                 except:
                     ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
                                            "attribute in: " + self.outPath
@@ -161,11 +163,17 @@ class OutputObj:
                     break
 
                 try:
-                    idOut.model_total_valid_times = float(ConfigOptions.actual_output_steps)
+                    idOut.model_total_valid_times = np.int32(ConfigOptions.actual_output_steps)
                 except:
                     ConfigOptions.errMsg = "Unable to create total_valid_times global attribute in: " + self.outPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
+
+                if ConfigOptions.spatial_meta is not None:
+                    # apply spatial_global_atts to output globals attrs
+                    for k, v in geoMetaWrfHydro.spatial_global_atts.items():
+                        if k not in ("Source_Software", "history", "processing_notes", "version"):     # don't add these
+                            idOut.setncattr(k, v)
 
                 # Create variables.
                 try:
@@ -312,13 +320,13 @@ class OutputObj:
                             zlib = True
                             complevel = 2
                             least_significant_digit = None if varTmp == 'RAINRATE' else \
-                                output_variable_attribute_dict[varTmp][7]       # use all digits in RAINRATE
+                                output_variable_attribute_dict[varTmp]['least_significant_digit']       # use all digits in RAINRATE
                         else:
                             zlib = False
                             complevel = 0
                             least_significant_digit = None
 
-                        if ConfigOptions.useFloats or varTmp == 'RAINRATE':     # RAINRATE always a float
+                        if ConfigOptions.useFloats == 'FLOAT' or varTmp == 'RAINRATE':     # RAINRATE always a float
                             fill_value = ConfigOptions.globalNdv
                             dtype = 'f4'
                         else:
@@ -338,7 +346,7 @@ class OutputObj:
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
                     try:
-                        idOut.variables[varTmp].cell_methods = output_variable_attribute_dict[varTmp][4]
+                        idOut.variables[varTmp].cell_methods = output_variable_attribute_dict[varTmp]['cell_methods']
                     except:
                         ConfigOptions.errMsg = "Unable to create cell_methods attribute for: " + varTmp + \
                             " in: " + self.outPath
@@ -378,38 +386,38 @@ class OutputObj:
                                 break
 
                     try:
-                        idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][1]
+                        idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp]['units']
                     except:
                         ConfigOptions.errMsg = "Unable to create units attribute for: " + varTmp + " in: " + \
                             self.outPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
                     try:
-                        idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp][2]
+                        idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp]['standard_name']
                     except:
                         ConfigOptions.errMsg = "Unable to create standard_name attribute for: " + varTmp + \
                             " in: " + self.outPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
                     try:
-                        idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp][3]
+                        idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp]['long_name']
                     except:
                         ConfigOptions.errMsg = "Unable to create long_name attribute for: " + varTmp + \
                             " in: " + self.outPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
                     # If we are using scale_factor / add_offset, create here.
-                    if not ConfigOptions.useFloats:
+                    if not ConfigOptions.useFloats == 'FLOAT':
                         if varTmp != 'RAINRATE':
                             try:
-                                idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp][5]
+                                idOut.variables[varTmp].scale_factor = output_variable_attribute_dict[varTmp]['scale_factor']
                             except (ValueError, IOError):
                                 ConfigOptions.errMsg = "Unable to create scale_factor attribute for: " + varTmp + \
                                                        " in: " + self.outPath
                                 err_handler.log_critical(ConfigOptions, MpiConfig)
                                 break
                             try:
-                                idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp][6]
+                                idOut.variables[varTmp].add_offset = output_variable_attribute_dict[varTmp]['add_offset']
                             except (ValueError, IOError):
                                 ConfigOptions.errMsg = "Unable to create add_offset attribute for: " + varTmp + \
                                                        " in: " + self.outPath
@@ -434,9 +442,8 @@ class OutputObj:
                 # final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],root=0)
 
                 # Use gatherv to merge the data slabs
-                dataOutTmp = MpiConfig.merge_slabs_gatherv(self.output_local[output_variable_attribute_dict[varTmp][0],:,:], ConfigOptions)
-            except Exception as e:
-                print(e)
+                dataOutTmp = MpiConfig.merge_slabs_gatherv(self.output_local[output_variable_attribute_dict[varTmp]['ind'],:,:], ConfigOptions)
+            except OSError:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 continue
@@ -508,7 +515,6 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                             "Multi-sensor estimated precipitation accumulation 1-hour:mm\n"
                     )
                 os.environ['GRIB2TABLE'] = g2path
-
             exitcode = subprocess.call(Wgrib2Cmd, shell=True)
 
             #print("exitcode: " + str(exitcode))
@@ -528,6 +534,11 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         out = None
         err = None
         exitcode = None
+
+        # remove temporary grib2.tbl file
+        g2path = os.path.join(ConfigOptions.scratch_dir, "grib2.tbl")
+        if os.path.isfile(g2path):
+            os.remove(g2path)
 
         # Ensure file exists.
         if not os.path.isfile(NetCdfFileOut):
@@ -562,7 +573,6 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 err_handler.log_warning(ConfigOptions, MpiConfig)
                 # idTmp = None
                 pass
-
         if idTmp is not None and inputVar is not None:
             # Loop through all the expected variables.
             if inputVar not in idTmp.variables.keys():
@@ -573,7 +583,6 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                 pass
     else:
         idTmp = None
-
     # Ensure all processors are synced up before outputting.
     # MpiConfig.comm.barrier()  ## THIS HAPPENS IN check_program_status
 

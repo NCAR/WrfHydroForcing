@@ -6,12 +6,16 @@ downscaling is needed, based off options specified by the user.
 import math
 import os
 import time
-
+from strenum import StrEnum
 import numpy as np
 from netCDF4 import Dataset
-
+import yaml
+from core.enumConfig import DownScaleTempEnum
+from core.enumConfig import DownScalePressEnum
+from core.enumConfig import DownScaleSwEnum
+from core.enumConfig import DownScalePrecipEnum
+from core.enumConfig import DownScaleHumidEnum
 from core import err_handler
-
 
 def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_config):
     """
@@ -25,9 +29,9 @@ def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_conf
     """
     # Dictionary mapping to temperature downscaling.
     downscale_temperature = {
-        0: no_downscale,
-        1: simple_lapse,
-        2: param_lapse
+        str(DownScaleTempEnum.NONE.name)          : no_downscale,
+        str(DownScaleTempEnum.LAPSE_675.name)     : simple_lapse,
+        str(DownScaleTempEnum.LAPSE_PRE_CALC.name): param_lapse
     }
     downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings, config_options,
                                                           geo_meta_wrf_hydro, mpi_config)
@@ -35,8 +39,8 @@ def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_conf
 
     # Dictionary mapping to pressure downscaling.
     downscale_pressure = {
-        0: no_downscale,
-        1: pressure_down_classic
+        str(DownScalePressEnum.NONE.name): no_downscale,
+        str(DownScalePressEnum.ELEV.name): pressure_down_classic
     }
     downscale_pressure[input_forcings.psfcDownscaleOpt](input_forcings, config_options,
                                                         geo_meta_wrf_hydro, mpi_config)
@@ -44,31 +48,28 @@ def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_conf
 
     # Dictionary mapping to shortwave radiation downscaling
     downscale_sw = {
-        0: no_downscale,
-        1: ncar_topo_adj
+        str(DownScaleSwEnum.NONE.name): no_downscale,
+        str(DownScaleSwEnum.ELEV.name): ncar_topo_adj
     }
     downscale_sw[input_forcings.swDowscaleOpt](input_forcings, config_options, geo_meta_wrf_hydro, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary mapping to specific humidity downscaling
     downscale_q2 = {
-        0: no_downscale,
-        1: q2_down_classic
+        str(DownScaleHumidEnum.NONE.name)             : no_downscale,
+        str(DownScaleHumidEnum.REGRID_TEMP_PRESS.name): q2_down_classic
     }
     downscale_q2[input_forcings.q2dDownscaleOpt](input_forcings, config_options, geo_meta_wrf_hydro, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Dictionary mapping to precipitation downscaling.
     downscale_precip = {
-        0: no_downscale,
-        1: nwm_monthly_PRISM_downscale
+        str(DownScalePrecipEnum.NONE.name)  : no_downscale,
+        str(DownScalePrecipEnum.NWM_MM.name): nwm_monthly_PRISM_downscale
         #1: precip_mtn_mapper
     }
     downscale_precip[input_forcings.precipDownscaleOpt](input_forcings, config_options, geo_meta_wrf_hydro, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
-
-
-    
 
 
 def no_downscale(input_forcings, ConfigOptions, GeoMetaWrfHydro, MpiConfig):
@@ -104,10 +105,14 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
     # Assign existing, un-downscaled temperatures to a temporary placeholder, which
     # will be used for specific humidity downscaling.
-    if input_forcings.q2dDownscaleOpt > 0:
-        input_forcings.t2dTmp[:,:] = input_forcings.final_forcings[4,:,:]
+    if input_forcings.q2dDownscaleOpt != DownScaleHumidEnum.NONE.name:
+        ind = int(outConfig['T2D']['ind'])
+        input_forcings.t2dTmp[:,:] = input_forcings.final_forcings[ind,:,:]
 
     # Apply single lapse rate value to the input 2-meter
     # temperature values.
@@ -118,7 +123,8 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         err_handler.log_critical(ConfigOptions, MpiConfig)
         return
     try:
-        input_forcings.final_forcings[4,:,:] = input_forcings.final_forcings[4,:,:] + \
+        ind = int(outConfig['T2D']['ind'])
+        input_forcings.final_forcings[ind,:,:] = input_forcings.final_forcings[ind,:,:] + \
                                                (6.49/1000.0)*elevDiff
     except:
         ConfigOptions.errMsg = "Unable to apply lapse rate to input 2-meter temperatures."
@@ -239,9 +245,13 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         # Scatter the lapse rate grid to the other processors.
         input_forcings.lapseGrid = MpiConfig.scatter_array(GeoMetaWrfHydro,lapseTmp,ConfigOptions)
         err_handler.check_program_status(ConfigOptions, MpiConfig)
-
+    
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
     # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
-    temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
+    ind = int(outConfig['T2D']['ind'])
+    temperature_grid_tmp = input_forcings.final_forcings[ind, :, :]
     try:
         indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
     except:
@@ -265,7 +275,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         err_handler.log_critical(ConfigOptions, MpiConfig)
         return
 
-    input_forcings.final_forcings[4,:,:] = temperature_grid_tmp
+    input_forcings.final_forcings[ind,:,:] = temperature_grid_tmp
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
 
     # Reset for memory efficiency
@@ -294,10 +304,14 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig
         return
     elevDiff = input_forcings.height - GeoMetaWrfHydro.height
 
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
     # Assign existing, un-downscaled pressure values to a temporary placeholder, which
     # will be used for specific humidity downscaling.
-    if input_forcings.q2dDownscaleOpt > 0:
-        input_forcings.psfcTmp[:, :] = input_forcings.final_forcings[6, :, :]
+    ind = int(outConfig['PSFC']['ind'])
+    if input_forcings.q2dDownscaleOpt != DownScaleHumidEnum.NONE.name:
+        input_forcings.psfcTmp[:, :] = input_forcings.final_forcings[ind, :, :]
 
     try:
         indNdv = np.where(input_forcings.final_forcings == ConfigOptions.globalNdv)
@@ -306,7 +320,7 @@ def pressure_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig
         err_handler.log_critical(ConfigOptions, MpiConfig)
         return
     try:
-        input_forcings.final_forcings[6,:,:] = input_forcings.final_forcings[6,:,:] +\
+        input_forcings.final_forcings[ind,:,:] = input_forcings.final_forcings[ind,:,:] +\
                                                (input_forcings.final_forcings[6,:,:]*elevDiff*9.8)/\
                                                (input_forcings.final_forcings[4,:,:]*287.05)
     except:
@@ -359,7 +373,12 @@ def q2_down_classic(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
                                "incoming specific humidity"
         err_handler.log_critical(ConfigOptions, MpiConfig)
         return
-    input_forcings.final_forcings[5,:,:] = q2Tmp
+
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
+    ind = int(outConfig['Q2D']['ind'])
+    input_forcings.final_forcings[ind,:,:] = q2Tmp
     input_forcings.final_forcings[indNdv] = ConfigOptions.globalNdv
     q2Tmp = None
     indNdv = None
@@ -527,7 +546,11 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         input_forcings.nwmPRISM_denGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, denDataTmp, ConfigOptions)
         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
     # Create temporary grids from the local slabs of params/precip forcings.
+    ind = int(outConfig['RAINRATE']['ind'])
     localRainRate = input_forcings.final_forcings[3,:,:]
     numLocal = input_forcings.nwmPRISM_numGrid[:,:]
     denLocal = input_forcings.nwmPRISM_denGrid[:,:]
@@ -571,7 +594,7 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         err_handler.log_critical(ConfigOptions, MpiConfig)
     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-    input_forcings.final_forcings[3, :, :] = localRainRate
+    input_forcings.final_forcings[ind, :, :] = localRainRate
 
     # Reset variables for memory efficiency
     idDenom = None
@@ -621,7 +644,7 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
         return
 
     try:
-        TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
+        TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,ConfigOptions,coszen_loc,DECLIN,SOLCON,
                           hrang_loc)
     except:
         ConfigOptions.errMsg = "Unable to perform final topographic adjustment of incoming " \
@@ -711,7 +734,7 @@ def calc_coszen(ConfigOptions,declin,GeoMetaWrfHydro):
 
     return coszen, hrang
 
-def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,COSZEN,declin,solcon,hrang2d):
+def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,ConfigOptions,COSZEN,declin,solcon,hrang2d):
     """
     Downscaling driver for correcting incoming shortwave radiation fluxes from a low
     resolution to a a higher resolution.
@@ -731,21 +754,27 @@ def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,COSZEN,declin,solcon,hrang2
     xxlat = GeoMetaWrfHydro.latitude_grid*degrad
 
     # Sanity checking on incoming shortwave grid.
-    SWDOWN = input_forcings.final_forcings[7,:,:]
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
+    ind = int(outConfig['SWDOWN']['ind'])
+    SWDOWN = input_forcings.final_forcings[ind,:,:]
     SWDOWN[np.where(SWDOWN < 0.0)] = 0.0
     SWDOWN[np.where(SWDOWN >= 1400.0)] = 1400.0
 
     COSZEN[np.where(COSZEN < 1E-4)] = 1E-4
 
-    corr_frac = np.empty([ny, nx], np.int)
-    # shadow_mask = np.empty([ny,nx],np.int)
-    diffuse_frac = np.empty([ny, nx], np.int)
+    corr_frac = np.empty([ny, nx], int)
+
+    # shadow_mask = np.empty([ny,nx],int)
+    diffuse_frac = np.empty([ny, nx], int)
     corr_frac[:, :] = 0
     diffuse_frac[:, :] = 0
     # shadow_mask[:,:] = 0
 
     indTmp = np.where((GeoMetaWrfHydro.slope[:,:] == 0.0) &
                       (SWDOWN <= 10.0))
+
     corr_frac[indTmp] = 1
 
     term1 = np.sin(xxlat) * np.cos(hrang2d)
@@ -783,7 +812,7 @@ def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,COSZEN,declin,solcon,hrang2
     term5 = None
     term6 = None
 
-    input_forcings.final_forcings[7,:,:] = SWDOWN_OUT
+    input_forcings.final_forcings[ind,:,:] = SWDOWN_OUT
 
     # Reset variables to free up memory
     SWDOWN = None
@@ -798,7 +827,11 @@ def rel_hum(input_forcings,ConfigOptions):
     :param ConfigOptions:
     :return:
     """
-    tmpHumidity = input_forcings.final_forcings[5,:,:]/(1-input_forcings.final_forcings[5,:,:])
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
+    ind = int(outConfig['Q2D']['ind'])
+    tmpHumidity = input_forcings.final_forcings[ind,:,:]/(1-input_forcings.final_forcings[ind,:,:])
 
     T0 = 273.15
     EP = 0.622
@@ -830,12 +863,16 @@ def mixhum_ptrh(input_forcings,relHum,iswit,ConfigOptions):
     ES0 = 6.11
     A = 17.269
     B = 35.86
-
-    term1 = A * (input_forcings.final_forcings[4,:,:] - T0)
-    term2 = input_forcings.final_forcings[4,:,:] - B
+    outputVarAttrYaml  = ConfigOptions.outputVarAttrYaml
+    out_yaml_stream = open(outputVarAttrYaml)
+    outConfig = yaml.safe_load(out_yaml_stream)
+    ind1 = int(outConfig['T2D']['ind'])
+    term1 = A * (input_forcings.final_forcings[ind1,:,:] - T0)
+    term2 = input_forcings.final_forcings[ind1,:,:] - B
     EST = np.exp(term1 / term2) * ES0
 
-    QST = (EP * EST) / ((input_forcings.final_forcings[6,:,:]/100.0) - ONEMEP * EST)
+    ind2 = int(outConfig['PSFC']['ind'])
+    QST = (EP * EST) / ((input_forcings.final_forcings[ind2,:,:]/100.0) - ONEMEP * EST)
     QW = QST * (relHum * 0.01)
     if iswit == 2:
         QW = QW / (1.0 + QW)

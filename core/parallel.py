@@ -140,7 +140,7 @@ class MpiConfig:
                 data_type_flag = 1
             if src_array.dtype == np.float64:
                 data_type_flag = 2
-            if src_array.dtype == np.bool:
+            if src_array.dtype == bool:
                 data_type_flag = 3
 
         # Broadcast the data_type_flag to other processors
@@ -206,7 +206,7 @@ class MpiConfig:
             recvbuf=np.empty([counts[self.rank]],np.float32)
         elif data_type_flag == 3: 
             data_type = MPI.BOOL
-            recvbuf = np.empty([counts[self.rank]], np.bool)
+            recvbuf = np.empty([counts[self.rank]], bool)
         else:
             data_type = MPI.DOUBLE
             recvbuf = np.empty([counts[self.rank]], np.float64)
