@@ -2646,8 +2646,7 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
                           + time_str + ":")
         # fields.append(":(HGT):(surface):")
         # Create a temporary NetCDF file from the GRIB2 file.
-        cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" -not "prob" -not "ens" ' + \
-              forcings_or_precip.file_in1 + " -netcdf " + nbm_tmp_nc
+        cmd = '$WGRIB2 ' + forcings_or_precip.file_in1 + " -set_ext_name 1 -netcdf " + nbm_tmp_nc
     else:
         # Perform a GRIB dump to NetCDF for the precip data.
         fieldnbm_match1 = "\":APCP:\""
