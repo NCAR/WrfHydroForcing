@@ -2880,6 +2880,11 @@ def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf
                                                       np.float32)
         input_forcings.regridded_forcings2 = np.empty([8, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
+        if config_options.include_lqfraq and input_forcings.productName == 'NBM' :
+            input_forcings.regridded_forcings1 = np.empty([9, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
+                                                        np.float32)
+            input_forcings.regridded_forcings2 = np.empty([9, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
+                                                        np.float32)            
 
     if mpi_config.rank == 0:
         if input_forcings.nx_global is None or input_forcings.ny_global is None:
