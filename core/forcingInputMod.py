@@ -344,7 +344,7 @@ class input_forcings:
                 'PRES_surface'],
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
-            21: ['TMP_2maboveground', 'APCP_surface', 'PTYPE_surface']
+            21: ['TMP_2maboveground', 'APCP_surface', 'PTYPE_liquid']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
