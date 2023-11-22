@@ -558,6 +558,10 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].final_forcings = np.empty([8,GeoMetaWrfHydro.ny_local,
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
+        if ConfigOptions.include_lqfraq and InputDict[force_key].productName == 'NBM' :
+            InputDict[force_key].final_forcings = np.empty([9,GeoMetaWrfHydro.ny_local,
+                                                            GeoMetaWrfHydro.nx_local],
+                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
         InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,
