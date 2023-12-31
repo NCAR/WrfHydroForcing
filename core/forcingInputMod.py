@@ -232,7 +232,7 @@ class input_forcings:
                  'DLWRF', 'PRES'],
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
-            21: ['TMP', 'APCP']
+            21: ['TMP', 'APCP', 'PTYPE']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -281,7 +281,7 @@ class input_forcings:
                 '10 m above ground', '10 m above ground',
                 'surface', 'surface', 'surface', 'surface'],
             20: None,
-            21: ['2 m above ground', 'surface']
+            21: ['2 m above ground', 'surface', 'surface']
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -346,7 +346,7 @@ class input_forcings:
                 'PRES_surface'],
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
-            21: ['TMP_2maboveground', 'APCP_surface']
+            21: ['TMP_2maboveground', 'APCP_surface', 'PTYPE_liquid']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -398,7 +398,7 @@ class input_forcings:
             18: [4, 5, 0, 1, 3, 6],
             19: [4,5,0,1,3,7,2,6],
             20: [0,1,2,3,4,5,6,7],
-            21: [4, 3]
+            21: [4, 3, 8] # 8 is the LQFRAC liquid water fraction
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
@@ -560,6 +560,10 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         InputDict[force_key].final_forcings = np.empty([8,GeoMetaWrfHydro.ny_local,
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
+        if ConfigOptions.include_lqfraq and InputDict[force_key].productName == 'NBM' :
+            InputDict[force_key].final_forcings = np.empty([9,GeoMetaWrfHydro.ny_local,
+                                                            GeoMetaWrfHydro.nx_local],
+                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,
                                                 GeoMetaWrfHydro.nx_local],np.float32)
         InputDict[force_key].regridded_mask = np.empty([GeoMetaWrfHydro.ny_local,

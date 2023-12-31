@@ -524,6 +524,13 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
             #                             stderr=subprocess.PIPE, shell=True)
             #out, err = cmdOutput.communicate()
             #exitcode = cmdOutput.returncode
+            
+            if (ConfigOptions.include_lqfraq and os.path.basename(NetCdfFileOut)[:3] == 'NBM'):
+                ConfigOptions.statusMsg = "Adding up NBM PTYPE layers liquid-rain (1<p<2) + freezing-rain (3<p<4)"
+                err_handler.log_msg(ConfigOptions, MpiConfig)
+                ncap2Cmd = f"ncap2 -O -s 'PTYPE_liquid=(PTYPE_prob_GE_1_LT_2_prob_fcst_1_1_surface+PTYPE_prob_GE_3_LT_4_prob_fcst_1_1_surface)*0.01 << 1' {NetCdfFileOut} {NetCdfFileOut}"
+                exitcode = subprocess.call(ncap2Cmd, shell=True)
+            
         except:
             ConfigOptions.errMsg = "Unable to convert: " + GribFileIn + " to " + \
                                    NetCdfFileOut
