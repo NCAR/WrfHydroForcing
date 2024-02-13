@@ -1,7 +1,7 @@
 import argparse
 import os
 
-import ESMF
+import esmpy as ESMF
 
 from core import config
 from core import err_handler
