@@ -68,9 +68,6 @@ def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_conf
     err_handler.check_program_status(config_options, mpi_config)
 
 
-    
-
-
 def no_downscale(input_forcings, ConfigOptions, GeoMetaWrfHydro, MpiConfig):
     """
     Generic function for passing states through without any
@@ -143,7 +140,7 @@ def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     :return:
     """
     if MpiConfig.rank == 0:
-        ConfigOptions.statusMsg = "Applying aprior lapse rate grid to temperature downscaling"
+        ConfigOptions.statusMsg = "Applying apriori lapse rate grid to temperature downscaling"
         err_handler.log_msg(ConfigOptions, MpiConfig)
 
     # Calculate the elevation difference.
@@ -623,9 +620,9 @@ def ncar_topo_adj(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     try:
         TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,coszen_loc,DECLIN,SOLCON,
                           hrang_loc)
-    except:
-        ConfigOptions.errMsg = "Unable to perform final topographic adjustment of incoming " \
-                               "shortwave radiation fluxes."
+    except Exception as ex:
+        ConfigOptions.errMsg = f"Unable to perform final topographic adjustment of incoming " \
+                               f"shortwave radiation fluxes: {ex}"
         err_handler.log_critical(ConfigOptions, MpiConfig)
         return
 
@@ -737,9 +734,9 @@ def TOPO_RAD_ADJ_DRVR(GeoMetaWrfHydro,input_forcings,COSZEN,declin,solcon,hrang2
 
     COSZEN[np.where(COSZEN < 1E-4)] = 1E-4
 
-    corr_frac = np.empty([ny, nx], np.int)
+    corr_frac = np.empty([ny, nx], np.int32)
     # shadow_mask = np.empty([ny,nx],np.int)
-    diffuse_frac = np.empty([ny, nx], np.int)
+    diffuse_frac = np.empty([ny, nx], np.int32)
     corr_frac[:, :] = 0
     diffuse_frac[:, :] = 0
     # shadow_mask[:,:] = 0

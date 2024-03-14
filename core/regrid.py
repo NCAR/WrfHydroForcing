@@ -2,6 +2,7 @@
 """
 Regridding module file for regridding input forcing files.
 """
+from datetime import datetime, timedelta
 import os
 import sys
 import traceback
@@ -196,7 +197,7 @@ def _regrid_ak_ext_ana_pcp_stage4(supplemental_precip, config_options, wrf_hydro
         # execution of the program), remove it.....
         if mpi_config.rank == 0:
             if os.path.isfile(stage4_tmp_nc):
-                config_options.statusMsg = "Found old temporary file: " + stage4_tmp_nc + " - Removing....."
+                config_options.statusMsg = "Found old temporary file: " + stage4_tmp_nc + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(stage4_tmp_nc)
@@ -360,7 +361,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         # execution of the program), remove it.....
         if mpi_config.rank == 0:
             if os.path.isfile(input_forcings.tmpFile):
-                config_options.statusMsg = "Found old temporary file: " + input_forcings.tmpFile + " - Removing....."
+                config_options.statusMsg = "Found old temporary file: " + input_forcings.tmpFile + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(input_forcings.tmpFile)
@@ -590,7 +591,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         if mpi_config.rank == 0:
             if os.path.isfile(input_forcings.tmpFile):
                 config_options.statusMsg = "Found old temporary file: " + \
-                                           input_forcings.tmpFile + " - Removing....."
+                                           input_forcings.tmpFile + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(input_forcings.tmpFile)
@@ -831,7 +832,7 @@ def regrid_cfsv2(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config)
         if mpi_config.rank == 0:
             if os.path.isfile(input_forcings.tmpFile):
                 config_options.statusMsg = "Found old temporary file: " + \
-                                           input_forcings.tmpFile + " - Removing....."
+                                           input_forcings.tmpFile + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(input_forcings.tmpFile)
@@ -1289,8 +1290,8 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     if not reuse_prev_file and mpi_config.rank == 0:
         if os.path.isfile(input_forcings.tmpFile):
             config_options.statusMsg = "Found old temporary file: " + \
-                                       input_forcings.tmpFile + " - Removing....."
-            err_handler.log_warning(config_options, mpi_config)
+                                       input_forcings.tmpFile + ", removing."
+            err_handler.log_msg(config_options, mpi_config)
             try:
                 os.remove(input_forcings.tmpFile)
             except OSError:
@@ -1567,7 +1568,7 @@ def regrid_nam_nest(input_forcings, config_options, wrf_hydro_geo_meta, mpi_conf
         if mpi_config.rank == 0:
             if os.path.isfile(input_forcings.tmpFile):
                 config_options.statusMsg = "Found old temporary file: " + \
-                                           input_forcings.tmpFile + " - Removing....."
+                                           input_forcings.tmpFile + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(input_forcings.tmpFile)
@@ -1824,7 +1825,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
     if mpi_config.rank == 0:
         if os.path.isfile(mrms_tmp_grib2):
             config_options.statusMsg = "Found old temporary file: " + \
-                                       mrms_tmp_grib2 + " - Removing....."
+                                       mrms_tmp_grib2 + ", removing."
             err_handler.log_warning(config_options, mpi_config)
             try:
                 os.remove(mrms_tmp_grib2)
@@ -1833,7 +1834,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
                 err_handler.log_critical(config_options, mpi_config)
         if os.path.isfile(mrms_tmp_nc):
             config_options.statusMsg = "Found old temporary file: " + \
-                                       mrms_tmp_nc + " - Removing....."
+                                       mrms_tmp_nc + ", removing."
             err_handler.log_warning(config_options, mpi_config)
             try:
                 os.remove(mrms_tmp_nc)
@@ -1842,7 +1843,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
                 err_handler.log_critical(config_options, mpi_config)
         if os.path.isfile(mrms_tmp_rqi_grib2):
             config_options.statusMsg = "Found old temporary file: " + \
-                                       mrms_tmp_rqi_grib2 + " - Removing....."
+                                       mrms_tmp_rqi_grib2 + ", removing."
             err_handler.log_warning(config_options, mpi_config)
             try:
                 os.remove(mrms_tmp_rqi_grib2)
@@ -1851,7 +1852,7 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
                 err_handler.log_critical(config_options, mpi_config)
         if os.path.isfile(mrms_tmp_rqi_nc):
             config_options.statusMsg = "Found old temporary file: " + \
-                                       mrms_tmp_rqi_nc + " - Removing....."
+                                       mrms_tmp_rqi_nc + ", removing."
             err_handler.log_warning(config_options, mpi_config)
             try:
                 os.remove(mrms_tmp_rqi_nc)
@@ -2142,7 +2143,7 @@ def regrid_hourly_wrf_arw(input_forcings, config_options, wrf_hydro_geo_meta, mp
         if mpi_config.rank == 0:
             if os.path.isfile(input_forcings.tmpFile):
                 config_options.statusMsg = "Found old temporary file: " + \
-                                           input_forcings.tmpFile + " - Removing....."
+                                           input_forcings.tmpFile + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(input_forcings.tmpFile)
@@ -2380,7 +2381,7 @@ def regrid_hourly_wrf_arw_hi_res_pcp(supplemental_precip, config_options, wrf_hy
         if mpi_config.rank == 0:
             if os.path.isfile(arw_tmp_nc):
                 config_options.statusMsg = "Found old temporary file: " + \
-                                           arw_tmp_nc + " - Removing....."
+                                           arw_tmp_nc + ", removing."
                 err_handler.log_warning(config_options, mpi_config)
                 try:
                     os.remove(arw_tmp_nc)
@@ -2626,7 +2627,7 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
     nbm_tmp_nc = config_options.scratch_dir + "/NBM_PCP_TMP-{}.nc".format(mkfilename())
     if mpi_config.rank == 0:
         if os.path.isfile(nbm_tmp_nc):
-            config_options.statusMsg = "Found old temporary file: " + nbm_tmp_nc + " - Removing....."
+            config_options.statusMsg = "Found old temporary file: " + nbm_tmp_nc + ", removing."
             err_handler.log_warning(config_options, mpi_config)
             try:
                 os.remove(nbm_tmp_nc)
@@ -2844,6 +2845,196 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
             config_options.errMsg = "Unable to remove temporary NBM NetCDF file: " + nbm_tmp_nc
             err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
+
+@static_vars(last_file=None)
+def regrid_ndfd(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
+    # Check to see if the regrid complete flag for this
+    # output time step is true. This entails the necessary
+    # inputs have already been regridded and we can move on.
+    if input_forcings.regridComplete:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "No NDFD regridding required for this timestep."
+            err_handler.log_msg(config_options, mpi_config)
+        return
+
+    hour = input_forcings.fcst_hour2
+    current_cycle = config_options.current_fcst_cycle
+    forecast_time = current_cycle+timedelta(hours=hour)
+    #DEBUG if mpi_config.rank == 0: print(f"NEXT FILE: {hour=}, {current_cycle=}, {forecast_time=}", flush=True)
+
+    ndfd_files = ('tmp','wdir','wspd','qpf')
+    fill_values = {'tmp': 288.0, 'wdir': 45.0, 'wspd': 0.71, 'qpf': 0}
+
+    # check / set previous file to see if we're going to reuse
+    reuse_prev_file = (f"{input_forcings.file_in2}-{current_cycle}" == regrid_ndfd.last_file)
+    regrid_ndfd.last_file = f"{input_forcings.file_in2}-{current_cycle}"
+
+    for i, ndfd_var in enumerate(ndfd_files):
+        # check if file exists for this time period
+        grb_file = input_forcings.file_in2.replace("%FIELD%", ndfd_var)
+
+        tmp_file = os.path.join(config_options.scratch_dir, f"temp_ndfd_conus_{ndfd_var}.nc")
+        # Temp file may exist. If it does, and we don't need it again, remove it.....
+        if not reuse_prev_file and mpi_config.rank == 0:
+            if os.path.isfile(tmp_file):
+                config_options.statusMsg = f"Deleting old temporary file: {tmp_file}"
+                err_handler.log_msg(config_options, mpi_config)
+                try:
+                    os.remove(tmp_file)
+                except OSError:
+                    config_options.errMsg = f"Unable to remove file: {tmp_file}"
+                    err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        if reuse_prev_file:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = f"Cycle unchanged, reusing temporary file: {tmp_file}"
+                err_handler.log_msg(config_options, mpi_config)
+            id_tmp = ioMod.open_netcdf_forcing(tmp_file, config_options, mpi_config)
+        else:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = f"New forecast cycle, creating temporary file from: {grb_file}, cycle hour {current_cycle.hour}"
+                err_handler.log_msg(config_options, mpi_config)
+            cmd = f"$WGRIB2 -match :d={current_cycle.strftime('%Y%m%d%H')}: -vt {grb_file} | " \
+                f"sort -t = -k 2 | $WGRIB2 -i -netcdf {tmp_file} {grb_file}"
+            id_tmp = ioMod.open_grib2(grb_file, tmp_file, cmd, config_options, mpi_config, inputVar=None)
+
+        # look to see if current time is in file:
+        skip_file = np.ubyte(0)
+        if mpi_config.rank == 0:
+            times = [datetime.utcfromtimestamp(t) for t in id_tmp['time'][:]]
+            if ndfd_var != "qpf":
+                if forecast_time > times[-1]+timedelta(hours=3):
+                    config_options.statusMsg = f"Forecast time beyond NDFD range, skipping"
+                    err_handler.log_msg(config_options, mpi_config)
+                    skip_file = 1
+                elif forecast_time in times:
+                    time_index = times.index(forecast_time)
+                    config_options.statusMsg = f"Found exact time {forecast_time} in NDFD file at index {time_index} for variable {ndfd_var}"
+                    err_handler.log_msg(config_options, mpi_config)
+                else:
+                    time_index = min(range(len(times)), key = lambda i: abs(times[i]-forecast_time))
+                    config_options.statusMsg = f"Exact time {forecast_time} not found in NDFD file, using closest time at {times[time_index]}"
+                    err_handler.log_msg(config_options, mpi_config)
+            else:
+                #TODO: qpf special handling
+                if forecast_time > times[-1]-timedelta(hours=6):
+                    config_options.statusMsg = f"Forecast time beyond NDFD precip range, skipping"
+                    err_handler.log_msg(config_options, mpi_config)
+                    skip_file = 1
+                else:
+                    time_index = int(hour // 6)
+                    config_options.statusMsg = f"Forecast hour {forecast_time} will use precip from {times[time_index] - timedelta(hours=6)} to {times[time_index]}"
+                    err_handler.log_msg(config_options, mpi_config)
+
+        skip_file = mpi_config.broadcast_parameter(skip_file, config_options, param_type=np.ubyte)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        if skip_file:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[i], :, :] = config_options.globalNdv
+            continue
+
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Processing NDFD variable: " + ndfd_var
+            err_handler.log_msg(config_options, mpi_config)
+
+        calc_regrid_flag = check_regrid_status(id_tmp, i, input_forcings,
+                                               config_options, wrf_hydro_geo_meta, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        if calc_regrid_flag:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Calculating NDFD regridding weights."
+                err_handler.log_msg(config_options, mpi_config)
+            calculate_weights(id_tmp, i, input_forcings, config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+        var_tmp = None
+        if mpi_config.rank == 0:
+            try:
+                var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[i]][time_index, :, :]
+                var_tmp = var_tmp.filled(config_options.globalNdv)  # fill_values[ndfd_var])
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = f"Unable to extract NDFD variable: {input_forcings.netcdf_var_names[i]} "  \
+                                        f"from: {input_forcings.tmpFile} ({err})"
+                err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+            #DEBUG if mpi_config.rank == 1: print(f"esmf_file_in has type: {type(input_forcings.esmf_field_in.data)}, var_sub_tmp has type: {type(var_sub_tmp)}")
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local array into local ESMF field: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                     input_forcings.esmf_field_out)
+        except ValueError as ve:
+            config_options.errMsg = f"Unable to regrid input NDFD forcing variable using ESMF: {ve}"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # Set any pixel cells outside the input domain to the global missing value, and fix missings that were interpolated
+        try:
+            input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                config_options.globalNdv
+            # input_forcings.esmf_field_out.data[np.where((input_forcings.esmf_field_out.data/config_options.globalNdv) > 0.75)] = \
+            #     config_options.globalNdv
+        except (ValueError, ArithmeticError) as npe:
+            config_options.errMsg = f"Unable to calculate mask from input NDFD regridded forcings: {npe}"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+        # If processing wind speed, calculate final U2 / V2 fields
+        def u_v_comps(wspd, wdir):
+            rads = wdir * (np.pi / 180.0)
+            u = -1 * wspd * np.sin(rads)
+            v = -1 * wspd * np.cos(rads)
+            return u,v
+
+        if ndfd_var == 'wspd':      # we already have direction at this point
+            try:
+                ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
+                wspd = input_forcings.esmf_field_out.data[ind_valid]
+                wdir = input_forcings.regridded_forcings2[input_forcings.input_map_output[i-1]][ind_valid]
+
+                u, v = u_v_comps(wspd, wdir)
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[i-1]][ind_valid] = u
+                input_forcings.esmf_field_out.data[ind_valid] = v
+
+                del ind_valid, u, v
+            except (IndexError, ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+                config_options.errMsg = f"Unable to convert NDFD wind speed/dir to U/V components: {npe}"
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+        # Convert the hourly precipitation total to a rate of mm/s
+        if ndfd_var == 'qpf':
+            try:
+                ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 3600.0
+                del ind_valid
+            except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
+                config_options.errMsg = f"Unable to run NDV search on NDFD QPF precipitation: {npe}"
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[i], :, :] = \
+                input_forcings.esmf_field_out.data
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place local ESMF regridded data into local array: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
+
+
+
+
 
 
 def check_regrid_status(id_tmp, force_count, input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
@@ -3199,11 +3390,12 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
         err_handler.check_program_status(config_options, mpi_config)
         try:
             extrap_method = ESMF.ExtrapMethod.CREEP_FILL if fill else ESMF.ExtrapMethod.NONE
+            regrid_method = (ESMF.RegridMethod.BILINEAR, ESMF.RegridMethod.NEAREST_STOD)[input_forcings.regridOpt - 1]
             begin = time.monotonic()
             input_forcings.regridObj = ESMF.Regrid(input_forcings.esmf_field_in,
                                                    input_forcings.esmf_field_out,
                                                    src_mask_values=np.array([0, config_options.globalNdv]),
-                                                   regrid_method=ESMF.RegridMethod.BILINEAR,
+                                                   regrid_method=regrid_method,
                                                    unmapped_action=ESMF.UnmappedAction.IGNORE,
                                                    extrap_method=extrap_method,
                                                    filename=weight_file)
@@ -3238,8 +3430,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
                     os.remove(weight_file)
         err_handler.check_program_status(config_options, mpi_config)
 
-    input_forcings.regridded_mask[:, :] = input_forcings.esmf_field_out.data[:, :]
-
+    input_forcings.regridded_mask[:, :] = np.round(input_forcings.esmf_field_out.data[:, :])
 
 def calculate_supp_pcp_weights(supplemental_precip, id_tmp, lat_var, lon_var, tmp_file, config_options, mpi_config):
     """

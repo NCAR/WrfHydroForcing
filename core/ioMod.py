@@ -497,8 +497,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         ConfigOptions.statusMsg = "Reading in GRIB2 file: " + GribFileIn
         err_handler.log_msg(ConfigOptions, MpiConfig)
         if os.path.isfile(NetCdfFileOut):
-            ConfigOptions.statusMsg = "Overriding temporary NetCDF file: " + NetCdfFileOut
-            err_handler.log_warning(ConfigOptions, MpiConfig)
+            ConfigOptions.statusMsg = "Overwriting temporary NetCDF file: " + NetCdfFileOut
+            err_handler.log_msg(ConfigOptions, MpiConfig)
         try:
             # WCOSS fix for WGRIB2 crashing when called on the same file twice in python
             if not os.environ.get('MFE_SILENT'):

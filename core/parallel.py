@@ -20,7 +20,7 @@ class MpiConfig:
         """
         self.comm = None
         self.rank = None
-        self.size = None 
+        self.size = None
 
     def initialize_comm(self, config_options):
         """
@@ -141,7 +141,7 @@ class MpiConfig:
                 data_type_flag = 1
             if src_array.dtype == np.float64:
                 data_type_flag = 2
-            if src_array.dtype == np.bool:
+            if src_array.dtype == bool:
                 data_type_flag = 3
 
         # Broadcast the data_type_flag to other processors
@@ -238,7 +238,7 @@ class MpiConfig:
             options.errMsg ="Failed all gathering slab shapes at rank" + str(self.rank)
             err_handler.log_critical(options,self)
             global_bounds = None
-        
+
         #options.errMsg = "All gather for global shapes complete"
         #err_handler.log_msg(options,self)
 
