@@ -147,7 +147,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
             if MpiConfig.rank == 0 and show_message:
                 ConfigOptions.statusMsg = '========================================='
                 err_handler.log_msg(ConfigOptions, MpiConfig)
-                ConfigOptions.statusMsg = "Processing for output timestep: " + \
+                ConfigOptions.statusMsg = f"Processing for output timestep {outStep}: " + \
                                           file_date.strftime('%Y-%m-%d %H:%M')
                 err_handler.log_msg(ConfigOptions, MpiConfig)
             # MpiConfig.comm.barrier()
