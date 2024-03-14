@@ -63,8 +63,8 @@ class OutputObj:
                        'Surface downward short-wave radiation flux','time: point',0.001,0.0,3]
         }
 
-        if ConfigOptions.include_lqfraq:
-            output_variable_attribute_dict['LQFRAQ'] = [8, '%', 'liquid_water_fraction',
+        if ConfigOptions.include_lqfrac:
+            output_variable_attribute_dict['LQFRAC'] = [8, '%', 'liquid_water_fraction',
                                                         'Fraction of precipitation that is liquid vs. frozen',
                                                         'time: point', 0.1, 0.0, 3]
 

@@ -99,7 +99,7 @@ class ConfigOptions:
         self.errFlag = 0
         self.nwmVersion = None
         self.nwmConfig = None
-        self.include_lqfraq = False
+        self.include_lqfrac = False
 
     def read_config(self):
         """
@@ -268,17 +268,17 @@ class ConfigOptions:
 
         # Read in lqfrac option
         try:
-            self.include_lqfraq = int(config['Output'].get('includeLQFraq', 0))
+            self.include_lqfrac = int(config['Output'].get('includeLQFrac', 0))
         except KeyError:
-            # err_handler.err_out_screen('Unable to locate includeLQFraq in the configuration file.')
-            self.include_lqfraq = 0
+            # err_handler.err_out_screen('Unable to locate includeLQFrac in the configuration file.')
+            self.include_lqfrac = 0
         except configparser.NoOptionError:
-            # err_handler.err_out_screen('Unable to locate includeLQFraq in the configuration file.')
-            self.useFinclude_lqfraqloats = 0
+            # err_handler.err_out_screen('Unable to locate includeLQFrac in the configuration file.')
+            self.include_lqfrac = 0
         except ValueError:
-            err_handler.err_out_screen('Improper includeLQFraq value: {}'.format(config['Output']['includeLQFraq']))
-        if self.include_lqfraq < 0 or self.include_lqfraq > 1:
-            err_handler.err_out_screen('Please choose an includeLQFraq value of 0 or 1.')
+            err_handler.err_out_screen('Improper includeLQFrac value: {}'.format(config['Output']['includeLQFrac']))
+        if self.include_lqfrac < 0 or self.include_lqfrac > 1:
+            err_handler.err_out_screen('Please choose an includeLQFrac value of 0 or 1.')
 
         # Read AnA flag option
         try:
