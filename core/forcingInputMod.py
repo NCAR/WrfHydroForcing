@@ -16,12 +16,12 @@ class input_forcings:
     This is an abstract class that will define all the parameters
     of a single input forcing product.
     """
-    
+
     # Constants
     GRIB2 = "GRIB2"
     GRIB1 = "GRIB1"
     NETCDF = "NETCDF"
-    
+
     def __init__(self):
         """
         Initializing all attributes and objects to None.
@@ -137,7 +137,8 @@ class input_forcings:
             18: "WRF_ARW_PuertoRico_GRIB2",
             19: "HRRR_Alaska_GRIB2",
             20: "Alaska_ExtAnA",
-            21: "NBM"
+            21: "NBM",
+            22: "NDFD"
         }
         self.productName = product_names[self.keyValue]
 
@@ -195,7 +196,8 @@ class input_forcings:
             18: 1440,
             19: 180,
             20: 60,
-            21: 60
+            21: 60,
+            22: 1440
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
@@ -232,7 +234,8 @@ class input_forcings:
                  'DLWRF', 'PRES'],
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
-            21: ['TMP', 'APCP']
+            21: ['TMP', 'APCP'],
+            22: ['TMP', 'WDIR', 'WSPD', 'APCP']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -281,7 +284,9 @@ class input_forcings:
                 '10 m above ground', '10 m above ground',
                 'surface', 'surface', 'surface', 'surface'],
             20: None,
-            21: ['2 m above ground', 'surface']
+            21: ['2 m above ground', 'surface'],
+            22: ['2 m above ground', '10 m above ground',
+                 '10 m above ground', 'surface']
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -346,7 +351,9 @@ class input_forcings:
                 'PRES_surface'],
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
-            21: ['TMP_2maboveground', 'APCP_surface']
+            21: ['TMP_2maboveground', 'APCP_surface'],
+            22: ['TMP_2maboveground', 'WDIR_10maboveground', 'WIND_10maboveground',
+                 'APCP_surface']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -373,10 +380,12 @@ class input_forcings:
             18: None,
             19: None,
             20: None,
-            21: None
+            21: None,
+            22: None
         }
-        self.grib_mes_idx = grib_message_idx[self.keyValue] 
+        self.grib_mes_idx = grib_message_idx[self.keyValue]
 
+        # 0: U2D, 1: V2D, 2: LWDOWN, 3: RAINRATE, 4: T2D, 5: Q2D, 6: PSFC, 7: SWDOWN
         input_map_to_outputs = {
             1: [4,5,0,1,3,7,2,6],
             2: None,
@@ -398,7 +407,8 @@ class input_forcings:
             18: [4, 5, 0, 1, 3, 6],
             19: [4,5,0,1,3,7,2,6],
             20: [0,1,2,3,4,5,6,7],
-            21: [4, 3]
+            21: [4, 3],
+            22: [4,0,1,3]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
 
@@ -432,7 +442,8 @@ class input_forcings:
             18: time_handling.find_hourly_wrf_arw_neighbors,
             19: time_handling.find_ak_hrrr_neighbors,
             20: time_handling.find_ak_ext_ana_neighbors,
-            21: time_handling.find_hourly_nbm_neighbors
+            21: time_handling.find_hourly_nbm_neighbors,
+            22: time_handling.find_ndfd_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -468,7 +479,8 @@ class input_forcings:
             18: regrid.regrid_hourly_wrf_arw,
             19: regrid.regrid_conus_hrrr,
             20: regrid.regrid_ak_ext_ana,
-            21: regrid.regrid_hourly_nbm
+            21: regrid.regrid_hourly_nbm,
+            22: regrid.regrid_ndfd
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 

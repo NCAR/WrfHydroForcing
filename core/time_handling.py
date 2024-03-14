@@ -293,7 +293,7 @@ def find_ak_ext_ana_neighbors(input_forcings, config_options, d_current, mpi_con
     ana_offset = 1 if config_options.ana_flag else 0
     current_ext_ana_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
-    
+
     ext_ana_horizon = 32
 
     # If the user has specified a forcing horizon that is greater than what is available
@@ -2042,7 +2042,7 @@ def _find_ak_ext_ana_precip_stage4(supplemental_precip, config_options, d_curren
     if not os.path.isfile(supplemental_precip.file_in2):
         if supplemental_precip.regridded_precip2 is not None:
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
-    
+
     supplemental_precip.ext_ana = "STAGE4"
 
 
@@ -2157,7 +2157,7 @@ def _find_ak_ext_ana_precip_mrms(supplemental_precip, config_options, d_current,
 
 def find_ak_ext_ana_precip_neighbors(supplemental_precip, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and next Stage IV MPE files. 
+    Function to calculate the previous and next Stage IV MPE files.
     :param supplemental_precip:
     :param config_options:
     :param d_current:
@@ -2316,3 +2316,70 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
         if supplemental_precip.regridded_precip1 is not None:
             supplemental_precip.regridded_precip1[:, :] = config_options.globalNdv
+
+def find_ndfd_neighbors(input_forcings, config_options, d_current, mpi_config):
+
+    current_cycle = config_options.current_fcst_cycle
+    current_fcst = d_current-current_cycle
+    input_forcings.fcst_hour2 = current_fcst.total_seconds() / 3600
+
+    tmp_file1 = os.path.join(input_forcings.inDir, 'NDFD', current_cycle.strftime('%Y%m%d'),
+                             'wgrbbul', 'ndfd_conus', 'ndfd_conus_%FIELD%.grib2')
+
+    tmp_file2 = tmp_file1       # no temporal interp. supported yet
+
+    if mpi_config.rank == 0:
+        # Check to see if files are already set. If not, then reset, grids and
+        # regridding objects to communicate things need to be re-established.
+        if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2:
+            if config_options.current_output_step == 1:
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.file_in2 = tmp_file2
+            else:
+                # Check to see if we are restarting from a previously failed instance. In this case,
+                # We are not on the first timestep, but no previous forcings have been processed.
+                # We need to process the previous input timestep for temporal interpolation purposes.
+                # if not np.any(input_forcings.regridded_forcings1):
+                if input_forcings.regridded_forcings1 is None:
+                    if mpi_config.rank == 0:
+                        config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                                   input_forcings.productName
+                        err_handler.log_msg(config_options, mpi_config)
+                    input_forcings.rstFlag = 1
+                    input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                    input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                    input_forcings.file_in2 = tmp_file1
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.fcst_date2 = input_forcings.fcst_date1
+                    input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+                else:
+                    # The custom window has shifted. Reset fields 2 to
+                    # be fields 1.
+                    input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                    input_forcings.file_in1 = tmp_file1
+                    input_forcings.file_in2 = tmp_file2
+            input_forcings.regridComplete = False
+    else:
+        input_forcings.file_in2 = tmp_file1
+        input_forcings.file_in1 = tmp_file1
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Ensure we have the necessary new file
+    file_missing = False
+    if mpi_config.rank == 0:
+        for subfile in [input_forcings.file_in2.replace("%FIELD%", tag) for tag in ('tmp','wdir','wspd','qpf')]:
+            if not os.path.isfile(subfile):
+                if input_forcings.enforce == 1:
+                    config_options.errMsg = f"Expected input NDFD file: {subfile} not found."
+                    err_handler.log_critical(config_options, mpi_config)
+                else:
+                    config_options.statusMsg = f"Expected input NDFD file: {subfile} not found. Will not use in final layering."
+                    err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if file_missing:
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv

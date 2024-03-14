@@ -298,6 +298,9 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         #    indCheck = None
         #    return
 
+        src_file = input_forcings.file_in2
+        if '%FIELD%' in src_file:
+            src_file = src_file.replace('%FIELD%', {'U2D': "[wdir|wspd]", 'V2D': "[wdir|wspd]", 'RAINRATE': "qpf", 'T2D': "tmp"}[varTmp])
         # Check to see if any pixel cells are below the minimum value.
         indCheck = np.where((input_forcings.regridded_forcings2[variable_range[varTmp][0]] != ConfigOptions.globalNdv) &
                             (input_forcings.regridded_forcings2[variable_range[varTmp][0]] < variable_range[varTmp][1]))
@@ -305,7 +308,7 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         if numCells > 0:
             min = input_forcings.regridded_forcings2[variable_range[varTmp][0]][indCheck].min()
             ConfigOptions.errMsg = f"Data (min = {min}) below minimum threshold for: {varTmp} in " \
-                                   f"{input_forcings.file_in2} for {numCells} regridded pixel cells."
+                                   f"{src_file} for {numCells} regridded pixel cells."
             log_critical(ConfigOptions, MpiConfig)
             indCheck = None
             return

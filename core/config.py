@@ -8,6 +8,7 @@ import numpy as np
 from core import time_handling
 from core import err_handler
 
+FORCE_COUNT = 22
 
 class ConfigOptions:
     """
@@ -127,8 +128,8 @@ class ConfigOptions:
 
         # Check to make sure forcing options make sense
         for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > 21:
-                err_handler.err_out_screen('Please specify InputForcings values between 1 and 21.')
+            if forceOpt < 0 or forceOpt > FORCE_COUNT:
+                err_handler.err_out_screen(f'Please specify InputForcings values between 1 and {FORCE_COUNT}.')
             # Keep tabs on how many custom input forcings we have.
             if forceOpt == 10:
                 self.number_custom_inputs = self.number_custom_inputs + 1
@@ -642,9 +643,9 @@ class ConfigOptions:
                                        'forcings in the configuration file.')
         # Check to make sure regridding options makes sense.
         for regridOpt in self.regrid_opt:
-            if regridOpt < 1 or regridOpt > 3:
+            if regridOpt < 1 or regridOpt > 2:
                 err_handler.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please choose a '
-                                           'value of 1-3 for each corresponding input forcing.')
+                                           'value of 1-2 for each corresponding input forcing.')
 
         # Read weight file directory (optional)
         self.weightsDir = config['Regridding'].get('RegridWeightsDir')
@@ -681,7 +682,7 @@ class ConfigOptions:
 
         # Read in the temperature downscaling options.
         # Create temporary array to hold flags of if we need input parameter files.
-        param_flag = np.empty([len(self.input_forcings)], np.int)
+        param_flag = np.empty([len(self.input_forcings)], np.int32)
         param_flag[:] = 0
         try:
             self.t2dDownscaleOpt = json.loads(config['Downscaling']['TemperatureDownscaling'])
