@@ -700,7 +700,7 @@ class ConfigOptions:
         # Ensure the downscaling options chosen make sense.
         count_tmp = 0
         for optTmp in self.t2dDownscaleOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 3:
                 err_handler.err_out_screen('Invalid TemperatureDownscaling options specified in '
                                            'the configuration file.')
             if optTmp == 2:
@@ -813,16 +813,18 @@ class ConfigOptions:
         # Create a list of downscaling parameter directories for each corresponding
         # input forcing. If no directory is needed, or specified, we will set the value to NONE
         self.dScaleParamDirs = []
+        index = 0
         for count_tmp, _ in enumerate(self.input_forcings):
             if param_flag[count_tmp] == 0:
                 self.dScaleParamDirs.append('NONE')
             if param_flag[count_tmp] == 1:
-                self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
+                self.dScaleParamDirs.append(tmp_scale_param_dirs[index])
+                index += 1
 
         # if the directory was specified but not downscaling, set it anyway for bias correction etc.
         try:
             if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
-                self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]]
+                self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]] * len(self.input_forcings)
         except KeyError:
             pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
 

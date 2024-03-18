@@ -383,6 +383,10 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                           + time_str + ":")
         fields.append(":(HGT):(surface):")
 
+        # if input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
+        #     fields.append(":(HGT):(500 mb):")
+        #     fields.append(":(TMP):(500 mb):")
+
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
@@ -505,6 +509,25 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
 
+        if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate from RAP
+            # if input_forcings.lapseGrid is None:
+            #     input_forcings.lapseGrid = np.empty([wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],np.float32)
+            # try to read the previously-generated RAL lapse
+            try:
+                rap_lapse_tmp = os.path.join(config_options.scratch_dir, f"rap_dyn_lapse_{mpi_config.rank}.npy")
+                input_forcings.lapseGrid = np.load(rap_lapse_tmp, allow_pickle=False)
+            except (ValueError, OSError) as err:
+                config_options.errMsg = "RAP dynamic lapse rate requested but rate file not found:" + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            try:
+                os.remove(rap_lapse_tmp)
+            except OSError as err:
+                config_options.errMsg = "Temporary RAP dynamic lapse rate file could not be removed:" + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
         try:
             input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
         except (ValueError, KeyError, AttributeError) as err:
@@ -616,6 +639,10 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                           + time_str + ":")
         fields.append(":(HGT):(surface):")
 
+        if input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
+            fields.append(":(HGT):(12 hybrid level):")
+            fields.append(":(TMP):(12 hybrid level):")
+
         # Create a temporary NetCDF file from the GRIB2 file.
         cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
               " -netcdf " + input_forcings.tmpFile
@@ -654,17 +681,17 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             # err_handler.check_program_status(config_options, mpi_config)
 
             # Regrid the height variable.
-            var_tmp = None
+            hgt_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                    hgt_tmp = id_tmp.variables['HGT_surface'][0, :, :]
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract HGT_surface from : " + id_tmp + \
                                             " (" + str(err) + ")"
                     err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
-            var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
+            var_sub_tmp = mpi_config.scatter_array(input_forcings, hgt_tmp, config_options)
             err_handler.check_program_status(config_options, mpi_config)
 
             try:
@@ -728,10 +755,80 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                                         " from: " + input_forcings.tmpFile + \
                                         " (" + str(err) + ")"
                 err_handler.log_critical(config_options, mpi_config)
+
         err_handler.check_program_status(config_options, mpi_config)
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
+
+        if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
+            dyn_lapse = None
+            if input_forcings.lapseGrid is None:
+                input_forcings.lapseGrid = np.empty([wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],np.float32)
+            if mpi_config.rank == 0:
+                # read HGT,0,12 and TMP,12
+                # TODO: parameterize the level
+                try:
+                    hgt_top = id_tmp.variables['HGT_12hybridlevel'][0, :, :]
+                    hgt_bot = id_tmp.variables['HGT_surface'][0, :, :]
+                    tmp_top = id_tmp.variables['TMP_12hybridlevel'][0, :, :]
+
+                    hgt_delta = hgt_top - hgt_bot
+                    tmp_delta = tmp_top - var_tmp
+                    dyn_lapse = -1000 * (tmp_delta / hgt_delta)
+
+                except (ValueError, KeyError, AttributeError) as err:
+                    config_options.errMsg = "Unable to extract RAP HGT or TMP at hybrid level 12 from: " + id_tmp + \
+                                            " (" + str(err) + ")"
+                    err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            dyn_sub_tmp = mpi_config.scatter_array(input_forcings, dyn_lapse, config_options)
+            try:
+                input_forcings.esmf_field_in.data[:, :] = dyn_sub_tmp
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to place temporary RAP lapse rate into ESMF field: " + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            if mpi_config.rank == 0:
+                config_options.statusMsg = "Regridding RAP lapse rate to the WRF-Hydro domain."
+                err_handler.log_msg(config_options, mpi_config)
+            try:
+                input_forcings.esmf_field_out = input_forcings.regridObj(input_forcings.esmf_field_in,
+                                                                         input_forcings.esmf_field_out)
+            except ValueError as ve:
+                config_options.errMsg = "Unable to regrid RAP lapse rate using ESMF: " + str(ve)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # Set any pixel cells outside the input domain to the global missing value.
+            try:
+                input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
+                    config_options.globalNdv
+            except (ValueError, ArithmeticError) as npe:
+                config_options.errMsg = "Unable to perform mask search on RAP lapse rate: " + str(npe)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            try:
+                input_forcings.lapseGrid[:, :] = input_forcings.esmf_field_out.data
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to place RAP ESMF lapse rate into local array: " + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            # save the local lapse grid for HRRR to use later
+            try:
+                rap_lapse_tmp = os.path.join(config_options.scratch_dir, f"rap_dyn_lapse_{mpi_config.rank}.npy")
+                np.save(rap_lapse_tmp, input_forcings.lapseGrid, allow_pickle=False)
+            except Exception as err:
+                config_options.errMsg = "RAP dynamic lapse rate file could not be saved:" + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+
+            dyn_lapse = None
+            dyn_sub_tmp = None
 
         try:
             input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
