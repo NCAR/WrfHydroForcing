@@ -27,7 +27,8 @@ def run_downscaling(input_forcings, config_options, geo_meta_wrf_hydro, mpi_conf
     downscale_temperature = {
         0: no_downscale,
         1: simple_lapse,
-        2: param_lapse
+        2: param_lapse,
+        3: dynamic_lapse
     }
     downscale_temperature[input_forcings.t2dDownscaleOpt](input_forcings, config_options,
                                                           geo_meta_wrf_hydro, mpi_config)
@@ -126,6 +127,45 @@ def simple_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
 
     # Reset for memory efficiency
     indNdv = None
+
+def dynamic_lapse(input_forcings, config_options, geo_meta, mpi_config):
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Applying dynamic lapse rate grid to temperature downscaling"
+        err_handler.log_msg(config_options, mpi_config)
+
+    if input_forcings.lapseGrid is None:
+            if mpi_config.rank == 0:
+                config_options.errMsg = "Dynamic lapse rate downscaling enabled but no lapse grid available"
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+    else:
+        # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
+        temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
+        try:
+            indNdv = np.where(input_forcings.final_forcings == config_options.globalNdv)
+        except:
+            config_options.errMsg = "Unable to perform NDV search on input " + \
+                                    input_forcings.productName + " regridded forcings."
+            err_handler.log_critical(config_options, mpi_config)
+            return
+        try:
+            indValid = np.where(temperature_grid_tmp != config_options.globalNdv)
+        except:
+            config_options.errMsg = "Unable to perform search for valid values on input " + \
+                                    input_forcings.productName + " regridded temperature forcings."
+            err_handler.log_critical(config_options, mpi_config)
+            return
+        try:
+            temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + input_forcings.lapseGrid[indValid]
+        except:
+            config_options.errMsg = "Unable to apply spatial lapse rate values to input " + \
+                                     input_forcings.productName + " regridded temperature forcings."
+            err_handler.log_critical(config_options, mpi_config)
+            return
+
+        input_forcings.final_forcings[4,:,:] = temperature_grid_tmp
+        input_forcings.final_forcings[indNdv] = config_options.globalNdv
+
 
 def param_lapse(input_forcings,ConfigOptions,GeoMetaWrfHydro,MpiConfig):
     """
