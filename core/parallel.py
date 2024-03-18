@@ -206,7 +206,7 @@ class MpiConfig:
             recvbuf=np.empty([counts[self.rank]],np.float32)
         elif data_type_flag == 3:
             data_type = MPI.BOOL
-            recvbuf = np.empty([counts[self.rank]], np.bool)
+            recvbuf = np.empty([counts[self.rank]], bool)
         else:
             data_type = MPI.DOUBLE
             recvbuf = np.empty([counts[self.rank]], np.float64)

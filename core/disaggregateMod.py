@@ -40,7 +40,7 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
             config_options.statusMsg = "Bypassing ext_ana_disaggregation routine due to missing input or supp pcp data"
             err_handler.log_warning(config_options, mpi_config)
         return
-            
+
     if supplemental_precip.ext_ana != "STAGE4":
         #Just copy RAINRATE straight over into the output
         supplemental_precip.regridded_precip2[:,:] = input_forcings.regridded_forcings2[3,:,:]
@@ -48,8 +48,8 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
             config_options.statusMsg = f"Bypassing ext_ana_disaggregation routine due to supplemental_precip.ext_ana = {supplemental_precip.ext_ana}"
             err_handler.log_warning(config_options, mpi_config)
         return
-    
-    
+
+
     #print("ext_ana_disaggregate RAINRATE input_forcings.regridded_forcings2[3,:,:]")
     #print(input_forcings.regridded_forcings2[3,:,:])
     #print("ext_ana_disaggregate supplemental_precip.regridded_precip2[:,:]")
@@ -113,9 +113,9 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
 
     ana_sum = np.array([],dtype=np.float32)
     target_data = np.array([],dtype=np.float32)
-    ana_all_zeros = np.array([],dtype=np.bool)
-    ana_no_zeros = np.array([],dtype=np.bool)
-    target_data_no_zeros = np.array([],dtype=np.bool)
+    ana_all_zeros = np.array([],dtype=bool)
+    ana_no_zeros = np.array([],dtype=bool)
+    target_data_no_zeros = np.array([],dtype=bool)
     if mpi_config.rank == 0:
         config_options.statusMsg = f"Performing hourly disaggregation of {supplemental_precip.file_in2}"
         err_handler.log_msg(config_options, mpi_config)
@@ -142,7 +142,7 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     err_handler.check_program_status(config_options, mpi_config)
     target_data_no_zeros = mpi_config.scatter_array(input_forcings, target_data_no_zeros, config_options)
     err_handler.check_program_status(config_options, mpi_config)
-    
+
     orig_err_settings = np.geterr()
     #Ignore Warning: RuntimeWarning: invalid value encountered in true_divide
     np.seterr(invalid='ignore')
@@ -154,13 +154,13 @@ def ext_ana_disaggregate(input_forcings, supplemental_precip, config_options, mp
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_{yyyymmdd}_{beg_hh}_{end_hh}.txt"
         np.savetxt(test_file,supplemental_precip.regridded_precip2)
-    
+
         test_file = f"{config_options.scratch_dir}/disaggregation_factors_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"
         np.savetxt(test_file,disagg_factors)
 
     #supplemental_precip.regridded_precip2[(0.0 < supplemental_precip.regridded_precip2) & (supplemental_precip.regridded_precip2 < 0.00003)] = 0.0
     supplemental_precip.regridded_precip2[:,:] *= disagg_factors
-    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv) 
+    np.nan_to_num(supplemental_precip.regridded_precip2[:,:], copy=False, nan=config_options.globalNdv)
 
     if mpi_config.comm.Get_size() == 1 and test_enabled:
         test_file = f"{config_options.scratch_dir}/stage_4_acc6h_disaggregated_{target_hh}_{yyyymmdd}{beg_hh}_{end_date.strftime('%Y%m%d%H')}.txt"

@@ -22,7 +22,7 @@ class OutputObj:
     Abstract class to hold local "slabs" of final output
     grids.
     """
-    def __init__(self,GeoMetaWrfHydro):
+    def __init__(self,ConfigOptions,GeoMetaWrfHydro):
         self.output_local = None
         self.outPath = None
         self.outDate = None
@@ -30,7 +30,8 @@ class OutputObj:
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
-        self.output_local = np.empty([9, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
+        force_count = 9 if ConfigOptions.include_lqfrac else 8
+        self.output_local = np.empty([force_count, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
         #self.output_local[:,:,:] = self.out_ndv
 
     def output_final_ldasin(self, ConfigOptions, geoMetaWrfHydro, MpiConfig):
@@ -66,7 +67,7 @@ class OutputObj:
         if ConfigOptions.include_lqfrac:
             output_variable_attribute_dict['LQFRAC'] = [8, '%', 'liquid_water_fraction',
                                                         'Fraction of precipitation that is liquid vs. frozen',
-                                                        'time: point', 0.1, 0.0, 3]
+                                                        'time: point', 0.01, 0.0, 3]
 
         # Compose the ESMF remapped string attribute based on the regridding option chosen by the user.
         # We will default to the regridding method chosen for the first input forcing selected.

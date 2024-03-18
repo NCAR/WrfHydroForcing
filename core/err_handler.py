@@ -273,9 +273,10 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
         'T2D': [4, 0.0, 400.0],
         'Q2D': [5, -100.0, 100.0],
         'PSFC': [6, 0.0, 2000000.0],
-        'SWDOWN': [7, 0.0, 5000.0]
+        'SWDOWN': [7, 0.0, 5000.0],
+        'LQFRAC': [8,0,1]
     }
-    fvars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN']
+    fvars = ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D', 'Q2D', 'PSFC', 'SWDOWN', 'LQFRAC']
 
     # If the regridded field is None type, return to the main program as this means no forcings
     # were found for this timestep.
