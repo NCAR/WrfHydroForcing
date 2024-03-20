@@ -10,6 +10,7 @@ import time
 
 import ESMF
 import numpy as np
+import numpy.ma as ma
 
 from core import err_handler
 from core import ioMod
@@ -609,7 +610,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                 config_options.statusMsg = "Converting CONUS RAP Variable: " + grib_var
                 err_handler.log_msg(config_options, mpi_config)
             time_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
-                if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+                if grib_var in ("APCP", "FROZR") else str(input_forcings.fcst_hour2) + " hour fcst"
             fields.append(':' + grib_var + ':' +
                           input_forcings.grib_levels[force_count] + ':'
                           + time_str + ":")
@@ -720,7 +721,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         if mpi_config.rank == 0:
             try:
                 var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
-                if grib_var == "APCP":
+                if grib_var in ("APCP", "FROZR"):
                     var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
@@ -761,13 +762,23 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-        try:
-            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
-                input_forcings.esmf_field_out.data
-        except (ValueError, KeyError, AttributeError) as err:
-            config_options.errMsg = "Unable to place RAP ESMF data into local array: " + str(err)
-            err_handler.log_critical(config_options, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+        if force_count < 8:
+            try:
+                input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
+                    input_forcings.esmf_field_out.data
+            except (ValueError, KeyError, AttributeError) as err:
+                config_options.errMsg = "Unable to place RAP ESMF data into local array: " + str(err)
+                err_handler.log_critical(config_options, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+        else:
+            # handle liquid-phase precip calculation
+            RAINRATE = 3  # TODO: determine this programmatically
+            total_pcp = ma.masked_values(input_forcings.regridded_forcings2[RAINRATE], config_options.globalNdv)
+            frozn_pcp = ma.masked_values(input_forcings.esmf_field_out.data, config_options.globalNdv)
+            # print(f"rank {mpi_config.rank} has {(frozn_pcp > total_pcp).sum()} instances of frozn_pcp > total_pcp", flush=True)
+            frz_fract = frozn_pcp / total_pcp
+            frz_fract[frz_fract > 1] = 1
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = (1 - frz_fract).filled(1.0)
 
         # If we are on the first timestep, set the previous regridded field to be
         # the latest as there are no states for time 0.
