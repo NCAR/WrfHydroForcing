@@ -569,7 +569,12 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         # of the local grid for this forcing, for a specific output timesetp.
         # This grid will be updated from one output timestep to another, and
         # also through downscaling and bias correction.
-        InputDict[force_key].final_forcings = np.empty([9,GeoMetaWrfHydro.ny_local,
+        force_count = 9 if ConfigOptions.include_lqfrac else 8
+        if force_count == 8 and 8 in InputDict[force_key].input_map_output:
+            # TODO: this assumes that LQFRAC (8) is always the last grib var
+            InputDict[force_key].grib_vars = InputDict[force_key].grib_vars[:-1]
+
+        InputDict[force_key].final_forcings = np.empty([force_count,GeoMetaWrfHydro.ny_local,
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,

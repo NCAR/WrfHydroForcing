@@ -22,7 +22,7 @@ def err_out_screen(err_msg):
     """
 
     err_msg_out = 'ERROR: ' + err_msg
-    print(err_msg_out)
+    print(err_msg_out, flush=True)
     sys.exit(1)
 
 def err_out_screen_para(err_msg,MpiConfig):
@@ -35,7 +35,7 @@ def err_out_screen_para(err_msg,MpiConfig):
     :return:
     """
     err_msg_out = 'ERROR: RANK - ' + str(MpiConfig.rank) + ' : ' + err_msg
-    print(err_msg_out)
+    print(err_msg_out, flush=True)
     # MpiConfig.comm.Abort()
     sys.exit(1)
 
@@ -287,6 +287,9 @@ def check_forcing_bounds(ConfigOptions, input_forcings, MpiConfig):
     # exceeded, shut the forcing engine down.
     for varTmp in variable_range:
         if fvars.index(varTmp) not in input_forcings.input_map_output:
+            continue
+
+        if varTmp == 'LQFRAC' and not ConfigOptions.include_lqfrac:
             continue
 
         # First check to see if we have any data that is not missing.

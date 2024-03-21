@@ -657,19 +657,18 @@ def unzip_file(GzFileIn,FileOut,ConfigOptions,MpiConfig):
     if MpiConfig.rank == 0:
         # Unzip the file in place.
         try:
-            ConfigOptions.statusMsg = "Unzipping file: {}".format(GzFileIn)
+            ConfigOptions.statusMsg = f"Unzipping file: {GzFileIn}"
             err_handler.log_msg(ConfigOptions, MpiConfig)
             with gzip.open(GzFileIn, 'rb') as fTmpGz:
                 with open(FileOut, 'wb') as fTmp:
                     shutil.copyfileobj(fTmpGz, fTmp)
         except:
-            ConfigOptions.errMsg = "Unable to unzip: " + GzFileIn
+            ConfigOptions.errMsg = f"Unable to unzip: {GzFileIn} to {FileOut}"
             err_handler.log_critical(ConfigOptions, MpiConfig)
             return
 
         if not os.path.isfile(FileOut):
-            ConfigOptions.errMsg = "Unable to locate expected unzipped file: " + \
-                                   FileOut
+            ConfigOptions.errMsg = f"Unable to locate expected unzipped file: {FileOut}"
             err_handler.log_critical(ConfigOptions, MpiConfig)
             return
     else:
