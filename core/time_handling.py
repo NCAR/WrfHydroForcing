@@ -1646,6 +1646,87 @@ def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_curr
             supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
 
 
+def find_hourly_mrms_precip_flag(supplemental_precip, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next MRMS radar-only QPE files. This
+    will also calculate the neighboring radar quality index (RQI) files as well.
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next MRMS files we will be using.
+    current_yr = d_current.year
+    current_mo = d_current.month
+    current_day = d_current.day
+    current_hr = d_current.hour
+    current_min = d_current.minute
+
+    # Set the input file frequency to be hourly.
+    supplemental_precip.input_frequency = 60.0
+
+    prev_date1 = datetime.datetime(current_yr, current_mo, current_day, current_hr)
+    dt_tmp = d_current - prev_date1
+    if dt_tmp.total_seconds() == 0:
+        # We are on the hour, we can set this date to the be the "next" date.
+        next_mrms_date = d_current
+        prev_mrms_date = d_current - datetime.timedelta(seconds=3600.0)
+    else:
+        # We are between two MRMS hours.
+        prev_mrms_date = prev_date1
+        next_mrms_date = prev_mrms_date + datetime.timedelta(seconds=3600.0)
+
+    supplemental_precip.pcp_date1 = prev_mrms_date
+    #supplemental_precip.pcp_date2 = next_mrms_date
+    supplemental_precip.pcp_date2 = prev_mrms_date
+
+    # Calculate expected file paths.
+    tmp_file = os.path.join(supplemental_precip.inDir,
+                            "PrecipFlag_00.00_" + supplemental_precip.pcp_date1.strftime('%Y%m%d') + \
+                            "-" + supplemental_precip.pcp_date1.strftime('%H') + \
+                            "0000" + supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else ''))
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "MRMS PrecipFlag file: " + tmp_file
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if supplemental_precip.file_in1 != tmp_file or supplemental_precip.file_in2 != tmp_file:
+        if config_options.current_output_step == 1:
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+            supplemental_precip.regridded_rqi1 = supplemental_precip.regridded_rqi1
+            supplemental_precip.regridded_rqi2 = supplemental_precip.regridded_rqi2
+        else:
+            # The forecast window has shifted. Reset fields 2 to
+            # be fields 1.
+            supplemental_precip.regridded_precip1 = supplemental_precip.regridded_precip1
+            supplemental_precip.regridded_precip2 = supplemental_precip.regridded_precip2
+        supplemental_precip.file_in1 = tmp_file
+        supplemental_precip.file_in2 = tmp_file
+        supplemental_precip.regridComplete = False
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.isfile(supplemental_precip.file_in2):
+            if supplemental_precip.enforce == 1:
+                config_options.errMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input MRMS file: " + supplemental_precip.file_in2 + \
+                                           " not found. " + "Will not use in final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
+
 def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current, mpi_config):
     """
     Function to calculate the previous and next WRF-ARW Hi-Res Window files for the previous
