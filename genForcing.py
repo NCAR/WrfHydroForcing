@@ -96,7 +96,7 @@ def main():
 
     # Initialize our output object, which includes local slabs from the output grid.
     try:
-        OutputObj = ioMod.OutputObj(WrfHydroGeoMeta)
+        OutputObj = ioMod.OutputObj(job_meta, WrfHydroGeoMeta)
     except Exception:
         err_handler.err_out_screen_para(job_meta, mpi_meta)
     err_handler.check_program_status(job_meta, mpi_meta)

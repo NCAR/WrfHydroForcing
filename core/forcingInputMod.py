@@ -206,12 +206,12 @@ class input_forcings:
                 'DLWRF', 'PRES'],
             2: None,
             3: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
-                'DLWRF', 'PRES'],
+                'DLWRF', 'PRES', 'CPOFP'],
             4: None,
             5: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
-                'DLWRF', 'PRES'],
+                'DLWRF', 'PRES', 'CPOFP'],
             6: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
-                'DLWRF', 'PRES'],
+                'DLWRF', 'PRES', 'FROZR'],
             7: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'PRATE', 'DSWRF',
                 'DLWRF', 'PRES'],
             8: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'PRES'],
@@ -247,14 +247,14 @@ class input_forcings:
             2: None,
             3: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
-                'surface', 'surface', 'surface', 'surface'],
+                'surface', 'surface', 'surface', 'surface', 'surface'],
             4: None,
             5: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
-                'surface', 'surface', 'surface', 'surface'],
+                'surface', 'surface', 'surface', 'surface', 'surface'],
             6: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
-                'surface', 'surface', 'surface', 'surface'],
+                'surface', 'surface', 'surface', 'surface', 'surface'],
             7: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
                 'surface', 'surface', 'surface', 'surface'],
@@ -300,16 +300,16 @@ class input_forcings:
             3: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
-                'PRES_surface'],
+                'PRES_surface', 'CPOFP_surface'],
             4: None,
             5: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
-                'PRES_surface'],
+                'PRES_surface', 'CPOFP_surface'],
             6: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
-                'PRES_surface'],
+                'PRES_surface', 'FROZR_surface'],
             7: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'PRATE_surface', 'DSWRF_surface', 'DLWRF_surface',
@@ -386,14 +386,14 @@ class input_forcings:
         }
         self.grib_mes_idx = grib_message_idx[self.keyValue]
 
-        # 0: U2D, 1: V2D, 2: LWDOWN, 3: RAINRATE, 4: T2D, 5: Q2D, 6: PSFC, 7: SWDOWN
+        # 0: U2D, 1: V2D, 2: LWDOWN, 3: RAINRATE, 4: T2D, 5: Q2D, 6: PSFC, 7: SWDOWN, 8: LQFRAC
         input_map_to_outputs = {
             1: [4,5,0,1,3,7,2,6],
             2: None,
-            3: [4,5,0,1,3,7,2,6],
+            3: [4,5,0,1,3,7,2,6, 8],
             4: None,
-            5: [4,5,0,1,3,7,2,6],
-            6: [4,5,0,1,3,7,2,6],
+            5: [4,5,0,1,3,7,2,6, 8],
+            6: [4,5,0,1,3,7,2,6, 8],
             7: [4,5,0,1,3,7,2,6],
             8: [4,5,0,1,3,6],
             9: [4,5,0,1,3,7,2,6],
@@ -570,7 +570,12 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
         # of the local grid for this forcing, for a specific output timesetp.
         # This grid will be updated from one output timestep to another, and
         # also through downscaling and bias correction.
-        InputDict[force_key].final_forcings = np.empty([8,GeoMetaWrfHydro.ny_local,
+        force_count = 9 if ConfigOptions.include_lqfrac else 8
+        if force_count == 8 and 8 in InputDict[force_key].input_map_output:
+            # TODO: this assumes that LQFRAC (8) is always the last grib var
+            InputDict[force_key].grib_vars = InputDict[force_key].grib_vars[:-1]
+
+        InputDict[force_key].final_forcings = np.empty([force_count,GeoMetaWrfHydro.ny_local,
                                                         GeoMetaWrfHydro.nx_local],
                                                        np.float64)
         InputDict[force_key].height = np.empty([GeoMetaWrfHydro.ny_local,

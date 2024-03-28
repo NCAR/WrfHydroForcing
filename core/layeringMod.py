@@ -19,7 +19,7 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
-    # Loop through the 8 forcing products to layer in:
+    # Loop through the 8 (or 9) forcing products to layer in:
     # 0.) U-Wind (m/s)
     # 1.) V-Wind (m/s)
     # 2.) Surface incoming longwave radiation flux (W/m^2)
@@ -28,8 +28,10 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     # 5.) 2-meter specific humidity (kg/kg)
     # 6.) Surface pressure (Pa)
     # 7.) Surface incoming shortwave radiation flux (W/m^2)
+    # 8.) Liquid fraction of precipitation ([0..1])
 
-    for force_idx in range(0, 8):
+    force_count = 9 if ConfigOptions.include_lqfrac else 8
+    for force_idx in range(0, force_count):
         if force_idx in input_forcings.input_map_output:
             outLayerCurrent = OutputObj.output_local[force_idx,:,:]
             layerIn = input_forcings.final_forcings[force_idx,:,:]
