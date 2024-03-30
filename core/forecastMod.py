@@ -329,6 +329,7 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                         err_handler.log_msg(ConfigOptions, MpiConfig)
                     err_handler.check_program_status(ConfigOptions, MpiConfig)
                     continue
+
                 else:
                     # Process supplemental precipitation if we specified in the configuration file.
                     if ConfigOptions.number_supp_pcp > 0:

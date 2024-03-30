@@ -29,6 +29,7 @@ class OutputObj:
         self.outDate = None
         self.out_ndv = -999999
         self.suppOutPath = None
+
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
         force_count = 9 if ConfigOptions.include_lqfrac else 8
