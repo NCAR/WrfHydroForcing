@@ -1,0 +1,352 @@
+
+# WRF-Hydro Forcing Engine Configuration File
+#
+# Input options to the forcing engine include:
+# 1.) Choices for input forcing files to use.
+# 2.) Options for specifying date ranges and forecast intervals
+#     for input files.
+# 3.) Choices for ESMF regridding techniques.
+# 4.) Choices for optional downscaling techniques.
+# 5.) Choices for optional bias correction techniques.
+# 6.) Choices for optional supplemental precipitation products.
+# 7.) Choices for optional ensemble member variations.
+# 8.) Choices for output directories to place final output files.
+
+[Input]
+# Choose a set of value(s) of forcing variables to be processed for
+# WRF-Hydro. Please be advised that the order of which the values are
+# chosen below are the order that the final products will be layered
+# into the final LDASIN files. See documentation for additional
+# information and examples.
+# The following is a global set of key values to map forcing files
+# to variables within LDASIN files for WRF-Hydro. The forcing engine
+# will map files to external variable names internally. For custom
+# external native forcing files (see documenation), the code will
+# expect a set of named variables to process. The following is a
+# mapping of numeric values to external input native forcing files:
+# 1 - NLDAS GRIB retrospective files
+# 2 - NARR GRIB retrospective files
+# 3 - GFS GRIB2 Global production files on the full gaussian grid
+# 4 - NAM Nest GRIB2 Conus production files
+# 5 - HRRR GRIB2 Conus production files
+# 6 - RAP GRIB2 Conus 13km production files
+# 7 - CFSv2 6-hourly GRIB2 Global production files
+# 8 - WRF-ARW - GRIB2 Hawaii nest files
+# 9 - GFS GRIB2 Global production files on 0.25 degree lat/lon grids. 
+# 10 - Custom NetCDF hourly forcing files
+# 11 - Custom NetCDF hourly forcing files
+# 12 - Custom NetCDF hourly forcing files
+# 13 - Hawaii 3-km NAM Nest.
+# 14 - Puerto Rico 3-km NAM Nest.
+# 15 - Alaska 3-km Alaska NAM Nest
+# 16 - NAM_Nest_3km_Hawaii_Radiation-Only
+# 17 - NAM_Nest_3km_PuertoRico_Radiation-Only
+# 18 - WRF-ARW GRIB2 PuertoRico
+# 19 - HRRR GRIB2 Alaska production files
+# 20 - ExtAna HRRR AK FE output
+InputForcings = [19]
+
+# Specify the file type for each forcing (comma separated)
+# Valid types are GRIB1, GRIB2, and NETCDF
+# (GRIB files will be converted internally with WGRIB[2])
+InputForcingTypes = [GRIB2]
+
+# Specify the input directories for each forcing product.
+InputForcingDirectories = /glade/p/ral/allral/zhangyx/HRRR_Alaska
+
+# Specify whether the input forcings listed above are mandatory, or optional.
+# This is important for layering contingencies if a product is missing,
+# but forcing files are still desired.
+# 0 - Not mandatory
+# 1 - Mandatory
+# NOTE!!! If not files are found for any products, code will error out indicating
+# the final field is all missing values.
+InputMandatory = [1]
+
+[Output]
+# Specify the output frequency in minutes. 
+# Note that any frequencies at higher intervals
+# than what is provided as input will entail input
+# forcing data being temporally interpolated.
+OutputFrequency = 60
+
+# Specify a top level output directory. For re-forecasts
+# and forecasts, sub-directories for each forecast cycle
+# will be generated. For retrospective processing, final
+# output files will be placed in this directory. 
+OutDir = /glade/p/ral/wsap/petzke/fe_ak/AnA/data
+
+# Specify a scratch directory that will be used 
+# for storage of temporary files. These files
+# will be removed automatically by the program. 
+ScratchDir = /glade/p/ral/wsap/petzke/fe_ak/AnA/data 
+
+# Flag to use floating point output vs scale_factor / add_offset byte packing in
+# the output files (the default)
+# 0 - Use scale/offset encoding
+# 1 - Use floating-point encoding
+floatOutput = 0
+
+# Flag to activate netCDF4 deflate compression in the output files.
+# 0 - Deactivate compression
+# 1 - Activate compression
+compressOutput = 0
+
+[Retrospective]
+# Specify to process forcings in retrosective mode
+# 0 - No
+# 1 - Yes
+RetroFlag = 0
+
+# Choose the beginning date of processing forcing files.
+# NOTE - Dates are given in YYYYMMDDHHMM format
+# If in real-time forecasting mode, leave as -9999.
+# These dates get over-ridden in lookBackHours.
+BDateProc = 202002040000
+EDateProc = 202002050000
+
+[Forecast]
+# Specify if this is an Analysis and Assimilation run (AnA).
+# If this is AnA run, set AnAFlag to 1, otherwise 0.
+# Setting this flag will change the behavior of some Bias Correction routines as wel
+# as the ForecastInputOffsets options (see below for more information)
+AnAFlag = 1
+
+# ONLY for realtime forecasting.
+# - Specify a lookback period in minutes to process data.
+#   This overrides any BDateProc/EDateProc options passed above.
+#   If no LookBack specified, please specify -9999.
+LookBack = 180
+
+# If running reforecasts, specify a window below. This will override 
+# using the LookBack value to calculate a processing window. 
+RefcstBDateProc = syyyymmdyhh00
+RefcstEDateProc = eyyyymmdyhh00
+
+# Specify a forecast frequency in minutes. This value specifies how often
+# to generate a set of forecast forcings. If generating hourly retrospective
+# forcings, specify this value to be 60. 
+ForecastFrequency = 60
+
+# Forecast cycles are determined by splitting up a day by equal 
+# ForecastFrequency interval. If there is a desire to shift the
+# cycles to a different time step, ForecastShift will shift forecast
+# cycles ahead by a determined set of minutes. For example, ForecastFrequency
+# of 6 hours will produce forecasts cycles at 00, 06, 12, and 18 UTC. However,
+# a ForecastShift of 1 hour will produce forecast cycles at 01, 07,
+# 13, and 18 UTC. NOTE - This is only used by the realtime instance 
+# to calculate forecast cycles accordingly. Re-forecasts will use the beginning
+# and ending dates specified in conjunction with the forecast frequency
+# to determine forecast cycle dates.  
+ForecastShift = 0
+
+# Specify how much (in minutes) of each input forcing is desires for each 
+# forecast cycle. See documentation for examples. The length of
+# this array must match the input forcing choices.
+#ForecastInputHorizons = [60]
+ForecastInputHorizons = [180] 
+
+# This option is for applying an offset to input forcings to use a different
+# forecasted interval. For example, a user may wish to use 4-5 hour forecasted
+# fields from an NWP grid from one of their input forcings. In that instance
+# the offset would be 4 hours, but 0 for other remaining forcings. 
+#
+# In AnA runs, this value is the offset from the available forecast and 00z
+# For example, if forecast are available at 06z and 18z, set this value to 6
+ForecastInputOffsets = [0]
+
+[Geospatial]
+# Specify a geogrid file that defines the WRF-Hydro (or NWM) domain to which
+# the forcings are being processed to.
+GeogridIn = /glade/p/cisl/nwc/zhangyx/AlaskaNWM/DOMAIN/geo_em.d02.nc
+
+# Specify the optional land spatial metadata file. If found, coordinate projection information
+# and coordinate will be translated from to the final output file.
+SpatialMetaIn = /glade/p/cisl/nwc/zhangyx/AlaskaNWM/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc
+
+# Specify a border width (in grid cells) to ignore for each input dataset.
+# NOTE: generally, the first input forcing should always be zero or there will be missing data in the final output
+IgnoredBorderWidths = [10]
+
+[Regridding]
+# Choose regridding options for each input forcing files being used. Options available are:
+# 1 - ESMF Bilinear
+# 2 - ESMF Nearest Neighbor
+# 3 - ESMF Conservative Bilinear
+RegridOpt = [1]
+#RegridWeightsDir = /glade/p/cisl/nwc/nwm_forcings/ESMFWeightFiles
+
+[Interpolation]
+# Specify an temporal interpolation for the forcing variables.
+# Interpolation will be done between the two neighboring
+# input forcing states that exist. If only one nearest
+# state exist (I.E. only a state forward in time, or behind),
+# then that state will be used as a "nearest neighbor".
+# NOTE - All input options here must be of the same length
+# of the input forcing number. Also note all temporal interpolation
+# occurs BEFORE downscaling and bias correction.
+# 0 - No temporal interpolation.
+# 1 - Nearest Neighbor
+# 2 - Linear weighted average
+ForcingTemporalInterpolation = [0]
+
+[BiasCorrection]
+# Choose bias correction options for each of the input forcing files. Length of each option
+# must match the length of input forcings.
+
+# Specify a temperature bias correction method.
+# 0 - No bias correction
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+# 3 - NCAR parametric GFS bias correction
+# 4 - NCAR parametric HRRR bias correction
+TemperatureBiasCorrection = [4]
+
+# Specify a surface pressure bias correction method.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+PressureBiasCorrection = [0]
+
+# Specify a specific humidity bias correction method.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+HumidityBiasCorrection = [0]
+
+# Specify a wind bias correction.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# 2 - Custom NCAR bias-correction based on HRRRv3 analysis - based on hour of day (USE WITH CAUTION).
+# 3 - NCAR parametric GFS bias correction
+# 4 - NCAR parametric HRRR bias correction
+WindBiasCorrection = [4]
+
+# Specify a bias correction for incoming short wave radiation flux.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# 2 - Custom NCAR bias-correction based on HRRRv3 analysis (USE WITH CAUTION).
+SwBiasCorrection = [2]
+
+# Specify a bias correction for incoming long wave radiation flux.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+# 2 - Custom NCAR bias-correction based on HRRRv3 analysis, blanket adjustment (USE WITH CAUTION).
+# 3 - NCAR parametric GFS bias correction
+LwBiasCorrection = [2]
+
+# Specify a bias correction for precipitation.
+# 0 - No bias correction.
+# 1 - CFSv2 - NLDAS2 Parametric Distribution - NWM ONLY
+PrecipBiasCorrection = [0]
+
+[Downscaling]
+# Choose downscaling options for each of the input forcing files. Length of each option
+# must match the length of input forcings.
+
+# Specify a temperature downscaling method:
+# 0 - No downscaling.
+# 1 - Use a simple lapse rate of 6.75 degrees Celsius to get from the model elevation
+#     to the WRF-Hydro elevation.
+# 2 - Use a pre-calculated lapse rate regridded to the WRF-Hydro domain.
+TemperatureDownscaling = [1]
+
+# Specify a surface pressure downscaling method:
+# 0 - No downscaling.
+# 1 - Use input elevation and WRF-Hydro elevation to downscale
+#     surface pressure.
+PressureDownscaling = [1]
+
+# Specify a shortwave radiation downscaling routine.
+# 0 - No downscaling
+# 1 - Run a topographic adjustment using the WRF-Hydro elevation
+ShortwaveDownscaling = [1]
+
+# Specify a precipitation downscaling routine.
+# 0 - No downscaling
+# 1 - NWM mountain mapper downscaling using monthly PRISM climo.
+PrecipDownscaling = [0]
+
+# Specify a specific humidity downscaling routine.
+# 0 - No downscaling
+# 1 - Use regridded humidity, along with downscaled temperature/pressure
+#     to extrapolate a downscaled surface specific humidty.
+HumidityDownscaling = [1]
+
+# Specify the input parameter directory containing necessary downscaling grids.
+#DownscalingParamDirs = /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/Alaska
+DownscalingParamDirs = /glade/p/cisl/nwc/zhangyx/NWM_v21_Params/Alaska
+
+[SuppForcing]
+# Choose a set of supplemental precipitation file(s) to layer
+# into the final LDASIN forcing files processed from
+# the options above. The following is a mapping of
+# numeric values to external input native forcing files:
+# 1 - MRMS GRIB2 hourly radar-only QPE
+# 2 - MRMS GRIB2 hourly gage-corrected radar QPE
+# 3 - WRF-ARW 2.5 km 48-hr Hawaii nest precipitation.
+# 4 - WRF-ARW 2.5 km 48-hr Puerto Rico nest precipitation.
+# 5 - CONUS MRMS MultiSensor Pass1 and Pass1
+# 6 - Hawaii MRMS MultiSensor Pass1 and Pass2
+# 7 - Alaska MRMS MultiSensor Pass1 and Pass2
+# 8 - Amir AK future option 1
+# 9 - Amir AK future option 2
+# 10 - Alaska MRMS (no liquid water fraction)
+# 11 - Alaska Stage IV NWS Precip
+SuppPcp = [10]
+
+# Specify the file type for each supplemental precipitation file (comma separated)
+# Valid types are GRIB1, GRIB2, and NETCDF
+# (GRIB files will be converted internally with WGRIB[2])
+SuppPcpForcingTypes = [GRIB2]
+
+# Specify the correponding supplemental precipitation directories
+# that will be searched for input files.
+SuppPcpDirectories = /glade/p/ral/allral/zhangyx/Alaska.MRMS
+
+# Specify whether the Supplemental Precips listed above are mandatory, or optional.
+# This is important for layering contingencies if a product is missing,
+# but forcing files are still desired.
+# 0 - Not mandatory
+# 1 - Mandatory
+SuppPcpMandatory = [0]
+
+# Specify regridding options for the supplemental precipitation products.
+RegridOptSuppPcp = [1]
+
+# Specify the time interpretation methods for the supplemental precipitation
+# products.
+SuppPcpTemporalInterpolation = [0]
+
+# In AnA runs, this value is the offset from the available forecast and 00z
+# For example, if forecast are available at 06z and 18z, set this value to 6 
+SuppPcpInputOffsets = [0]
+
+# Optional RQI method for radar-based data.
+# 0 - Do not use any RQI filtering. Use all radar-based estimates.
+# 1 - Use hourly MRMS Radar Quality Index grids.
+# 2 - Use NWM monthly climatology grids (NWM only!!!!)
+RqiMethod = 0
+
+# Optional RQI threshold to be used to mask out. Currently used for MRMS products.
+# Please choose a value from 0.0-1.0. Associated radar quality index files will be expected
+# from MRMS data.
+RqiThreshold = 0.9 
+
+# Specify an optional directory that contains supplemental precipitation parameter fields,
+# I.E monthly RQI climatology
+#SuppPcpParamDir = /glade/p/cisl/nwc/nwm_forcings/NWM_v21_Params/Alaska
+SuppPcpParamDir = /glade/p/cisl/nwc/zhangyx/NWM_v21_Params/Alaska
+
+[Ensembles]
+# Choose ensemble options for each input forcing file being used. Ensemble options include:
+# FILL IN ENSEMBLE OPTIONS HERE.....
+# Choose the CFS ensemble member number to process
+cfsEnsNumber = 
+
+[Custom]
+# These are options for specifying custom input NetCDF forcing files (in minutes).
+# Choose the input frequency of files that are being processed. I.E., are the
+# input files every 15 minutes, 60 minutes, 3-hours, etc. Please specify the
+# length of custom input frequencies to match the number of custom NetCDF inputs
+# selected above in the Logistics section.
+custom_input_fcst_freq = []

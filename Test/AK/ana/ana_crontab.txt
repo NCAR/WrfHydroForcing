@@ -1,0 +1,28 @@
+# Edit this file to introduce tasks to be run by cron.
+#
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+#
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').#
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+#
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+#
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+#
+# For more information see the manual pages of crontab(5) and cron(8)
+#
+# m h  dom mon dow   command
+
+MAILTO=bpetzke@ucar.edu
+
+PATH=/glade/u/home/bpetzke/anaconda3/bin:/glade/u/home/bpetzke/anaconda3/condabin:/ncar/opt/slurm/latest/bin:/glade/u/apps/ch/opt/netcdf/4.7.4/intel/19.0.5/bin:/glade/u/apps/ch/opt/ncarcompilers/0.5.0/intel/19.0.5/mpi:/glade/u/apps/ch/opt/mpt/2.22/bin:/glade/u/apps/ch/opt/ncarcompilers/0.5.0/intel/19.0.5:/glade/u/apps/opt/intel/2019u5/vtune_amplifier/bin64:/glade/u/apps/opt/intel/2019u5/inspector/bin64:/glade/u/apps/opt/intel/2019u5/advisor/bin64:/glade/u/apps/opt/intel/2019u5/compilers_and_libraries/linux/bin/intel64:/glade/u/apps/opt/vncmgr:/glade/u/apps/opt/globus-utils:/glade/u/apps/ch/opt/usr/bin:/glade/u/apps/ch/opt/lmod/8.1.7/bin:/glade/u/home/bpetzke/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin/X11:/usr/games:/opt/ibutils/bin:/usr/lib/mit/bin:/glade/u/apps/opt/hpss/hpss-client.5.0.2.p5/bin:/glade/u/apps/ch/os/usr/bin:/opt/pbs/bin:/sbin:/bin
+
+10 09 * * * eval "$(conda shell.bash hook)" && conda activate wrfhydro && cd /glade/p/ral/wsap/petzke/fe_ak/AnA && /opt/pbs/default/bin/qsub /glade/p/ral/wsap/petzke/fe_ak/AnA/run_FE_AK_AnA_nodes.pbs
