@@ -125,6 +125,7 @@ class supplemental_precip:
             11: None,
             12: None,
             13: None
+
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -159,6 +160,7 @@ class supplemental_precip:
             11: [],  # Set dynamically since we have have Stage IV and MRMS
             12: ['PrecipFlag_0mabovemeansealevel'],
             13: ['PrecipRate_0mabovemeansealevel']
+
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -193,7 +195,6 @@ class supplemental_precip:
             11: 3,
             12: 8,
             13: 3
-
         }
         self.output_var_idx = output_variables[self.keyValue]
 

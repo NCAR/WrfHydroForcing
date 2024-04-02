@@ -294,7 +294,7 @@ class input_forcings:
                  '10 m above ground', 'surface'],
             23: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
-                'surface', 'surface', 'surface','surface'],
+                'surface', 'surface', 'surface','surface']
 
         }
         self.grib_levels = grib_levels_in[self.keyValue]
@@ -395,7 +395,7 @@ class input_forcings:
             20: None,
             21: None,
             22: None,
-            23: None
+            23: None,
         }
         self.grib_mes_idx = grib_message_idx[self.keyValue]
 
@@ -405,8 +405,8 @@ class input_forcings:
             2: None,
             3: [4,5,0,1,3,7,2,6,8],
             4: None,
-            5: [4,5,0,1,3,7,2,6,8],
-            6: [4,5,0,1,3,7,2,6,8],
+            5: [4,5,0,1,3,7,2,6, 8],
+            6: [4,5,0,1,3,7,2,6, 8],
             7: [4,5,0,1,3,7,2,6],
             8: [4,5,0,1,3,6],
             9: [4,5,0,1,3,7,2,6],

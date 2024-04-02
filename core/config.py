@@ -153,6 +153,7 @@ class ConfigOptions:
             for forceOpt in self.input_forcings:
                 if forceOpt < 0 or forceOpt > FORCE_COUNT:
                     err_handler.err_out_screen(f'Please specify InputForcings values between 1 and {FORCE_COUNT}.')
+
             # Keep tabs on how many custom input forcings we have.
                 if forceOpt == 10:
                     self.number_custom_inputs = self.number_custom_inputs + 1
@@ -962,6 +963,7 @@ class ConfigOptions:
                 err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
                                            'BiasCorrection section of the configuration file.')
             except configparser.NoOptionError:
+
                 err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
                                            'BiasCorrection section of the configuration file.')
             except json.JSONDecodeError:
@@ -1141,6 +1143,7 @@ class ConfigOptions:
                     if optTmp != 7:
                         err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction can only be used in '
                                                    'CFSv2-only configurations')
+
 
         # Read in precipitation bias correction options.
         try:
