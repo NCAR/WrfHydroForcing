@@ -857,7 +857,7 @@ def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
     if mpi_config.rank == 0:
         config_options.statusMsg = "Processing %s Input Data. Calculating neighboring " \
-                                   "files for this output timestep" % input_forcings.keyValue
+                                   "files for this output timestep" % input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
    
@@ -926,13 +926,11 @@ def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
     err_handler.check_program_status(config_options, mpi_config)
     # Calculate expected file paths.
     tmp_file1 = glob.glob(f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2")[0]
-
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous input file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = glob.glob(f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2")[0]
-
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
             config_options.statusMsg = "Next input file being used: " + tmp_file2
@@ -1606,8 +1604,7 @@ def find_custom_freq_neighbors(supplemental_precip, config_options, d_current, m
 
     # Set the input file frequency to be hourly.
     supplemental_precip.input_frequency = config_options.customSuppPcpFreq
-
-    prev_date1 = datetime.datetime(current_yr, current_mo, current_day, current_hr)
+    prev_date1 = datetime.datetime(current_yr, current_mo, current_day, current_hr,current_min)
     dt_tmp = d_current - prev_date1
     if dt_tmp.total_seconds() == 0:
         # We are on the hour, we can set this date to the be the "next" date.
@@ -1619,9 +1616,9 @@ def find_custom_freq_neighbors(supplemental_precip, config_options, d_current, m
         next_custom_date = prev_custom_date + datetime.timedelta(seconds=60*(config_options.customSuppPcpFreq))
     supplemental_precip.pcp_date1 = prev_custom_date
     #supplemental_precip.pcp_date2 = next_mrms_date
-    supplemental_precip.pcp_date2 = prev_custom_date
+    supplemental_precip.pcp_date2 = next_custom_date
     # Calculate expected file paths.
-    if supplemental_precip.keyValue == 12:
+    if supplemental_precip.keyValue == 13:
         tmp_file1 = supplemental_precip.inDir + '/' + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + '/' \
             'MRMS_PrecipRate_00.00_' + supplemental_precip.pcp_date1.strftime('%Y%m%d-%H%M%S') +  \

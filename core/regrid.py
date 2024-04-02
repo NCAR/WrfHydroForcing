@@ -376,12 +376,21 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Converting HRRR Variable: " + grib_var
                 err_handler.log_msg(config_options, mpi_config)
-            time_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
-                if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+            if 0 < input_forcings.cycleFreq < 60:
+                time_str = "{}-{} min acc fcst".format(input_forcings.fcst_min1, input_forcings.fcst_min2) \
+                    if grib_var == 'APCP' else str(input_forcings.fcst_min2) + " min fcst"
+                sub_rem = int(input_forcings.fcst_min1) % 60
+                sub_id = int(sub_rem / input_forcings.cycleFreq)
+
+            else:
+                time_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
+                    if grib_var == 'APCP' else str(input_forcings.fcst_hour2) + " hour fcst"
+
             fields.append(':' + grib_var + ':' +
                           input_forcings.grib_levels[force_count] + ':'
                           + time_str + ":")
         fields.append(":(HGT):(surface):")
+
 
         # if input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
         #     fields.append(":(HGT):(500 mb):")
@@ -428,10 +437,14 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             var_tmp = None
             if mpi_config.rank == 0:
                 try:
-                    var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+                    if 0 < input_forcings.cycleFreq < 60:
+                        var_tmp = id_tmp.variables['HGT_surface'][sub_id]
+                    else:
+                        var_tmp = id_tmp.variables['HGT_surface'][0, :, :]
+
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract HRRR elevation from " + \
-                                            input_forcings.tmpFile + ": " + str(err)
+                                input_forcings.tmpFile + ": " + str(err)
 
             err_handler.check_program_status(config_options, mpi_config)
 
@@ -494,7 +507,11 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                                        input_forcings.netcdf_var_names[force_count]
             err_handler.log_msg(config_options, mpi_config)
             try:
-                var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
+                if 0 < input_forcings.cycleFreq < 60:
+                    var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][sub_id, :, :]
+                else:
+                    var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
+
                 if grib_var == "APCP":
                     var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
                 if grib_var == 'CPOFP':
@@ -2194,15 +2211,17 @@ def regrid_mrms_hourly(supplemental_precip, config_options, wrf_hydro_geo_meta, 
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-    # Convert the hourly precipitation total to a rate of mm/s
-    try:
-        ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
-        supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
-        del ind_valid
-    except (ValueError, AttributeError, ArithmeticError, KeyError) as npe:
-        config_options.errMsg = "Unable to run global NDV search on MRMS regridded precip: " + str(npe)
-        err_handler.log_critical(config_options, mpi_config)
-    err_handler.check_program_status(config_options, mpi_config)
+
+    if supplemental_precip.keyValue != 13:
+        # Convert the hourly precipitation total to a rate of mm/s
+        try:
+            ind_valid = np.where(supplemental_precip.regridded_precip2 != config_options.globalNdv)
+            supplemental_precip.regridded_precip2[ind_valid] = supplemental_precip.regridded_precip2[ind_valid] / 3600.0
+            del ind_valid
+        except (ValueError, AttributeError, ArithmeticError, KeyError) as npe:
+            config_options.errMsg = "Unable to run global NDV search on MRMS regridded precip: " + str(npe)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
     # If we are on the first timestep, set the previous regridded field to be
     # the latest as there are no states for time 0.
