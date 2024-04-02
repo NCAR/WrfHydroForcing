@@ -286,11 +286,11 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
 
                         # Call the output routines
                         #   adjust date for AnA if necessary
-                        if ConfigOptions.ana_flag:
-                            OutputObj.outDate = file_date
+                    if ConfigOptions.ana_flag:
+                        OutputObj.outDate = file_date
 
-                        OutputObj.output_final_ldasin(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
-                        err_handler.check_program_status(ConfigOptions, MpiConfig)
+                    OutputObj.output_final_ldasin(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
+                    err_handler.check_program_status(ConfigOptions, MpiConfig)
 
         if ConfigOptions.customSuppPcpFreq != None:
             for outStep in range(1, ConfigOptions.num_supp_output_steps + 1):
@@ -313,10 +313,13 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                     ConfigOptions.prev_output_date = ConfigOptions.current_output_date - datetime.timedelta(
                              seconds=ConfigOptions.customSuppPcpFreq * 60)
 
+                if MpiConfig.rank == 0 and show_message:
+                    ConfigOptions.statusMsg = '========================================='
                     err_handler.log_msg(ConfigOptions, MpiConfig)
                     ConfigOptions.statusMsg = "Processing for output timestep: " + \
-                                               file_date.strftime('%Y-%m-%d %H:%M')
+                                   file_date.strftime('%Y-%m-%d %H:%M')
                     err_handler.log_msg(ConfigOptions, MpiConfig)
+
                 # Compose the expected path to the output file. Check to see if the file exists,
                 # if so, continue to the next time step. Also initialize our output arrays if necessary.
                 OutputObj.suppOutPath = fcstCycleOutDir + "/" + file_date.strftime('%Y%m%d%H%M') + \
@@ -337,7 +340,9 @@ def process_forecasts(ConfigOptions, wrfHydroGeoMeta, inputForcingMod, suppPcpMo
                             # Like with input forcings, calculate the neighboring files to use.
                                 suppPcpMod[suppPcpKey].calc_neighbor_files(ConfigOptions, OutputObj.outDate, MpiConfig)
                                 err_handler.check_program_status(ConfigOptions, MpiConfig)
+
                             # Regrid the supplemental precipitation.
+                                print("Regrid")
                                 suppPcpMod[suppPcpKey].regrid_inputs(ConfigOptions, wrfHydroGeoMeta, MpiConfig)
                                 err_handler.check_program_status(ConfigOptions, MpiConfig)
                                 if suppPcpMod[suppPcpKey].regridded_precip1 is not None \

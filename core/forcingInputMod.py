@@ -139,7 +139,7 @@ class input_forcings:
             19: "HRRR_Alaska_GRIB2",
             20: "Alaska_ExtAnA",
             21: "NBM",
-            22: "NDFD"
+            22: "NDFD",
             23: "HRRR_15min"
         }
         self.productName = product_names[self.keyValue]
@@ -199,7 +199,7 @@ class input_forcings:
             19: 180,
             20: 60,
             21: 60,
-            22: 1440
+            22: 1440,
             23: 15
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
@@ -238,7 +238,7 @@ class input_forcings:
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
             21: ['TMP', 'APCP'],
-            22: ['TMP', 'WDIR', 'WSPD', 'APCP']
+            22: ['TMP', 'WDIR', 'WSPD', 'APCP'],
             23: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
                 'DLWRF', 'PRES']
         }
@@ -291,7 +291,7 @@ class input_forcings:
             20: None,
             21: ['2 m above ground', 'surface'],
             22: ['2 m above ground', '10 m above ground',
-                 '10 m above ground', 'surface']
+                 '10 m above ground', 'surface'],
             23: ['2 m above ground', '2 m above ground',
                 '10 m above ground', '10 m above ground',
                 'surface', 'surface', 'surface','surface'],
@@ -362,8 +362,8 @@ class input_forcings:
                  'Q2D', 'PSFC', 'SWDOWN'],
             21: ['TMP_2maboveground', 'APCP_surface'],
             22: ['TMP_2maboveground', 'WDIR_10maboveground', 'WIND_10maboveground',
-                 'APCP_surface']
-            22: ['TMP_2maboveground', 'SPFH_2maboveground',
+                 'APCP_surface'],
+            23: ['TMP_2maboveground', 'SPFH_2maboveground',
                 'UGRD_10maboveground', 'VGRD_10maboveground',
                 'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
                 'PRES_surface']
@@ -403,12 +403,10 @@ class input_forcings:
         input_map_to_outputs = {
             1: [4,5,0,1,3,7,2,6],
             2: None,
-            3: [4,5,0,1,3,7,2,6, 8],
+            3: [4,5,0,1,3,7,2,6,8],
             4: None,
-            5: [4,5,0,1,3,7,2,6, 8],
-            6: [4,5,0,1,3,7,2,6, 8],
-            5: [4,5,0,1,3,7,2,6],
-            6: [4,5,0,1,3,7,2,6],
+            5: [4,5,0,1,3,7,2,6,8],
+            6: [4,5,0,1,3,7,2,6,8],
             7: [4,5,0,1,3,7,2,6],
             8: [4,5,0,1,3,6],
             9: [4,5,0,1,3,7,2,6],
@@ -424,7 +422,7 @@ class input_forcings:
             19: [4,5,0,1,3,7,2,6],
             20: [0,1,2,3,4,5,6,7],
             21: [4, 3],
-            22: [4,0,1,3]
+            22: [4,0,1,3],
             23: [4,5,0,1,3,7,2,6]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
@@ -487,7 +485,7 @@ class input_forcings:
             19: time_handling.find_ak_hrrr_neighbors,
             20: time_handling.find_ak_ext_ana_neighbors,
             21: time_handling.find_hourly_nbm_neighbors,
-            22: time_handling.find_ndfd_neighbors
+            22: time_handling.find_ndfd_neighbors,
             23: time_handling.find_input_neighbors
         }
 
@@ -525,7 +523,7 @@ class input_forcings:
             19: regrid.regrid_conus_hrrr,
             20: regrid.regrid_ak_ext_ana,
             21: regrid.regrid_hourly_nbm,
-            22: regrid.regrid_ndfd
+            22: regrid.regrid_ndfd,
             23: regrid.regrid_conus_hrrr
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)

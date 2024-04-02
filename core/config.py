@@ -157,25 +157,25 @@ class ConfigOptions:
                 if forceOpt == 10:
                     self.number_custom_inputs = self.number_custom_inputs + 1
 
-        # Read in the input forcings types (GRIB[1|2], NETCDF)
-        try:
-            self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
-            self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
-            if self.input_force_types == ['']:
-                self.input_force_types = []
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
-                                       'in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
-                                       'in the configuration file.')
-        if len(self.input_force_types) != self.number_inputs:
-            err_handler.err_out_screen('Number of InputForcingTypes must match the number '
-                                       'of InputForcings in the configuration file.')
-        for fileType in self.input_force_types:
-            if fileType not in ['GRIB1', 'GRIB2', 'NETCDF', 'NETCDF4']:
-                err_handler.err_out_screen('Invalid forcing file type "{}" specified. '
-                                           'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
+            # Read in the input forcings types (GRIB[1|2], NETCDF)
+            try:
+                self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
+                self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
+                if self.input_force_types == ['']:
+                    self.input_force_types = []
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                           'in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                           'in the configuration file.')
+            if len(self.input_force_types) != self.number_inputs:
+                err_handler.err_out_screen('Number of InputForcingTypes must match the number '
+                                           'of InputForcings in the configuration file.')
+            for fileType in self.input_force_types:
+                if fileType not in ['GRIB1', 'GRIB2', 'NETCDF', 'NETCDF4']:
+                    err_handler.err_out_screen('Invalid forcing file type "{}" specified. '
+                                               'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
 
        
             # Read in the input directories for each forcing option.
@@ -930,7 +930,7 @@ class ConfigOptions:
             # if the directory was specified but not downscaling, set it anyway for bias correction etc.
             try:
                 if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
-                    self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]]
+                    self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]] * len(self.input_forcings)
             except KeyError:
                 pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
 
@@ -1208,7 +1208,7 @@ class ConfigOptions:
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
                 if suppOpt < 0 or suppOpt > 13:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 13)
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 13')
 
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt in (1,2,7,10,11):
