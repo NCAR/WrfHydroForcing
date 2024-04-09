@@ -24,15 +24,18 @@ class OutputObj:
     """
     def __init__(self,ConfigOptions,GeoMetaWrfHydro):
         self.output_local = None
+        self.output_supp_local = None
         self.outPath = None
         self.outDate = None
         self.out_ndv = -999999
+        self.suppOutPath = None
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
         force_count = 9 if ConfigOptions.include_lqfrac else 8
         self.output_local = np.empty([force_count, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
         #self.output_local[:,:,:] = self.out_ndv
+        self.output_supp_local = np.empty([1, GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local])
 
     def output_final_ldasin(self, ConfigOptions, geoMetaWrfHydro, MpiConfig):
         """
@@ -476,6 +479,237 @@ class OutputObj:
 
         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
+    def output_final_custom_supp_precip(self,ConfigOptions,geoMetaWrfHydro,MpiConfig):
+        """
+        Output routine to produce final custom frequency supplemental precip files for the WRF-Hydro
+        modeling system. This function is assuming all regridding,
+        interpolation, downscaling, and bias correction has occurred
+        on the necessary input forcings to generate a final set of
+        outputs on the output grid. Since this program is ran in parallel,
+        all work is done on local "slabs" of data for each processor to
+        make the code more efficient. On this end, this function will
+        collect the "slabs" into final output grids that go into the separate supplemental precip
+        output files. In addition, detailed geospatial metadata is translated
+        from the input geogrid file, to the final output files.
+        :param ConfiguOptions:
+        :param geoMetaWrfHydro:
+        :param MpiConfig:
+        :return:
+        """
+        output_variable_attribute_dict = {
+            'RAINRATE': [0,'mm s^-1','precipitation_flux','Surface Precipitation Rate','time: mean',1.0,0.0,0]
+        }
+        idOut = None
+        if MpiConfig.rank == 0:
+            while (True):
+                # Only output on the master processor.
+                try:
+                    idOut = Dataset(self.suppOutPath,'w')
+                except Exception as e:
+                    ConfigOptions.errMsg = "Unable to create output file: " + self.suppOutPath + "\n" + str(e)
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+        # Create dimensions.
+                try:
+                    idOut.createDimension("time", None)
+                except:
+                    ConfigOptions.errMsg = "Unable to create time dimension in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.createDimension("y",geoMetaWrfHydro.ny_global)
+                except:
+                    ConfigOptions.errMsg = "Unable to create y dimension in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.createDimension("x",geoMetaWrfHydro.nx_global)
+                except:
+                    ConfigOptions.errMsg = "Unable to create x dimension in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.createDimension("reference_time", 1)
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time dimension in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                # Set global attributes
+                try:
+                    idOut.model_output_valid_time = self.outDate.strftime("%Y-%m-%d_%H:%M:00")
+                except:
+                    ConfigOptions.errMsg = "Unable to set the model_output_valid_time attribute in :" + self.suppOut
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    if ConfigOptions.ana_flag:
+                        idOut.model_initialization_time = ConfigOptions.e_date_proc.strftime("%Y-%m-%d_%H:%M:00")
+                    else:
+                        idOut.model_initialization_time = ConfigOptions.current_fcst_cycle.strftime("%Y-%m-%d_%H:%M:00")
+                except:
+                    ConfigOptions.errMsg = "Unable to set the model_initialization_time global " \
+                                           "attribute in: " + self.outPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                # Create variables.
+                try:
+                    idOut.createVariable('time','i4',('time'))
+                except:
+                    ConfigOptions.errMsg = "Unable to create time variable in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.createVariable('reference_time','i4',('reference_time'))
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time variable in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                # Populate time and reference time variables with appropriate attributes and time values.
+                try: 
+                    idOut.variables['time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time units attribute in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].standard_name = "time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time standard_name attribute in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['time'].long_name = "valid output time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create time long_name attribute in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break 
+                try:
+                    idOut.variables['reference_time'].units = "minutes since 1970-01-01 00:00:00 UTC"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time units attribute in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].standard_name = "forecast_reference_time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time standard_name attribute in: " + \
+                                           self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'].long_name = "model initialization time"
+                except:
+                    ConfigOptions.errMsg = "Unable to create reference_time long_name attribute in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                # Populate time variables
+                dEpoch = datetime.datetime(1970, 1, 1)
+                dtValid = self.outDate - dEpoch
+                dtRef = ConfigOptions.current_fcst_cycle - dEpoch
+                try:
+                    idOut.variables['time'][0] = int(dtValid.days * 24.0 * 60.0) + \
+                                                 int(math.floor(dtValid.seconds / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                try:
+                    idOut.variables['reference_time'][0] = int(dtRef.days * 24.0 * 60.0) + \
+                                                           int(math.floor(dtRef.seconds / 60.0))
+                except:
+                    ConfigOptions.errMsg = "Unable to populate the time variable in: " + self.suppOutPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                # Loop through and create each variable, along with expected attributes.
+                for varTmp in output_variable_attribute_dict:
+                    try:
+                        if ConfigOptions.useCompression:
+                            zlib = True
+                            complevel = 2
+                            least_significant_digit = None if varTmp == 'RAINRATE' else \
+                                output_variable_attribute_dict[varTmp][7]       # use all digits in RAINRATE
+                        else:
+                            zlib = False
+                            complevel = 0
+                            least_significant_digit = None
+                        if ConfigOptions.useFloats or varTmp == 'RAINRATE':     # RAINRATE always a float
+                            fill_value = ConfigOptions.globalNdv
+                            dtype = 'f4'
+                        else:
+                            fill_value = int(ConfigOptions.globalNdv)
+                            #fill_value = int((ConfigOptions.globalNdv - output_variable_attribute_dict[varTmp][6]) 
+                            #                 output_variable_attribute_dict[varTmp][5])
+                            dtype = 'i4'
+                        idOut.createVariable(varTmp, dtype, ('time', 'y', 'x'),
+                                             fill_value=fill_value,
+                                             zlib=zlib,
+                                             complevel=complevel,
+                                             least_significant_digit=least_significant_digit)
+                    except: 
+                        ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.suppOutPath
+                        err_handler.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    try:
+                        idOut.variables[varTmp].units = output_variable_attribute_dict[varTmp][1]
+                    except:
+                        ConfigOptions.errMsg = "Unable to create units attribute for: " + varTmp + " in: " + \
+                            self.suppOutPath
+                        err_handler.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    try:
+                        idOut.variables[varTmp].standard_name = output_variable_attribute_dict[varTmp][2]
+                    except:
+                        ConfigOptions.errMsg = "Unable to create standard_name attribute for: " + varTmp + \
+                            " in: " + self.suppOutPath
+                        err_handler.log_critical(ConfigOptions, MpiConfig)
+                        break
+                    try:
+                        idOut.variables[varTmp].long_name = output_variable_attribute_dict[varTmp][3]
+                    except:
+                        ConfigOptions.errMsg = "Unable to create long_name attribute for: " + varTmp + \
+                            " in: " + self.suppOutPath
+                        err_handler.log_critical(ConfigOptions, MpiConfig)
+                        break
+                break
+        err_handler.check_program_status(ConfigOptions, MpiConfig)
+   
+        # Now loop through each variable, collect the data (call on each processor), assemble into the final
+        # output grid, and place into the output file (if on processor 0).
+        for varTmp in output_variable_attribute_dict:
+            try:
+                # TODO change communication call from comm.gather() to comm.Gather for efficency
+                # final = MpiConfig.comm.gather(self.output_local[output_variable_attribute_dict[varTmp][0],:,:],roo
+                # Use gatherv to merge the data slabs
+                dataOutTmp = MpiConfig.merge_slabs_gatherv(self.output_supp_local[output_variable_attribute_dict[varTmp][0],:,:], ConfigOptions)
+            except Exception as e:
+                print(e)
+                ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
+                err_handler.log_critical(ConfigOptions, MpiConfig)
+                continue
+     
+            if MpiConfig.rank == 0:
+                try:
+                    idOut.variables[varTmp][0, :, :] = dataOutTmp
+                except (ValueError, IOError):
+                    ConfigOptions.errMsg = "Unable to place final output grid for: " + varTmp
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                # Reset temporary data objects to keep memory usage down.
+                del dataOutTmp
+            # Reset temporary data objects to keep memory usage down.
+            final = None
+            err_handler.check_program_status(ConfigOptions, MpiConfig)
+    
+        if MpiConfig.rank == 0:
+            while (True):
+                # Close the NetCDF file
+                try:
+                    idOut.close()
+                except (ValueError, IOError):
+                    ConfigOptions.errMsg = "Unable to close output file: " + self.outPath
+                    err_handler.log_critical(ConfigOptions, MpiConfig)
+                    break
+                break
+        err_handler.check_program_status(ConfigOptions, MpiConfig)
 
 def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
                inputVar):
