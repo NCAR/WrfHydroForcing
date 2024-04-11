@@ -64,7 +64,6 @@ class ConfigOptions:
         self.fcst_shift = None
         self.fcst_input_horizons = None
         self.fcst_input_offsets = None
-        self.current_fcst_hour_offsets = None
         self.process_window = None
         self.geogrid = None
         self.spatial_meta = None
@@ -656,29 +655,6 @@ class ConfigOptions:
                     if inputOffset < 0:
                         err_handler.err_out_screen(
                             'Please specify ForecastInputOffset values greater than or equal to zero.')
-
-                # Read in the CurrentForecastHourOffsets options.
-                try:
-                    self.current_fcst_hour_offsets = json.loads(config['Forecast']['CurrentFcstOffset'])
-                except KeyError:
-                    err_handler.err_out_screen('Unable to locate CurrentFcstOffset under Forecast '
-                                               'section in the configuration file.')
-                except configparser.NoOptionError:
-                    err_handler.err_out_screen('Unable to locate CurrentFcstOffset under Forecast '
-                                               'section in the configuration file.')
-                except json.decoder.JSONDecodeError:
-                    err_handler.err_out_screen('Improper CurrentFcstOffset option specified in '
-                                               'the configuration file.')
-                if len(self.current_fcst_hour_offsets) != self.number_inputs:
-                    err_handler.err_out_screen('Please specify CurrentFcstOffset values for each '
-                                               'corresponding input forcings for forecasts.')
-                # Check to make sure the input offset options make sense. There will be additional
-                # checking later when input choices are mapped to input products.
-                for inputOffset in self.current_fcst_hour_offsets:
-                    if inputOffset < 0:
-                        err_handler.err_out_screen(
-                            'Please specify CurrentFcstOffset values greater than or equal to zero.')
-
 
             # Calculate the length of the forecast cycle, based on the maximum
             # length of the input forcing length chosen by the user.
