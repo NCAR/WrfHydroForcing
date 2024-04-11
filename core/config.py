@@ -831,7 +831,7 @@ class ConfigOptions:
             # Ensure the downscaling options chosen make sense.
             count_tmp = 0
             for optTmp in self.t2dDownscaleOpt:
-                if optTmp < 0 or optTmp > 2:
+                if optTmp < 0 or optTmp > 3:
                     err_handler.err_out_screen('Invalid TemperatureDownscaling options specified in '
                                                'the configuration file.')
                 if optTmp == 2:
