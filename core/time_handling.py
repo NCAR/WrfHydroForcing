@@ -925,12 +925,23 @@ def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
     #next_input_forecast_hour = next_input_forecast_hour + int(input_forcings.currentFcstOffset)
     err_handler.check_program_status(config_options, mpi_config)
     # Calculate expected file paths.
-    tmp_file1 = glob.glob(f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2")[0]
+
+
+    pattern1 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2"
+    pattern2 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/conus/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2"
+
+    files1 = glob.glob(pattern1) + glob.glob(pattern2)
+    tmp_file1 = files1[0]
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous input file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
-    tmp_file2 = glob.glob(f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2")[0]
+    pattern1 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2"
+    pattern2 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/conus/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2"
+
+    files2 = glob.glob(pattern1) + glob.glob(pattern2)
+
+    tmp_file2 = files2[0]
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
             config_options.statusMsg = "Next input file being used: " + tmp_file2
@@ -1073,22 +1084,24 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
     if current_gfs_cycle < datetime.datetime(2019, 6, 12, 12):
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d%H') + "/gfs.t" + \
-            'z.sfluxgrbf' + \
+            current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d%H') + "/gfs.t" + \
-            'z.sfluxgrbf' + \
+            current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
     else:
         # FV3 change on June 12th, 2019
         tmp_file1 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
-            '/gfs.t' + \
+            current_gfs_cycle.strftime('%H') + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(prev_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
         tmp_file2 = input_forcings.inDir + '/gfs.' + \
             current_gfs_cycle.strftime('%Y%m%d') + "/" + \
-            '/gfs.t' + \
+            current_gfs_cycle.strftime('%H') + \
+            '/atmos/gfs.t' + \
             current_gfs_cycle.strftime('%H') + 'z.sfluxgrbf' + \
             str(next_gfs_forecast_hour).zfill(3) + input_forcings.file_ext
 
