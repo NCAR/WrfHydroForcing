@@ -8,7 +8,7 @@ import numpy as np
 from core import time_handling
 from core import err_handler
 
-FORCE_COUNT = 22
+FORCE_COUNT = 23
 
 class ConfigOptions:
     """
@@ -22,6 +22,7 @@ class ConfigOptions:
         param config: The user-specified path to the configuration file.
         """
         self.input_forcings = None
+        self.precip_only_flag = False
         self.supp_precip_forcings = None
         self.input_force_dirs = None
         self.input_force_types = None
@@ -35,11 +36,14 @@ class ConfigOptions:
         self.number_supp_pcp = None
         self.number_custom_inputs = 0
         self.output_freq = None
+        self.sub_output_hour = None
+        self.sub_output_freq = None
         self.output_dir = None
         self.scratch_dir = None
         self.useCompression = 0
         self.useFloats = 0
         self.num_output_steps = None
+        self.num_supp_output_steps = None
         self.actual_output_steps = None
         self.retro_flag = None
         self.realtime_flag = None
@@ -91,6 +95,7 @@ class ConfigOptions:
         self.precipBiasCorrectOpt = None
         self.runCfsNldasBiasCorrect = False
         self.cfsv2EnsMember = None
+        self.customSuppPcpFreq = None
         self.customFcstFreq = None
         self.rqiMethod = None
         self.rqiThresh = 1.0
@@ -113,96 +118,115 @@ class ConfigOptions:
         except KeyError:
             err_handler.err_out_screen('Unable to open the configuration file: ' + self.config_path)
 
-        # Read in the base input forcing options as an array of values to map.
-        try:
-            self.input_forcings = json.loads(config['Input']['InputForcings'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputForcings under Input section in configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputForcings under Input section in configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper InputForcings option specified in configuration file')
-        if len(self.input_forcings) == 0:
-            err_handler.err_out_screen('Please choose at least one InputForcings dataset to process')
-        self.number_inputs = len(self.input_forcings)
 
-        # Check to make sure forcing options make sense
-        for forceOpt in self.input_forcings:
-            if forceOpt < 0 or forceOpt > FORCE_COUNT:
-                err_handler.err_out_screen(f'Please specify InputForcings values between 1 and {FORCE_COUNT}.')
+        # Read in supplemental precipitation options as an array of values to map.
+        try:
+            self.supp_precip_forcings = json.loads(config['SuppForcing']['SuppPcp'])
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate SuppPcp under SuppForcing section in configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate SuppPcp under SuppForcing section in configuration file.')
+        except json.decoder.JSONDecodeError:
+            err_handler.err_out_screen('Improper SuppPcp option specified in configuration file')
+        self.number_supp_pcp = len(self.supp_precip_forcings)
+
+        if self.number_supp_pcp == 1:
+            if int(self.supp_precip_forcings[0]) == 13:
+                self.precip_only_flag = True
+
+        if self.precip_only_flag == False:
+            # Read in the base input forcing options as an array of values to map.
+            try:
+                self.input_forcings = json.loads(config['Input']['InputForcings'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputForcings under Input section in configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputForcings under Input section in configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper InputForcings option specified in configuration file')
+            if len(self.input_forcings) == 0:
+                err_handler.err_out_screen('Please choose at least one InputForcings dataset to process')
+            self.number_inputs = len(self.input_forcings)
+
+            # Check to make sure forcing options make sense
+            for forceOpt in self.input_forcings:
+                if forceOpt < 0 or forceOpt > FORCE_COUNT:
+                    err_handler.err_out_screen(f'Please specify InputForcings values between 1 and {FORCE_COUNT}.')
+
             # Keep tabs on how many custom input forcings we have.
-            if forceOpt == 10:
-                self.number_custom_inputs = self.number_custom_inputs + 1
+                if forceOpt == 10:
+                    self.number_custom_inputs = self.number_custom_inputs + 1
 
-        # Read in the input forcings types (GRIB[1|2], NETCDF)
-        try:
-            self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
-            self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
-            if self.input_force_types == ['']:
-                self.input_force_types = []
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
-                                       'in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
-                                       'in the configuration file.')
-        if len(self.input_force_types) != self.number_inputs:
-            err_handler.err_out_screen('Number of InputForcingTypes must match the number '
-                                       'of InputForcings in the configuration file.')
-        for fileType in self.input_force_types:
-            if fileType not in ['GRIB1', 'GRIB2', 'NETCDF', 'NETCDF4']:
-                err_handler.err_out_screen('Invalid forcing file type "{}" specified. '
-                                           'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
+            # Read in the input forcings types (GRIB[1|2], NETCDF)
+            try:
+                self.input_force_types = config.get('Input', 'InputForcingTypes').strip("[]").split(',')
+                self.input_force_types = [ftype.strip() for ftype in self.input_force_types]
+                if self.input_force_types == ['']:
+                    self.input_force_types = []
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                           'in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputForcingTypes in Input section '
+                                           'in the configuration file.')
+            if len(self.input_force_types) != self.number_inputs:
+                err_handler.err_out_screen('Number of InputForcingTypes must match the number '
+                                           'of InputForcings in the configuration file.')
+            for fileType in self.input_force_types:
+                if fileType not in ['GRIB1', 'GRIB2', 'NETCDF', 'NETCDF4']:
+                    err_handler.err_out_screen('Invalid forcing file type "{}" specified. '
+                                               'Only GRIB1, GRIB2, and NETCDF are supported'.format(fileType))
 
-        # Read in the input directories for each forcing option.
-        try:
-            self.input_force_dirs = config.get('Input', 'InputForcingDirectories').split(',')
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputForcingDirectories in Input section '
-                                       'in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputForcingDirectories in Input section '
-                                       'in the configuration file.')
-        if len(self.input_force_dirs) != self.number_inputs:
-            err_handler.err_out_screen('Number of InputForcingDirectories must match the number '
-                                       'of InputForcings in the configuration file.')
-        # Loop through and ensure all input directories exist. Also strip out any whitespace
-        # or new line characters.
-        for dirTmp in range(0, len(self.input_force_dirs)):
-            self.input_force_dirs[dirTmp] = self.input_force_dirs[dirTmp].strip()
-            if not os.path.isdir(self.input_force_dirs[dirTmp]):
-                err_handler.err_out_screen('Unable to locate forcing directory: ' +
-                                           self.input_force_dirs[dirTmp])
 
-        # Read in the mandatory enforcement options for input forcings.
-        try:
-            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputMandatory under Input section in configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputMandatory under Input section in configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper InputMandatory option specified in configuration file')
+            # Read in the input directories for each forcing option.
+            try:
+                self.input_force_dirs = config.get('Input', 'InputForcingDirectories').split(',')
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputForcingDirectories in Input section '
+                                           'in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputForcingDirectories in Input section '
+                                           'in the configuration file.')
+            if len(self.input_force_dirs) != self.number_inputs:
+                err_handler.err_out_screen('Number of InputForcingDirectories must match the number '
+                                           'of InputForcings in the configuration file.')
+            # Loop through and ensure all input directories exist. Also strip out any whitespace
+            # or new line characters.
+            for dirTmp in range(0, len(self.input_force_dirs)):
+                self.input_force_dirs[dirTmp] = self.input_force_dirs[dirTmp].strip()
+                if not os.path.isdir(self.input_force_dirs[dirTmp]):
+                    err_handler.err_out_screen('Unable to locate forcing directory: ' +
+                                               self.input_force_dirs[dirTmp])
 
-        # Process input forcing enforcement options
-        try:
-            self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate InputMandatory under the Input section '
-                                       'in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate InputMandatory under the Input section '
-                                       'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper InputMandatory options specified in the configuration file.')
-        if len(self.input_force_mandatory) != self.number_inputs:
-            err_handler.err_out_screen('Please specify InputMandatory values for each corresponding input '
-                                       'forcings in the configuration file.')
-        # Check to make sure enforcement options makes sense.
-        for enforceOpt in self.input_force_mandatory:
-            if enforceOpt < 0 or enforceOpt > 1:
-                err_handler.err_out_screen('Invalid InputMandatory chosen in the configuration file. Please'
-                                           ' choose a value of 0 or 1 for each corresponding input forcing.')
+            # Read in the mandatory enforcement options for input forcings.
+            try:
+                self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputMandatory under Input section in configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputMandatory under Input section in configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper InputMandatory option specified in configuration file')
+
+            # Process input forcing enforcement options
+            try:
+                self.input_force_mandatory = json.loads(config['Input']['InputMandatory'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                           'in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate InputMandatory under the Input section '
+                                           'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper InputMandatory options specified in the configuration file.')
+            if len(self.input_force_mandatory) != self.number_inputs:
+                err_handler.err_out_screen('Please specify InputMandatory values for each corresponding input '
+                                           'forcings in the configuration file.')
+            # Check to make sure enforcement options makes sense.
+            for enforceOpt in self.input_force_mandatory:
+                if enforceOpt < 0 or enforceOpt > 1:
+                    err_handler.err_out_screen('Invalid InputMandatory chosen in the configuration file. Please'
+                                               ' choose a value of 0 or 1 for each corresponding input forcing.')
 
         # Read in the output frequency
         try:
@@ -215,6 +239,46 @@ class ConfigOptions:
             err_handler.err_out_screen('Unable to locate OutputFrequency in the configuration file.')
         if self.output_freq <= 0:
             err_handler.err_out_screen('Please specify an OutputFrequency that is greater than zero minutes.')
+
+        if self.precip_only_flag == True:
+            # Read in the custom supp output frequency
+            try:
+                self.customSuppPcpFreq = int(config['SuppForcing']['customSuppPcpFreq'])
+            except ValueError:
+                err_handler.err_out_screen('Improper customSuppPcpFreq value specified  in the configuration file.')
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate customSuppPcpFreq in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate customSuppPcpFreq in the configuration file.')
+            if self.output_freq <= 0:
+                err_handler.err_out_screen('Please specify an customSuppPcpFreq that is greater than zero minutes.')
+
+        # Read in the sub output hour
+        try:
+            self.sub_output_hour = int(config['Output']['SubOutputHour'])
+        except ValueError:
+            err_handler.err_out_screen('Improper SubOutputHour value specified  in the configuration file.')
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate SubOutputHour in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate SubOutputHour in the configuration file.')
+        if self.sub_output_hour < 0:
+            err_handler.err_out_screen('Please specify an SubOutputHour that is greater than zero minutes.')
+        if self.sub_output_hour == 0:
+            self.sub_output_hour = None
+        # Read in the output frequency
+        try:
+            self.sub_output_freq = int(config['Output']['SubOutFreq'])
+        except ValueError:
+            err_handler.err_out_screen('Improper SubOutFreq value specified  in the configuration file.')
+        except KeyError:
+            err_handler.err_out_screen('Unable to locate SubOutFreq in the configuration file.')
+        except configparser.NoOptionError:
+            err_handler.err_out_screen('Unable to locate SubOutFreq in the configuration file.')
+        if self.sub_output_freq < 0:
+            err_handler.err_out_screen('Please specify an SubOutFreq that is greater than zero minutes.')
+        if self.sub_output_freq == 0:
+            self.sub_output_freq = None
 
         # Read in the output directory
         try:
@@ -364,14 +428,27 @@ class ConfigOptions:
             if self.e_date_proc == -9999 and self.b_date_proc != -9999:
                 err_handler.err_out_screen('If choosing retrospective forcings, dates must not be -9999')
 
-            # Calculate the number of output time steps
-            dt_tmp = self.e_date_proc - self.b_date_proc
-            self.num_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.output_freq)
-            if self.ana_flag:
-                self.actual_output_steps = np.int32(self.nFcsts)
-            else:
-                self.actual_output_steps = np.int32(self.num_output_steps)
 
+            # Calculate the number of output time steps
+            if self.sub_output_hour == None:
+                dt_tmp = self.e_date_proc - self.b_date_proc
+                self.num_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.output_freq)
+                if self.precip_only_flag == True:
+                    self.num_supp_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.customSuppPcpFreq)
+                if self.ana_flag:
+                    self.actual_output_steps = np.int32(self.nFcsts)
+                else:
+                    self.actual_output_steps = np.int32(self.num_output_steps)
+            else:
+                dt_tmp1 = (self.b_date_proc + datetime.timedelta(hours=self.sub_output_hour)) - self.b_date_proc
+                dt_tmp2 = self.e_date_proc - (self.b_date_proc + datetime.timedelta(hours=self.sub_output_hour))
+                self.num_output_steps = int((dt_tmp1.days * 1440 + dt_tmp1.seconds / 60.0) / self.output_freq) + int((dt_tmp2.days * 1440 + dt_tmp2.seconds / 60.0) / self.sub_output_freq)
+                if self.precip_only_flag == True:
+                    self.num_supp_output_steps = int((dt_tmp.days * 1440 + dt_tmp.seconds / 60.0) / self.customSuppPcpFreq)
+                if self.ana_flag:
+                    self.actual_output_steps = np.int32(self.nFcsts)
+                else:
+                    self.actual_output_steps = np.int32(self.num_output_steps)
         # Process realtime or reforecasting options.
         if self.retro_flag == 0:
             # If the retro flag is off, we are assuming a realtime or reforecast simulation.
@@ -515,50 +592,69 @@ class ConfigOptions:
             if self.look_back != -9999:
                 time_handling.calculate_lookback_window(self)
 
-            # Read in the ForecastInputHorizons options.
-            try:
-                self.fcst_input_horizons = json.loads(config['Forecast']['ForecastInputHorizons'])
-            except KeyError:
-                err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
-                                           'configuration file.')
-            except configparser.NoOptionError:
-                err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
-                                           'configuration file.')
-            except json.decoder.JSONDecodeError:
-                err_handler.err_out_screen('Improper ForecastInputHorizons option specified in '
-                                           'configuration file')
-            if len(self.fcst_input_horizons) != self.number_inputs:
-                err_handler.err_out_screen('Please specify ForecastInputHorizon values for '
-                                           'each corresponding input forcings for forecasts.')
+            if self.precip_only_flag == False:
+                # Read in the ForecastInputHorizons options.
+                try:
+                    self.fcst_input_horizons = json.loads(config['Forecast']['ForecastInputHorizons'])
+                except KeyError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
+                                               'configuration file.')
+                except configparser.NoOptionError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
+                                               'configuration file.')
+                except json.decoder.JSONDecodeError:
+                    err_handler.err_out_screen('Improper ForecastInputHorizons option specified in '
+                                               'configuration file')
+                if len(self.fcst_input_horizons) != self.number_inputs:
+                    err_handler.err_out_screen('Please specify ForecastInputHorizon values for '
+                                               'each corresponding input forcings for forecasts.')
 
-            # Check to make sure the horizons options make sense. There will be additional
-            # checking later when input choices are mapped to input products.
-            for horizonOpt in self.fcst_input_horizons:
-                if horizonOpt <= 0:
-                    err_handler.err_out_screen('Please specify ForecastInputHorizon values greater '
-                                               'than zero.')
+                # Check to make sure the horizons options make sense. There will be additional
+                # checking later when input choices are mapped to input products.
+                for horizonOpt in self.fcst_input_horizons:
+                    if horizonOpt <= 0:
+                        err_handler.err_out_screen('Please specify ForecastInputHorizon values greater '
+                                                   'than zero.')
 
-            # Read in the ForecastInputOffsets options.
-            try:
-                self.fcst_input_offsets = json.loads(config['Forecast']['ForecastInputOffsets'])
-            except KeyError:
-                err_handler.err_out_screen('Unable to locate ForecastInputOffsets under Forecast '
-                                           'section in the configuration file.')
-            except configparser.NoOptionError:
-                err_handler.err_out_screen('Unable to locate ForecastInputOffsets under Forecast '
-                                           'section in the configuration file.')
-            except json.decoder.JSONDecodeError:
-                err_handler.err_out_screen('Improper ForecastInputOffsets option specified in '
-                                           'the configuration file.')
-            if len(self.fcst_input_offsets) != self.number_inputs:
-                err_handler.err_out_screen('Please specify ForecastInputOffset values for each '
-                                           'corresponding input forcings for forecasts.')
-            # Check to make sure the input offset options make sense. There will be additional
-            # checking later when input choices are mapped to input products.
-            for inputOffset in self.fcst_input_offsets:
-                if inputOffset < 0:
-                    err_handler.err_out_screen(
-                        'Please specify ForecastInputOffset values greater than or equal to zero.')
+            else:
+                # Read in the ForecastInputHorizons options.
+                try:
+                    self.fcst_input_horizons = json.loads(config['Forecast']['ForecastInputHorizons'])
+                except KeyError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
+                                               'configuration file.')
+                except configparser.NoOptionError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputHorizons under Forecast section in '
+                                               'configuration file.')
+                except json.decoder.JSONDecodeError:
+                    err_handler.err_out_screen('Improper ForecastInputHorizons option specified in '
+                                               'configuration file')
+                if len(self.fcst_input_horizons) != 1:
+                    err_handler.err_out_screen('Please specify ForecastInputHorizon values for '
+                                               'each corresponding input forcings for forecasts.')
+
+            if self.precip_only_flag == False:
+                # Read in the ForecastInputOffsets options.
+                try:
+                    self.fcst_input_offsets = json.loads(config['Forecast']['ForecastInputOffsets'])
+                except KeyError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputOffsets under Forecast '
+                                               'section in the configuration file.')
+                except configparser.NoOptionError:
+                    err_handler.err_out_screen('Unable to locate ForecastInputOffsets under Forecast '
+                                               'section in the configuration file.')
+                except json.decoder.JSONDecodeError:
+                    err_handler.err_out_screen('Improper ForecastInputOffsets option specified in '
+                                               'the configuration file.')
+                if len(self.fcst_input_offsets) != self.number_inputs:
+                    err_handler.err_out_screen('Please specify ForecastInputOffset values for each '
+                                               'corresponding input forcings for forecasts.')
+                # Check to make sure the input offset options make sense. There will be additional
+                # checking later when input choices are mapped to input products.
+                for inputOffset in self.fcst_input_offsets:
+                    if inputOffset < 0:
+                        err_handler.err_out_screen(
+                            'Please specify ForecastInputOffset values greater than or equal to zero.')
 
             # Calculate the length of the forecast cycle, based on the maximum
             # length of the input forcing length chosen by the user.
@@ -570,7 +666,15 @@ class ConfigOptions:
                 err_handler.err_out_screen('Please specify an output time step that is an equal divider of the '
                                            'maximum of the forecast time horizons specified.')
             # Calculate the number of output time steps per forecast cycle.
-            self.num_output_steps = int(self.cycle_length_minutes / self.output_freq)
+            if self.sub_output_hour == None:
+                self.num_output_steps = int(self.cycle_length_minutes / self.output_freq)
+                if self.precip_only_flag == True:
+                    self.num_supp_output_steps = int(self.cycle_length_minutes / self.customSuppPcpFreq)
+            else:
+                self.num_output_steps = int((self.cycle_length_minutes - (self.sub_output_hour*60))/ self.sub_output_freq) + int((self.sub_output_hour*60)/ self.output_freq) - 1
+                if self.precip_only_flag == True:
+                    self.num_supp_output_steps = int(self.cycle_length_minutes / self.customSuppPcpFreq)
+
             if self.ana_flag:
                 self.actual_output_steps = np.int32(self.nFcsts)
             else:
@@ -622,140 +726,202 @@ class ConfigOptions:
             if not os.path.isfile(self.grid_meta):
                 err_handler.err_out_screen('Unable to locate optional grid metadata file: ' + self.grid_meta)
 
-        # Check for the IgnoredBorderWidths
-        try:
-            self.ignored_border_widths = json.loads(config['Geospatial']['IgnoredBorderWidths'])
-        except (KeyError, configparser.NoOptionError):
-            # if didn't specify, no worries, just set to 0
-            self.ignored_border_widths = [0.0]*self.number_inputs
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper IgnoredBorderWidths option specified in the configuration file.'
-                                       '({} was supplied'.format(config['Geospatial']['IgnoredBorderWidths']))
-        if len(self.ignored_border_widths) != self.number_inputs:
-            err_handler.err_out_screen('Please specify IgnoredBorderWidths values for each '
-                                       'corresponding input forcings for SuppForcing.'
-                                       '({} was supplied'.format(self.ignored_border_widths))
-        if any(map(lambda x: x < 0, self.ignored_border_widths)):
-            err_handler.err_out_screen('Please specify IgnoredBorderWidths values greater than or equal to zero:'
-                                       '({} was supplied'.format(self.ignored_border_widths))
+        if self.precip_only_flag == False:
+            # Check for the IgnoredBorderWidths
+            try:
+                self.ignored_border_widths = json.loads(config['Geospatial']['IgnoredBorderWidths'])
+            except (KeyError, configparser.NoOptionError):
+                # if didn't specify, no worries, just set to 0
+                self.ignored_border_widths = [0.0]*self.number_inputs
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper IgnoredBorderWidths option specified in the configuration file.'
+                                           '({} was supplied'.format(config['Geospatial']['IgnoredBorderWidths']))
+            if len(self.ignored_border_widths) != self.number_inputs:
+                err_handler.err_out_screen('Please specify IgnoredBorderWidths values for each '
+                                           'corresponding input forcings for SuppForcing.'
+                                           '({} was supplied'.format(self.ignored_border_widths))
+            if any(map(lambda x: x < 0, self.ignored_border_widths)):
+                err_handler.err_out_screen('Please specify IgnoredBorderWidths values greater than or equal to zero:'
+                                           '({} was supplied'.format(self.ignored_border_widths))
 
-        # Process regridding options.
-        try:
-            self.regrid_opt = json.loads(config['Regridding']['RegridOpt'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate RegridOpt under the Regridding section '
-                                       'in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate RegridOpt under the Regridding section '
-                                       'in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper RegridOpt options specified in the configuration file.')
-        if len(self.regrid_opt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify RegridOpt values for each corresponding input '
-                                       'forcings in the configuration file.')
-        # Check to make sure regridding options makes sense.
-        for regridOpt in self.regrid_opt:
-            if regridOpt < 1 or regridOpt > 2:
-                err_handler.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please choose a '
-                                           'value of 1-2 for each corresponding input forcing.')
+            # Process regridding options.
+            try:
+                self.regrid_opt = json.loads(config['Regridding']['RegridOpt'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate RegridOpt under the Regridding section '
+                                           'in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate RegridOpt under the Regridding section '
+                                           'in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper RegridOpt options specified in the configuration file.')
+            if len(self.regrid_opt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify RegridOpt values for each corresponding input '
+                                           'forcings in the configuration file.')
+            # Check to make sure regridding options makes sense.
+            for regridOpt in self.regrid_opt:
+                if regridOpt < 1 or regridOpt > 3:
+                    err_handler.err_out_screen('Invalid RegridOpt chosen in the configuration file. Please choose a '
+                                               'value of 1-3 for each corresponding input forcing.')
 
-        # Read weight file directory (optional)
-        self.weightsDir = config['Regridding'].get('RegridWeightsDir')
-        if self.weightsDir is not None:
-            # if we do have one specified, make sure it exists
-            if not os.path.exists(self.weightsDir):
-                err_handler.err_out_screen('ESMF Weights file directory specifed ({}) but does not exist').format(
-                    self.weightsDir)
+            # Read weight file directory (optional)
+            self.weightsDir = config['Regridding'].get('RegridWeightsDir')
+            if self.weightsDir is not None:
+                # if we do have one specified, make sure it exists
+                if not os.path.exists(self.weightsDir):
+                    err_handler.err_out_screen('ESMF Weights file directory specifed ({}) but does not exist').format(
+                        self.weightsDir)
 
         # Calculate the beginning/ending processing dates if we are running realtime
         if self.realtime_flag:
             time_handling.calculate_lookback_window(self)
 
-        # Read in temporal interpolation options.
-        try:
-            self.forceTemoralInterp = json.loads(config['Interpolation']['ForcingTemporalInterpolation'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation '
-                                       'section in the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation '
-                                       'section in the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper ForcingTemporalInterpolation options specified in the '
-                                       'configuration file.')
-        if len(self.forceTemoralInterp) != self.number_inputs:
-            err_handler.err_out_screen('Please specify ForcingTemporalInterpolation values for each '
-                                       'corresponding input forcings in the configuration file.')
-        # Ensure the forcingTemporalInterpolation values make sense.
-        for temporalInterpOpt in self.forceTemoralInterp:
-            if temporalInterpOpt < 0 or temporalInterpOpt > 2:
-                err_handler.err_out_screen('Invalid ForcingTemporalInterpolation chosen in the configuration file. '
-                                           'Please choose a value of 0-2 for each corresponding input forcing.')
+        if self.precip_only_flag == False:
+            # Read in temporal interpolation options.
+            try:
+                self.forceTemoralInterp = json.loads(config['Interpolation']['ForcingTemporalInterpolation'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation '
+                                           'section in the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate ForcingTemporalInterpolation under the Interpolation '
+                                           'section in the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper ForcingTemporalInterpolation options specified in the '
+                                           'configuration file.')
+            if len(self.forceTemoralInterp) != self.number_inputs:
+                err_handler.err_out_screen('Please specify ForcingTemporalInterpolation values for each '
+                                           'corresponding input forcings in the configuration file.')
+            # Ensure the forcingTemporalInterpolation values make sense.
+            for temporalInterpOpt in self.forceTemoralInterp:
+                if temporalInterpOpt < 0 or temporalInterpOpt > 2:
+                    err_handler.err_out_screen('Invalid ForcingTemporalInterpolation chosen in the configuration file. '
+                                               'Please choose a value of 0-2 for each corresponding input forcing.')
 
-        # Read in the temperature downscaling options.
-        # Create temporary array to hold flags of if we need input parameter files.
-        param_flag = np.empty([len(self.input_forcings)], np.int32)
-        param_flag[:] = 0
-        try:
-            self.t2dDownscaleOpt = json.loads(config['Downscaling']['TemperatureDownscaling'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper TemperatureDownscaling options specified in the configuration file.')
-        if len(self.t2dDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify TemperatureDownscaling values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the downscaling options chosen make sense.
-        count_tmp = 0
-        for optTmp in self.t2dDownscaleOpt:
-            if optTmp < 0 or optTmp > 3:
-                err_handler.err_out_screen('Invalid TemperatureDownscaling options specified in '
-                                           'the configuration file.')
-            if optTmp == 2:
-                param_flag[count_tmp] = 1
-            count_tmp = count_tmp + 1
+            # Read in the temperature downscaling options.
+            # Create temporary array to hold flags of if we need input parameter files.
+            param_flag = np.empty([len(self.input_forcings)], dtype = int)
+            param_flag[:] = 0
+            try:
+                self.t2dDownscaleOpt = json.loads(config['Downscaling']['TemperatureDownscaling'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate TemperatureDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper TemperatureDownscaling options specified in the configuration file.')
+            if len(self.t2dDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify TemperatureDownscaling values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the downscaling options chosen make sense.
+            count_tmp = 0
+            for optTmp in self.t2dDownscaleOpt:
+                if optTmp < 0 or optTmp > 3:
+                    err_handler.err_out_screen('Invalid TemperatureDownscaling options specified in '
+                                               'the configuration file.')
+                if optTmp == 2:
+                    param_flag[count_tmp] = 1
+                count_tmp = count_tmp + 1
 
-        # Read in the pressure downscaling options.
-        try:
-            self.psfcDownscaleOpt = json.loads(config['Downscaling']['PressureDownscaling'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper PressureDownscaling options specified in the configuration file.')
-        if len(self.psfcDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify PressureDownscaling values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the downscaling options chosen make sense.
-        for optTmp in self.psfcDownscaleOpt:
-            if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid PressureDownscaling options specified in the configuration file.')
+            # Read in the pressure downscaling options.
+            try:
+                self.psfcDownscaleOpt = json.loads(config['Downscaling']['PressureDownscaling'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate PressureDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper PressureDownscaling options specified in the configuration file.')
+            if len(self.psfcDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify PressureDownscaling values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the downscaling options chosen make sense.
+            for optTmp in self.psfcDownscaleOpt:
+                if optTmp < 0 or optTmp > 1:
+                    err_handler.err_out_screen('Invalid PressureDownscaling options specified in the configuration file.')
 
-        # Read in the shortwave downscaling options
-        try:
-            self.swDownscaleOpt = json.loads(config['Downscaling']['ShortwaveDownscaling'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper ShortwaveDownscaling options specified in the configuration file.')
-        if len(self.swDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify ShortwaveDownscaling values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the downscaling options chosen make sense.
-        for optTmp in self.swDownscaleOpt:
-            if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid ShortwaveDownscaling options specified in the configuration file.')
+            # Read in the shortwave downscaling options
+            try:
+                self.swDownscaleOpt = json.loads(config['Downscaling']['ShortwaveDownscaling'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate ShortwaveDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper ShortwaveDownscaling options specified in the configuration file.')
+            if len(self.swDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify ShortwaveDownscaling values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the downscaling options chosen make sense.
+            for optTmp in self.swDownscaleOpt:
+                if optTmp < 0 or optTmp > 1:
+                    err_handler.err_out_screen('Invalid ShortwaveDownscaling options specified in the configuration file.')
+
+            # Read in humidity downscaling options.
+            try:
+                self.q2dDownscaleOpt = json.loads(config['Downscaling']['HumidityDownscaling'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper HumidityDownscaling options specified in the configuration file.')
+            if len(self.q2dDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify HumidityDownscaling values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the downscaling options chosen make sense.
+            for optTmp in self.q2dDownscaleOpt:
+                if optTmp < 0 or optTmp > 1:
+                    err_handler.err_out_screen('Invalid HumidityDownscaling options specified in the configuration file.')
+
+
+            # Read in the downscaling parameter directory.
+            self.paramFlagArray = param_flag
+            tmp_scale_param_dirs = []
+            if param_flag.sum() > 0:
+                self.paramFlagArray = param_flag
+                try:
+                    tmp_scale_param_dirs = config.get('Downscaling', 'DownscalingParamDirs').split(',')
+                except KeyError:
+                    err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
+                except configparser.NoOptionError:
+                    err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
+                if len(tmp_scale_param_dirs) == 1:
+                    # single directory for all params
+                    tmp_scale_param_dirs *= param_flag.sum()
+                elif len(tmp_scale_param_dirs) != param_flag.sum():
+                    err_handler.err_out_screen('Please specify a downscaling parameter directory for each '
+                                               'corresponding downscaling option that requires one.')
+                # Loop through each downscaling parameter directory and make sure they exist.
+                for dirTmp in range(0, len(tmp_scale_param_dirs)):
+                    tmp_scale_param_dirs[dirTmp] = tmp_scale_param_dirs[dirTmp].strip()
+                    if not os.path.isdir(tmp_scale_param_dirs[dirTmp]):
+                        err_handler.err_out_screen('Unable to locate parameter directory: ' + tmp_scale_param_dirs[dirTmp])
+
+            # Create a list of downscaling parameter directories for each corresponding
+            # input forcing. If no directory is needed, or specified, we will set the value to NONE
+            self.dScaleParamDirs = []
+            for count_tmp, _ in enumerate(self.input_forcings):
+                if param_flag[count_tmp] == 0:
+                    self.dScaleParamDirs.append('NONE')
+                if param_flag[count_tmp] == 1:
+                    self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
+
+            # if the directory was specified but not downscaling, set it anyway for bias correction etc.
+            try:
+                if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
+                    self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]] * len(self.input_forcings)
+            except KeyError:
+                pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
+
 
         # Read in the precipitation downscaling options
         try:
@@ -768,213 +934,203 @@ class ConfigOptions:
                                        'section of the configuration file.')
         except json.decoder.JSONDecodeError:
             err_handler.err_out_screen('Improper PrecipDownscaling options specified in the configuration file.')
-        if len(self.precipDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify PrecipDownscaling values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the downscaling options chosen make sense.
-        count_tmp = 0
-        for optTmp in self.precipDownscaleOpt:
-            if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid PrecipDownscaling options specified in the configuration file.')
-            if optTmp == 1:
-                param_flag[count_tmp] = 1
-            count_tmp = count_tmp + 1
+        if self.precip_only_flag == False:
+            if len(self.precipDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify PrecipDownscaling values for each corresponding '
+                                           'input forcings in the configuration file.')
 
-        # Read in humidity downscaling options.
-        try:
-            self.q2dDownscaleOpt = json.loads(config['Downscaling']['HumidityDownscaling'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate HumidityDownscaling under the Downscaling '
-                                       'section of the configuration file.')
-        except json.decoder.JSONDecodeError:
-            err_handler.err_out_screen('Improper HumidityDownscaling options specified in the configuration file.')
-        if len(self.q2dDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify HumidityDownscaling values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the downscaling options chosen make sense.
-        for optTmp in self.q2dDownscaleOpt:
-            if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid HumidityDownscaling options specified in the configuration file.')
-
-        # Read in the downscaling parameter directory.
-        self.paramFlagArray = param_flag
-        tmp_scale_param_dirs = []
-        if param_flag.sum() > 0:
-            self.paramFlagArray = param_flag
-            try:
-                tmp_scale_param_dirs = config.get('Downscaling', 'DownscalingParamDirs').split(',')
-            except KeyError:
-                err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
-            except configparser.NoOptionError:
-                err_handler.err_out_screen('Unable to locate DownscalingParamDirs in the configuration file.')
-            if len(tmp_scale_param_dirs) == 1:
-                # single directory for all params
-                tmp_scale_param_dirs *= param_flag.sum()
-            elif len(tmp_scale_param_dirs) != param_flag.sum():
-                err_handler.err_out_screen('Please specify a downscaling parameter directory for each '
-                                           'corresponding downscaling option that requires one.')
-            # Loop through each downscaling parameter directory and make sure they exist.
-            for dirTmp in range(0, len(tmp_scale_param_dirs)):
-                tmp_scale_param_dirs[dirTmp] = tmp_scale_param_dirs[dirTmp].strip()
-                if not os.path.isdir(tmp_scale_param_dirs[dirTmp]):
-                    err_handler.err_out_screen('Unable to locate parameter directory: ' + tmp_scale_param_dirs[dirTmp])
-
-        # Create a list of downscaling parameter directories for each corresponding
-        # input forcing. If no directory is needed, or specified, we will set the value to NONE
-        self.dScaleParamDirs = []
-        index = 0
-        for count_tmp, _ in enumerate(self.input_forcings):
-            if param_flag[count_tmp] == 0:
-                self.dScaleParamDirs.append('NONE')
-            if param_flag[count_tmp] == 1:
-                self.dScaleParamDirs.append(tmp_scale_param_dirs[index])
-                index += 1
-
-        # if the directory was specified but not downscaling, set it anyway for bias correction etc.
-        try:
-            if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
-                self.dScaleParamDirs = [config.get('Downscaling', 'DownscalingParamDirs').split(',')[0]] * len(self.input_forcings)
-        except KeyError:
-            pass    # TODO: this should not be `pass` if we have a parameter-based Bias Correction scheme selected
 
         #   * Bias Correction Options *
 
-        # Read in temperature bias correction options
-        try:
-            self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper TemperatureBiasCorrection options specified in '
-                                       'the configuration file.')
-        if len(self.t2BiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify TemperatureBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.t2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 5:
-                err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
-                                           'configuration file.')
+        if self.precip_only_flag == False:
+            # Read in temperature bias correction options
+            try:
+                self.t2BiasCorrectOpt = json.loads(config['BiasCorrection']['TemperatureBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
 
-        # Read in surface pressure bias correction options.
-        try:
-            self.psfcBiasCorrectOpt = json.loads(config['BiasCorrection']['PressureBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate PressureBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate PressureBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper PressureBiasCorrection options specified in the configuration file.')
-        if len(self.psfcDownscaleOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify PressureBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.psfcBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 1:
-                err_handler.err_out_screen('Invalid PressureBiasCorrection options specified in the '
-                                           'configuration file.')
-            if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
-                self.runCfsNldasBiasCorrect = True
+                err_handler.err_out_screen('Unable to locate TemperatureBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper TemperatureBiasCorrection options specified in '
+                                           'the configuration file.')
+            if len(self.t2BiasCorrectOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify TemperatureBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.t2BiasCorrectOpt:
+                if optTmp < 0 or optTmp > 5:
+                    err_handler.err_out_screen('Invalid TemperatureBiasCorrection options specified in the '
+                                               'configuration file.')
 
-        # Read in humidity bias correction options.
-        try:
-            self.q2BiasCorrectOpt = json.loads(config['BiasCorrection']['HumidityBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate HumidityBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate HumidityBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper HumdityBiasCorrection options specified in the configuration file.')
-        if len(self.q2BiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify HumidityBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.q2BiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
-                err_handler.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
-                                           'configuration file.')
-            if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
-                self.runCfsNldasBiasCorrect = True
+            # Read in surface pressure bias correction options.
+            try:
+                self.psfcBiasCorrectOpt = json.loads(config['BiasCorrection']['PressureBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate PressureBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate PressureBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper PressureBiasCorrection options specified in the configuration file.')
+            if len(self.psfcDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify PressureBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.psfcBiasCorrectOpt:
+                if optTmp < 0 or optTmp > 1:
+                    err_handler.err_out_screen('Invalid PressureBiasCorrection options specified in the '
+                                               'configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
 
-        # Read in wind bias correction options.
-        try:
-            self.windBiasCorrect = json.loads(config['BiasCorrection']['WindBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate WindBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate WindBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper WindBiasCorrection options specified in the configuration file.')
-        if len(self.windBiasCorrect) != self.number_inputs:
-            err_handler.err_out_screen('Please specify WindBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.windBiasCorrect:
-            if optTmp < 0 or optTmp > 4:
-                err_handler.err_out_screen('Invalid WindBiasCorrection options specified in the configuration file.')
-            if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
-                self.runCfsNldasBiasCorrect = True
+            # Read in humidity bias correction options.
+            try:
+                self.q2BiasCorrectOpt = json.loads(config['BiasCorrection']['HumidityBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate HumidityBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate HumidityBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper HumdityBiasCorrection options specified in the configuration file.')
+            if len(self.q2BiasCorrectOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify HumidityBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.q2BiasCorrectOpt:
+                if optTmp < 0 or optTmp > 2:
+                    err_handler.err_out_screen('Invalid HumidityBiasCorrection options specified in the '
+                                               'configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
 
-        # Read in shortwave radiation bias correction options.
-        try:
-            self.swBiasCorrectOpt = json.loads(config['BiasCorrection']['SwBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate SwBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate SwBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper SwBiasCorrection options specified in the configuration file.')
-        if len(self.swBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify SwBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.swBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
-                err_handler.err_out_screen('Invalid SwBiasCorrection options specified in the configuration file.')
-            if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
-                self.runCfsNldasBiasCorrect = True
+            # Read in wind bias correction options.
+            try:
+                self.windBiasCorrect = json.loads(config['BiasCorrection']['WindBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate WindBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate WindBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper WindBiasCorrection options specified in the configuration file.')
+            if len(self.windBiasCorrect) != self.number_inputs:
+                err_handler.err_out_screen('Please specify WindBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.windBiasCorrect:
+                if optTmp < 0 or optTmp > 4:
+                    err_handler.err_out_screen('Invalid WindBiasCorrection options specified in the configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
 
-        # Read in longwave radiation bias correction options.
-        try:
-            self.lwBiasCorrectOpt = json.loads(config['BiasCorrection']['LwBiasCorrection'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate LwBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate LwBiasCorrection under the '
-                                       'BiasCorrection section of the configuration file.')
-        except json.JSONDecodeError:
-            err_handler.err_out_screen('Improper LwBiasCorrection options specified in '
-                                       'the configuration file.')
-        if len(self.lwBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify LwBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
-        # Ensure the bias correction options chosen make sense.
-        for optTmp in self.lwBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 4:
-                err_handler.err_out_screen('Invalid LwBiasCorrection options specified in the configuration file.')
-            if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
-                self.runCfsNldasBiasCorrect = True
+            # Read in shortwave radiation bias correction options.
+            try:
+                self.swBiasCorrectOpt = json.loads(config['BiasCorrection']['SwBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate SwBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate SwBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper SwBiasCorrection options specified in the configuration file.')
+            if len(self.swBiasCorrectOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify SwBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.swBiasCorrectOpt:
+                if optTmp < 0 or optTmp > 2:
+                    err_handler.err_out_screen('Invalid SwBiasCorrection options specified in the configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
+
+            # Read in longwave radiation bias correction options.
+            try:
+                self.lwBiasCorrectOpt = json.loads(config['BiasCorrection']['LwBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate LwBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate LwBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper LwBiasCorrection options specified in '
+                                           'the configuration file.')
+            if len(self.lwBiasCorrectOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify LwBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.lwBiasCorrectOpt:
+                if optTmp < 0 or optTmp > 4:
+                    err_handler.err_out_screen('Invalid LwBiasCorrection options specified in the configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
+
+            # Read in precipitation bias correction options.
+            try:
+                self.precipBiasCorrectOpt = json.loads(config['BiasCorrection']['PrecipBiasCorrection'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate PrecipBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate PrecipBiasCorrection under the '
+                                           'BiasCorrection section of the configuration file.')
+            except json.JSONDecodeError:
+                err_handler.err_out_screen('Improper PrecipBiasCorrection options specified in the configuration file.')
+            if self.precip_only_flag == False:
+                if len(self.precipBiasCorrectOpt) != self.number_inputs:
+                    err_handler.err_out_screen('Please specify PrecipBiasCorrection values for each corresponding '
+                                               'input forcings in the configuration file.')
+            # Ensure the bias correction options chosen make sense.
+            for optTmp in self.precipBiasCorrectOpt:
+                if optTmp < 0 or optTmp > 2:
+                    err_handler.err_out_screen('Invalid PrecipBiasCorrection options specified in the configuration file.')
+                if optTmp == 1:
+                    # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+                    self.runCfsNldasBiasCorrect = True
+
+            # Putting a constraint here that CFSv2-NLDAS bias correction (NWM only) is chosen, it must be turned on
+            # for ALL variables.
+            if self.runCfsNldasBiasCorrect:
+                if min(self.precipBiasCorrectOpt) != 1 and max(self.precipBiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'Precipitation under this configuration.')
+                if min(self.lwBiasCorrectOpt) != 1 and max(self.lwBiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'long-wave radiation under this configuration.')
+                if min(self.swBiasCorrectOpt) != 1 and max(self.swBiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'short-wave radiation under this configuration.')
+                if min(self.t2BiasCorrectOpt) != 1 and max(self.t2BiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'surface temperature under this configuration.')
+                if min(self.windBiasCorrect) != 1 and max(self.windBiasCorrect) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'wind forcings under this configuration.')
+                if min(self.q2BiasCorrectOpt) != 1 and max(self.q2BiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'specific humidity under this configuration.')
+                if min(self.psfcBiasCorrectOpt) != 1 and max(self.psfcBiasCorrectOpt) != 1:
+                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
+                                               'surface pressure under this configuration.')
+                # Make sure we don't have any other forcings activated. This can only be ran for CFSv2.
+                for optTmp in self.input_forcings:
+                    if optTmp != 7:
+                        err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction can only be used in '
+                                                   'CFSv2-only configurations')
+
 
         # Read in precipitation bias correction options.
         try:
@@ -987,46 +1143,23 @@ class ConfigOptions:
                                        'BiasCorrection section of the configuration file.')
         except json.JSONDecodeError:
             err_handler.err_out_screen('Improper PrecipBiasCorrection options specified in the configuration file.')
-        if len(self.precipBiasCorrectOpt) != self.number_inputs:
-            err_handler.err_out_screen('Please specify PrecipBiasCorrection values for each corresponding '
-                                       'input forcings in the configuration file.')
+        if self.precip_only_flag == False:
+            if len(self.precipBiasCorrectOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify PrecipBiasCorrection values for each corresponding '
+                                           'input forcings in the configuration file.')
         # Ensure the bias correction options chosen make sense.
         for optTmp in self.precipBiasCorrectOpt:
-            if optTmp < 0 or optTmp > 2:
+            if optTmp < 0 or optTmp > 1:
                 err_handler.err_out_screen('Invalid PrecipBiasCorrection options specified in the configuration file.')
             if optTmp == 1:
-                # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
+            # We are running NWM-Specific bias-correction of CFSv2 that needs to take place prior to regridding.
                 self.runCfsNldasBiasCorrect = True
-
         # Putting a constraint here that CFSv2-NLDAS bias correction (NWM only) is chosen, it must be turned on
         # for ALL variables.
         if self.runCfsNldasBiasCorrect:
             if min(self.precipBiasCorrectOpt) != 1 and max(self.precipBiasCorrectOpt) != 1:
                 err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
                                            'Precipitation under this configuration.')
-            if min(self.lwBiasCorrectOpt) != 1 and max(self.lwBiasCorrectOpt) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'long-wave radiation under this configuration.')
-            if min(self.swBiasCorrectOpt) != 1 and max(self.swBiasCorrectOpt) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'short-wave radiation under this configuration.')
-            if min(self.t2BiasCorrectOpt) != 1 and max(self.t2BiasCorrectOpt) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'surface temperature under this configuration.')
-            if min(self.windBiasCorrect) != 1 and max(self.windBiasCorrect) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'wind forcings under this configuration.')
-            if min(self.q2BiasCorrectOpt) != 1 and max(self.q2BiasCorrectOpt) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'specific humidity under this configuration.')
-            if min(self.psfcBiasCorrectOpt) != 1 and max(self.psfcBiasCorrectOpt) != 1:
-                err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction must be activated for '
-                                           'surface pressure under this configuration.')
-            # Make sure we don't have any other forcings activated. This can only be ran for CFSv2.
-            for optTmp in self.input_forcings:
-                if optTmp != 7:
-                    err_handler.err_out_screen('CFSv2-NLDAS NWM bias correction can only be used in '
-                                               'CFSv2-only configurations')
 
         # Read in supplemental precipitation options as an array of values to map.
         try:
@@ -1038,6 +1171,7 @@ class ConfigOptions:
         except json.decoder.JSONDecodeError:
             err_handler.err_out_screen('Improper SuppPcp option specified in configuration file')
         self.number_supp_pcp = len(self.supp_precip_forcings)
+
 
         # Read in the supp pcp types (GRIB[1|2], NETCDF)
         try:
@@ -1063,8 +1197,9 @@ class ConfigOptions:
             # Check to make sure supplemental precip options make sense. Also read in the RQI threshold
             # if any radar products where chosen.
             for suppOpt in self.supp_precip_forcings:
-                if suppOpt < 0 or suppOpt > 12:
-                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 12.')
+                if suppOpt < 0 or suppOpt > 13:
+                    err_handler.err_out_screen('Please specify SuppForcing values between 1 and 13')
+
                 # Read in RQI threshold to apply to radar products.
                 if suppOpt in (1,2,7,10,11):
                     try:
@@ -1267,42 +1402,44 @@ class ConfigOptions:
             if not os.path.isdir(self.supp_precip_param_dir):
                 err_handler.err_out_screen('Unable to locate SuppPcpParamDir: ' + self.supp_precip_param_dir)
 
-        # Read in Ensemble information
-        # Read in CFS ensemble member information IF we have chosen CFSv2 as an input
-        # forcing.
-        for optTmp in self.input_forcings:
-            if optTmp == 7:
-                try:
-                    self.cfsv2EnsMember = json.loads(config['Ensembles']['cfsEnsNumber'])
-                except KeyError:
-                    err_handler.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
-                                               'section of the configuration file')
-                except configparser.NoOptionError:
-                    err_handler.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
-                                               'section of the configuration file')
-                except json.JSONDecodeError:
-                    err_handler.err_out_screen('Improper cfsEnsNumber options specified in the configuration file')
-                if self.cfsv2EnsMember < 1 or self.cfsv2EnsMember > 4:
-                    err_handler.err_out_screen('Please chose an cfsEnsNumber value of 1,2,3 or 4.')
 
-        # Read in information for the custom input NetCDF files that are to be processed.
-        # Read in the ForecastInputHorizons options.
-        try:
-            self.customFcstFreq = json.loads(config['Custom']['custom_input_fcst_freq'])
-        except KeyError:
-            err_handler.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in '
-                                       'configuration file.')
-        except configparser.NoOptionError:
-            err_handler.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in '
-                                       'configuration file.')
-        except json.decoder.JSONDecodeError as je:
-            err_handler.err_out_screen('Improper custom_input_fcst_freq  option specified in '
-                                       'configuration file: ' + str(je))
-        if len(self.customFcstFreq) != self.number_custom_inputs:
-            err_handler.err_out_screen(f'Improper custom_input fcst_freq specified. '
-                                       f'This number ({len(self.customFcstFreq)}) must '
-                                       f'match the frequency of custom input forcings selected '
-                                       f'({self.number_custom_inputs}).')
+        if self.precip_only_flag == False:
+            # Read in Ensemble information
+            # Read in CFS ensemble member information IF we have chosen CFSv2 as an input
+            # forcing.
+            for optTmp in self.input_forcings:
+                if optTmp == 7:
+                    try:
+                        self.cfsv2EnsMember = json.loads(config['Ensembles']['cfsEnsNumber'])
+                    except KeyError:
+                        err_handler.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
+                                                   'section of the configuration file')
+                    except configparser.NoOptionError:
+                        err_handler.err_out_screen('Unable to locate cfsEnsNumber under the Ensembles '
+                                                   'section of the configuration file')
+                    except json.JSONDecodeError:
+                        err_handler.err_out_screen('Improper cfsEnsNumber options specified in the configuration file')
+                    if self.cfsv2EnsMember < 1 or self.cfsv2EnsMember > 4:
+                        err_handler.err_out_screen('Please chose an cfsEnsNumber value of 1,2,3 or 4.')
+
+            # Read in information for the custom input NetCDF files that are to be processed.
+            # Read in the ForecastInputHorizons options.
+            try:
+                self.customFcstFreq = json.loads(config['Custom']['custom_input_fcst_freq'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in '
+                                           'configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate custom_input_fcst_freq under Custom section in '
+                                           'configuration file.')
+            except json.decoder.JSONDecodeError as je:
+                err_handler.err_out_screen('Improper custom_input_fcst_freq  option specified in '
+                                           'configuration file: ' + str(je))
+            if len(self.customFcstFreq) != self.number_custom_inputs:
+                err_handler.err_out_screen(f'Improper custom_input fcst_freq specified. '
+                                           f'This number ({len(self.customFcstFreq)}) must '
+                                           f'match the frequency of custom input forcings selected '
+                                           f'({self.number_custom_inputs}).')
 
     @property
     def use_data_at_current_time(self):
