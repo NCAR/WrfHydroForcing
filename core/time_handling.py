@@ -4,9 +4,8 @@ import datetime
 import math
 from operator import truediv
 import os
-
+import glob
 import numpy as np
-
 from core import err_handler
 from core.err_handler import root_print
 from core.forcingInputMod import input_forcings
@@ -477,14 +476,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -847,6 +846,160 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
 
     err_handler.check_program_status(config_options, mpi_config)
 
+def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and after custom freq input cycles based on the current timestep.
+    :param input_forcings:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Processing %s Input Data. Calculating neighboring " \
+                                   "files for this output timestep" % input_forcings.productName
+        err_handler.log_msg(config_options, mpi_config)
+
+   
+    # First find the current input forecast cycle that we are using.
+    ana_offset = 1 if config_options.ana_flag else 0
+    current_input_cycle = config_options.current_fcst_cycle - datetime.timedelta(
+        seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0 * 60)
+    input_horizon = input_forcings.forecast_horizons[current_input_cycle.hour]
+
+    # If the user has specified a forcing horizon that is greater than what is available
+    # for this time period, throw an error.
+    if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > input_horizon:
+        config_options.errMsg = "User has specified a forecast horizon " + \
+                                "that is greater than the maximum allowed hours of: " + str(input_horizon)
+        err_handler.log_critical(config_options, mpi_config)
+    
+    #err_handler.check_program_status(config_options, mpi_config)
+    #d_current = d_current + datetime.timedelta(seconds=input_forcings.currentFcstOffset * 60.0 * 60.0)
+    # Calculate the current forecast hour within this Input cycle.
+    dt_tmp = d_current - current_input_cycle
+    current_input_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
+    current_input_min = int(dt_tmp.seconds/60.0)
+    # Calculate the previous file to process.
+    min_since_last_output = current_input_min % input_forcings.cycleFreq
+    if min_since_last_output == 0:
+        min_since_last_output = input_forcings.cycleFreq
+    prev_input_date = d_current - datetime.timedelta(seconds=min_since_last_output * 60)
+    input_forcings.fcst_date1 = prev_input_date
+    if min_since_last_output == input_forcings.cycleFreq:
+        min_until_next_output = 0
+    else:
+        min_until_next_output = input_forcings.cycleFreq - min_since_last_output
+    next_input_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
+    input_forcings.fcst_date2 = next_input_date
+    dt_tmp = next_input_date - current_input_cycle
+    next_input_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour2 = next_input_forecast_hour
+    if next_input_forecast_hour == 0:
+        next_input_forecast_hour = 1
+    hr_flag = 0
+    if 0 < input_forcings.cycleFreq % 60 < 60:
+        if(next_input_forecast_hour>1 and next_input_date.minute == 0):
+            next_input_forecast_hour = next_input_forecast_hour - 1
+            hr_flag = 1
+        if(int(dt_tmp.seconds / 60.0)%60 == 0) and hr_flag == 1:
+            next_input_forecast_min = (next_input_forecast_hour - 1) * 60 + int(dt_tmp.seconds / (60.0 * (next_input_forecast_hour+1)))
+        elif(int(dt_tmp.seconds / 60.0)%60 == 0) and next_input_forecast_hour == 1:
+            next_input_forecast_min = (next_input_forecast_hour - 1) * 60 + int(dt_tmp.seconds / (60.0 * next_input_forecast_hour))
+        else:
+            next_input_forecast_min = (next_input_forecast_hour - 1) * 60 + int(dt_tmp.seconds / 60.0)%60
+        input_forcings.fcst_min2 = next_input_forecast_min
+    dt_tmp = prev_input_date - current_input_cycle
+    prev_input_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    input_forcings.fcst_hour1 = prev_input_forecast_hour
+    if prev_input_forecast_hour == 0:
+        prev_input_forecast_hour = 1
+    if 0 < input_forcings.cycleFreq % 60 < 60:
+        prev_input_forecast_min = (prev_input_forecast_hour - 1) * 60 + int(dt_tmp.seconds / 60.0)%60
+        input_forcings.fcst_min1 = prev_input_forecast_min
+    # If we are on the first forecast hour (1), and we have calculated the previous forecast
+    # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
+    # no interpolation is required.
+
+    #prev_input_forecast_hour = prev_input_forecast_hour + int(input_forcings.currentFcstOffset)
+    #next_input_forecast_hour = next_input_forecast_hour + int(input_forcings.currentFcstOffset)
+    err_handler.check_program_status(config_options, mpi_config)
+    # Calculate expected file paths.
+
+
+    pattern1 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2"
+    pattern2 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/conus/*{current_input_cycle.strftime('%H')}z*{str(prev_input_forecast_hour).zfill(2)}.grib2"
+
+    files1 = glob.glob(pattern1) + glob.glob(pattern2)
+    tmp_file1 = files1[0]
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous input file being used: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+
+    pattern1 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2"
+    pattern2 = f"{input_forcings.inDir}/*.{current_input_cycle.strftime('%Y%m%d')}/conus/*{current_input_cycle.strftime('%H')}z*{str(next_input_forecast_hour).zfill(2)}.grib2"
+
+    files2 = glob.glob(pattern1) + glob.glob(pattern2)
+
+    tmp_file2 = files2[0]
+    if mpi_config.rank == 0:
+        if mpi_config.rank == 0:
+            config_options.statusMsg = "Next input file being used: " + tmp_file2
+            err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Check to see if files are already set. If not, then reset, grids and
+    # regridding objects to communicate things need to be re-established.
+    if input_forcings.file_in1 != tmp_file1 or input_forcings.file_in2 != tmp_file2 or (config_options.output_freq <= input_forcings.cycleFreq <= 60):
+        if config_options.current_output_step == 1:
+            input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+            input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+            input_forcings.file_in1 = tmp_file1
+            input_forcings.file_in2 = tmp_file2
+        else:
+            # Check to see if we are restarting from a previously failed instance. In this case,
+            # We are not on the first timestep, but no previous forcings have been processed.
+            # We need to process the previous input timestep for temporal interpolation purposes.
+            if input_forcings.regridded_forcings1 is None:
+                # if not np.any(input_forcings.regridded_forcings1):
+                if mpi_config.rank == 0:
+                    config_options.statusMsg = "Restarting forecast cycle. Will regrid previous: " + \
+                                               input_forcings.productName
+                    err_handler.log_msg(config_options, mpi_config)
+                input_forcings.rstFlag = 1
+                input_forcings.regridded_forcings1 = input_forcings.regridded_forcings1
+                input_forcings.regridded_forcings2 = input_forcings.regridded_forcings2
+                input_forcings.file_in2 = tmp_file1
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.fcst_date2 = input_forcings.fcst_date1
+                input_forcings.fcst_hour2 = input_forcings.fcst_hour1
+                input_forcings.fcst_min2 = input_forcings.fcst_min1
+            else:
+                # The input window has shifted. Reset fields 2 to
+                # be fields 1.
+                input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
+                input_forcings.file_in1 = tmp_file1
+                input_forcings.file_in2 = tmp_file2
+        input_forcings.regridComplete = False
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # Ensure we have the necessary new file
+    if mpi_config.rank == 0:
+        if not os.path.exists(input_forcings.file_in2):
+            if input_forcings.enforce == 1:
+                config_options.errMsg = "Expected input file: " + input_forcings.file_in2 + " not found."
+                err_handler.log_critical(config_options, mpi_config)
+            else:
+                config_options.statusMsg = "Expected input file: " + input_forcings.file_in2 + " not found. " \
+                                                                                                   "Will not use in " \
+                                                                                                   "final layering."
+                err_handler.log_warning(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.exists(input_forcings.file_in2):
+        if input_forcings.regridded_forcings2 is not None:
+            input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
 
 def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
@@ -859,31 +1012,17 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
     # First calculate how the GFS files are structured based on our current processing date.
     # This will change in the future, and should be modified as the GFS system evolves.
-    if d_current >= datetime.datetime(2018, 10, 1):
-        gfs_out_horizons = [120, 240, 384]
-        gfs_out_freq = {
-            120: 60,
-            240: 180,
-            384: 720
-        }
-        gfs_precip_delineators = {
-            120: [360, 60],
-            240: [360, 180],
-            284: [720, 720]
-        }
-    else:
-        gfs_out_horizons = [120, 240, 384]
-        gfs_out_freq = {
-            120: 60,
-            240: 180,
-            384: 720
-        }
-        gfs_precip_delineators = {
-            120: [360, 60],
-            240: [360, 180],
-            284: [720, 720]
-        }
-
+    gfs_out_horizons = [120, 240, 384]
+    gfs_out_freq = {
+        120: 60,
+        240: 180,
+        384: 180
+    }
+    gfs_precip_delineators = {
+        120: [360, 60],
+        240: [360, 180],
+        384: [360,180]
+    }
     # If the user has specified a forcing horizon that is greater than what
     # is available here, return an error.
     if (input_forcings.userFcstHorizon+input_forcings.userCycleOffset)/60.0 > max(gfs_out_horizons):
@@ -904,11 +1043,9 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
     # First find the current GFS forecast cycle that we are using.
     current_gfs_cycle = config_options.current_fcst_cycle - \
         datetime.timedelta(seconds=input_forcings.userCycleOffset * 60.0)
-
     # Calculate the current forecast hour within this GFS cycle.
     dt_tmp = d_current - current_gfs_cycle
     current_gfs_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
-
     # Calculate the GFS output frequency based on our current GFS forecast hour.
     current_gfs_freq = None
     for horizon_tmp in gfs_out_horizons:
@@ -916,7 +1053,6 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
             current_gfs_freq = gfs_out_freq[horizon_tmp]
             input_forcings.outFreq = gfs_out_freq[horizon_tmp]
             break
-
     # Calculate the previous file to process.
     min_since_last_output = (current_gfs_hour*60) % current_gfs_freq
     if min_since_last_output == 0:
@@ -931,7 +1067,6 @@ def find_gfs_neighbors(input_forcings, config_options, d_current, mpi_config):
         min_until_next_output = current_gfs_freq - min_since_last_output
     next_gfs_date = d_current + datetime.timedelta(seconds=min_until_next_output * 60)
     input_forcings.fcst_date2 = next_gfs_date
-
     # Calculate the output forecast hours needed based on the prev/next dates.
     dt_tmp = next_gfs_date - current_gfs_cycle
     next_gfs_forecast_hour = int(dt_tmp.days*24.0) + int(dt_tmp.seconds/3600.0)
@@ -1461,6 +1596,77 @@ def find_custom_hourly_neighbors(input_forcings, config_options, d_current, mpi_
     if not os.path.isfile(input_forcings.file_in2):
         if input_forcings.regridded_forcings2 is not None:
             input_forcings.regridded_forcings2[:, :, :] = config_options.globalNdv
+
+def find_custom_freq_neighbors(supplemental_precip, config_options, d_current, mpi_config):
+    """
+    Function to calculate the previous and next custom freq supp files.
+    :param supplemental_precip:
+    :param config_options:
+    :param d_current:
+    :param mpi_config:
+    :return:
+    """
+
+    # First we need to find the nearest previous and next hour, which is
+    # the previous/next MRMS files we will be using.
+    current_yr = d_current.year
+    current_mo = d_current.month
+    current_day = d_current.day
+    current_hr = d_current.hour
+    current_min = d_current.minute
+
+    # Set the input file frequency to be hourly.
+    supplemental_precip.input_frequency = config_options.customSuppPcpFreq
+    prev_date1 = datetime.datetime(current_yr, current_mo, current_day, current_hr,current_min)
+    dt_tmp = d_current - prev_date1
+    if dt_tmp.total_seconds() == 0:
+        # We are on the hour, we can set this date to the be the "next" date.
+        next_custom_date = d_current
+        prev_custom_date = d_current - datetime.timedelta(seconds=60*(config_options.customSuppPcpFreq))
+    else:
+        # We are between two hours.
+        prev_custom_date = prev_date1
+        next_custom_date = prev_custom_date + datetime.timedelta(seconds=60*(config_options.customSuppPcpFreq))
+    supplemental_precip.pcp_date1 = prev_custom_date
+    #supplemental_precip.pcp_date2 = next_mrms_date
+    supplemental_precip.pcp_date2 = next_custom_date
+    # Calculate expected file paths.
+    if supplemental_precip.keyValue == 13:
+        tmp_file1 = supplemental_precip.inDir + '/' + \
+            supplemental_precip.pcp_date1.strftime('%Y%m%d') + '/' \
+            'MRMS_PrecipRate_00.00_' + supplemental_precip.pcp_date1.strftime('%Y%m%d-%H%M%S') +  \
+            supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '') 
+        tmp_file2 = supplemental_precip.inDir + '/' + \
+            supplemental_precip.pcp_date2.strftime('%Y%m%d') + '/' \
+            'MRMS_PrecipRate_00.00_' + supplemental_precip.pcp_date2.strftime('%Y%m%d-%H%M%S') +  \
+            supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
+
+        tmp_rqi_file1 = tmp_rqi_file2 = ""
+
+    else:
+        tmp_file1 = tmp_file2 = ""
+        tmp_rqi_file1 = tmp_rqi_file2 = ""
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Previous Custom supplemental file: " + tmp_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next Custom supplemental file: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Previous RQI supplemental file: " + tmp_rqi_file1
+        err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next RQI supplemental file: " + tmp_rqi_file2
+        err_handler.log_msg(config_options, mpi_config)
+    err_handler.check_program_status(config_options, mpi_config)
+
+    supplemental_precip.file_in1 = tmp_file1
+    supplemental_precip.file_in2 = tmp_file2
+    supplemental_precip.rqi_file_in1 = tmp_rqi_file1
+    supplemental_precip.rqi_file_in2 = tmp_rqi_file2
+    supplemental_precip.regridComplete = False
+    # If the file is missing, set the local slab of arrays to missing.
+    if not os.path.isfile(supplemental_precip.file_in2):
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.regridded_precip2[:, :] = config_options.globalNdv
 
 
 def find_hourly_mrms_radar_neighbors(supplemental_precip, config_options, d_current, mpi_config):

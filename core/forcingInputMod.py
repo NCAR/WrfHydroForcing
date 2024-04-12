@@ -105,6 +105,7 @@ class input_forcings:
         self.regridded_precip2 = None
         self.border = None
         self.skip = False
+        self.forecast_horizons = None
 
     def define_product(self):
         """
@@ -138,7 +139,8 @@ class input_forcings:
             19: "HRRR_Alaska_GRIB2",
             20: "Alaska_ExtAnA",
             21: "NBM",
-            22: "NDFD"
+            22: "NDFD",
+            23: "HRRR_15min"
         }
         self.productName = product_names[self.keyValue]
 
@@ -197,7 +199,8 @@ class input_forcings:
             19: 180,
             20: 60,
             21: 60,
-            22: 1440
+            22: 1440,
+            23: 15
         }
         self.cycleFreq = cycle_freq_minutes[self.keyValue]
 
@@ -235,7 +238,9 @@ class input_forcings:
             20: ['U2D', 'V2D', 'LWDOWN', 'RAINRATE', 'T2D',
                  'Q2D', 'PSFC', 'SWDOWN'],
             21: ['TMP', 'APCP'],
-            22: ['TMP', 'WDIR', 'WSPD', 'APCP']
+            22: ['TMP', 'WDIR', 'WSPD', 'APCP'],
+            23: ['TMP', 'SPFH', 'UGRD', 'VGRD', 'APCP', 'DSWRF',
+                'DLWRF', 'PRES']
         }
         self.grib_vars = grib_vars_in[self.keyValue]
 
@@ -286,7 +291,11 @@ class input_forcings:
             20: None,
             21: ['2 m above ground', 'surface'],
             22: ['2 m above ground', '10 m above ground',
-                 '10 m above ground', 'surface']
+                 '10 m above ground', 'surface'],
+            23: ['2 m above ground', '2 m above ground',
+                '10 m above ground', '10 m above ground',
+                'surface', 'surface', 'surface','surface']
+
         }
         self.grib_levels = grib_levels_in[self.keyValue]
 
@@ -353,7 +362,11 @@ class input_forcings:
                  'Q2D', 'PSFC', 'SWDOWN'],
             21: ['TMP_2maboveground', 'APCP_surface'],
             22: ['TMP_2maboveground', 'WDIR_10maboveground', 'WIND_10maboveground',
-                 'APCP_surface']
+                 'APCP_surface'],
+            23: ['TMP_2maboveground', 'SPFH_2maboveground',
+                'UGRD_10maboveground', 'VGRD_10maboveground',
+                'APCP_surface', 'DSWRF_surface', 'DLWRF_surface',
+                'PRES_surface']
         }
         self.netcdf_var_names = netcdf_variables[self.keyValue]
 
@@ -381,7 +394,8 @@ class input_forcings:
             19: None,
             20: None,
             21: None,
-            22: None
+            22: None,
+            23: None
         }
         self.grib_mes_idx = grib_message_idx[self.keyValue]
 
@@ -389,7 +403,7 @@ class input_forcings:
         input_map_to_outputs = {
             1: [4,5,0,1,3,7,2,6],
             2: None,
-            3: [4,5,0,1,3,7,2,6, 8],
+            3: [4,5,0,1,3,7,2,6,8],
             4: None,
             5: [4,5,0,1,3,7,2,6, 8],
             6: [4,5,0,1,3,7,2,6, 8],
@@ -408,9 +422,37 @@ class input_forcings:
             19: [4,5,0,1,3,7,2,6],
             20: [0,1,2,3,4,5,6,7],
             21: [4, 3],
-            22: [4,0,1,3]
+            22: [4,0,1,3],
+            23: [4,5,0,1,3,7,2,6]
         }
         self.input_map_output = input_map_to_outputs[self.keyValue]
+
+        forecast_horizons = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18], 
+            6: [21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21], 
+            7: None,
+            8: None,
+            9: None, 
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: None,
+            17: None,
+            18: None,
+            19: None,
+            20: None,
+            21: None,
+            22: None,
+            23: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18]  
+        }
+        self.forecast_horizons = forecast_horizons[self.keyValue]
 
     def calc_neighbor_files(self,ConfigOptions,dCurrent,MpiConfig):
         """
@@ -426,8 +468,8 @@ class input_forcings:
         find_neighbor_files = {
             1: time_handling.find_nldas_neighbors,
             3: time_handling.find_gfs_neighbors,
-            5: time_handling.find_conus_hrrr_neighbors,
-            6: time_handling.find_conus_rap_neighbors,
+            5: time_handling.find_input_neighbors,
+            6: time_handling.find_input_neighbors,
             7: time_handling.find_cfsv2_neighbors,
             8: time_handling.find_hourly_wrf_arw_neighbors,
             9: time_handling.find_gfs_neighbors,
@@ -443,7 +485,8 @@ class input_forcings:
             19: time_handling.find_ak_hrrr_neighbors,
             20: time_handling.find_ak_ext_ana_neighbors,
             21: time_handling.find_hourly_nbm_neighbors,
-            22: time_handling.find_ndfd_neighbors
+            22: time_handling.find_ndfd_neighbors,
+            23: time_handling.find_input_neighbors
         }
 
         find_neighbor_files[self.keyValue](self, ConfigOptions, dCurrent,MpiConfig)
@@ -480,7 +523,8 @@ class input_forcings:
             19: regrid.regrid_conus_hrrr,
             20: regrid.regrid_ak_ext_ana,
             21: regrid.regrid_hourly_nbm,
-            22: regrid.regrid_ndfd
+            22: regrid.regrid_ndfd,
+            23: regrid.regrid_conus_hrrr
         }
         regrid_inputs[self.keyValue](self,ConfigOptions,wrfHyroGeoMeta,MpiConfig)
 
@@ -512,7 +556,8 @@ def initDict(ConfigOptions,GeoMetaWrfHydro):
     """
     # Initialize an empty dictionary
     InputDict = {}
-
+    if ConfigOptions.precip_only_flag == True:
+        return InputDict
     # Loop through and initialize the empty class for each product.
     custom_count = 0
     for force_tmp in range(0,ConfigOptions.number_inputs):
