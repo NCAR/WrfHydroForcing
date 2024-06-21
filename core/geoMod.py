@@ -1,9 +1,12 @@
 import math
 
-import ESMF
-import numpy as np
 from netCDF4 import Dataset
+import numpy as np
 
+try:
+    import ESMF
+except ImportError:
+    import esmpy as ESMF
 
 class GeoMetaWrfHydro:
     """
@@ -37,7 +40,7 @@ class GeoMetaWrfHydro:
         self.y_coord_atts = None
         self.y_coords = None
         self.spatial_global_atts = None
-        
+
     def get_processor_bounds(self):
         """
         Calculate the local grid boundaries for this processor.

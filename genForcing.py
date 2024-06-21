@@ -1,8 +1,6 @@
 import argparse
 import os
 
-import ESMF
-
 from core import config
 from core import err_handler
 from core import forcingInputMod
@@ -67,8 +65,6 @@ def main():
         mpi_meta.initialize_comm(job_meta)
     except:
         err_handler.err_out_screen(job_meta.errMsg)
-
-    # ESMF.Manager(debug=True)
 
     # Initialize our WRF-Hydro geospatial object, which contains
     # information about the modeling domain, local processor
