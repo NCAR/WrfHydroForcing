@@ -8,7 +8,11 @@ import sys
 import traceback
 import time
 
-import ESMF
+try:
+    import ESMF
+except ImportError:
+    import esmpy as ESMF
+
 import numpy as np
 import numpy.ma as ma
 
@@ -1457,7 +1461,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                         tmp_hr_current = input_forcings.fcst_hour2
                         diff_tmp = tmp_hr_current % 6 if tmp_hr_current % 6 > 0 else 6
                         tmp_hr_previous = tmp_hr_current - diff_tmp
-                  
+
 
                     else:
                         tmp_hr_previous = input_forcings.fcst_hour1
