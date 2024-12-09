@@ -2925,7 +2925,8 @@ def regrid_hourly_nbm(forcings_or_precip, config_options, wrf_hydro_geo_meta, mp
                                                        + " -netcdf " + nbm_tmp_nc
 
     id_tmp = ioMod.open_grib2(forcings_or_precip.file_in1, nbm_tmp_nc, cmd, config_options,
-                              mpi_config, forcings_or_precip.netcdf_var_names[0])
+                              mpi_config, forcings_or_precip.netcdf_var_names[0],
+                              aux_message="Do not remove the bad NBM file and try to re-run. Instead, either fix the bad upstream NBM file {in_file} or skip this NWM job cycle.")
 
     err_handler.check_program_status(config_options, mpi_config)
 
