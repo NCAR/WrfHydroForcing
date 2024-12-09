@@ -565,7 +565,7 @@ class OutputObj:
                     err_handler.log_critical(ConfigOptions, MpiConfig)
                     break
                 # Populate time and reference time variables with appropriate attributes and time values.
-                try: 
+                try:
                     idOut.variables['time'].units = "minutes since 1970-01-01 00:00:00 UTC"
                 except:
                     ConfigOptions.errMsg = "Unable to create time units attribute in: " + self.suppOutPath
@@ -582,7 +582,7 @@ class OutputObj:
                 except:
                     ConfigOptions.errMsg = "Unable to create time long_name attribute in: " + self.suppOutPath
                     err_handler.log_critical(ConfigOptions, MpiConfig)
-                    break 
+                    break
                 try:
                     idOut.variables['reference_time'].units = "minutes since 1970-01-01 00:00:00 UTC"
                 except:
@@ -637,7 +637,7 @@ class OutputObj:
                             dtype = 'f4'
                         else:
                             fill_value = int(ConfigOptions.globalNdv)
-                            #fill_value = int((ConfigOptions.globalNdv - output_variable_attribute_dict[varTmp][6]) 
+                            #fill_value = int((ConfigOptions.globalNdv - output_variable_attribute_dict[varTmp][6])
                             #                 output_variable_attribute_dict[varTmp][5])
                             dtype = 'i4'
                         idOut.createVariable(varTmp, dtype, ('time', 'y', 'x'),
@@ -645,7 +645,7 @@ class OutputObj:
                                              zlib=zlib,
                                              complevel=complevel,
                                              least_significant_digit=least_significant_digit)
-                    except: 
+                    except:
                         ConfigOptions.errMsg = "Unable to create " + varTmp + " variable in: " + self.suppOutPath
                         err_handler.log_critical(ConfigOptions, MpiConfig)
                         break
@@ -672,7 +672,7 @@ class OutputObj:
                         break
                 break
         err_handler.check_program_status(ConfigOptions, MpiConfig)
-   
+
         # Now loop through each variable, collect the data (call on each processor), assemble into the final
         # output grid, and place into the output file (if on processor 0).
         for varTmp in output_variable_attribute_dict:
@@ -686,7 +686,7 @@ class OutputObj:
                 ConfigOptions.errMsg = "Unable to gather final grids for: " + varTmp
                 err_handler.log_critical(ConfigOptions, MpiConfig)
                 continue
-     
+
             if MpiConfig.rank == 0:
                 try:
                     idOut.variables[varTmp][0, :, :] = dataOutTmp
@@ -698,7 +698,7 @@ class OutputObj:
             # Reset temporary data objects to keep memory usage down.
             final = None
             err_handler.check_program_status(ConfigOptions, MpiConfig)
-    
+
         if MpiConfig.rank == 0:
             while (True):
                 # Close the NetCDF file
@@ -712,7 +712,7 @@ class OutputObj:
         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
 def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
-               inputVar):
+               inputVar, aux_message=""):
     """
     Generic function to convert a GRIB2 file into a NetCDF file. Function
     will also open the NetCDF file, and ensure all necessary inputs are
@@ -775,6 +775,8 @@ def open_grib2(GribFileIn,NetCdfFileOut,Wgrib2Cmd,ConfigOptions,MpiConfig,
         if not os.path.isfile(NetCdfFileOut):
             ConfigOptions.errMsg = "Expected NetCDF file: " + NetCdfFileOut + \
                                    " not found. It's possible the GRIB2 variable was not found."
+            if aux_message is not None:
+                ConfigOptions.errMsg += " " + aux_message.format(in_file=NetCdfFileOut)
             err_handler.log_critical(ConfigOptions, MpiConfig)
             idTmp = None
             pass
