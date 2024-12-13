@@ -860,7 +860,7 @@ def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
                                    "files for this output timestep" % input_forcings.productName
         err_handler.log_msg(config_options, mpi_config)
 
-   
+
     # First find the current input forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_input_cycle = config_options.current_fcst_cycle - datetime.timedelta(
@@ -873,7 +873,7 @@ def find_input_neighbors(input_forcings, config_options, d_current, mpi_config):
         config_options.errMsg = "User has specified a forecast horizon " + \
                                 "that is greater than the maximum allowed hours of: " + str(input_horizon)
         err_handler.log_critical(config_options, mpi_config)
-    
+
     #err_handler.check_program_status(config_options, mpi_config)
     #d_current = d_current + datetime.timedelta(seconds=input_forcings.currentFcstOffset * 60.0 * 60.0)
     # Calculate the current forecast hour within this Input cycle.
@@ -1635,7 +1635,7 @@ def find_custom_freq_neighbors(supplemental_precip, config_options, d_current, m
         tmp_file1 = supplemental_precip.inDir + '/' + \
             supplemental_precip.pcp_date1.strftime('%Y%m%d') + '/' \
             'MRMS_PrecipRate_00.00_' + supplemental_precip.pcp_date1.strftime('%Y%m%d-%H%M%S') +  \
-            supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '') 
+            supplemental_precip.file_ext + ('.gz' if supplemental_precip.fileType != NETCDF else '')
         tmp_file2 = supplemental_precip.inDir + '/' + \
             supplemental_precip.pcp_date2.strftime('%Y%m%d') + '/' \
             'MRMS_PrecipRate_00.00_' + supplemental_precip.pcp_date2.strftime('%Y%m%d-%H%M%S') +  \
@@ -1974,7 +1974,8 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
 
     # Apply some logic here to account for the ARW weirdness associated with the
     # odd forecast cycles.
-    fcst_horizon = -1
+    fcst_horizon = 48
+    cycle_shift = 0
     if supplemental_precip.keyValue == 3:
         # Data only available for 00/12 UTC cycles.
         if current_arw_cycle.hour != 0 and current_arw_cycle.hour != 12:
@@ -1986,10 +1987,16 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
             supplemental_precip.file_in2 = None
             return
         fcst_horizon = 48
-    if supplemental_precip.keyValue == 4:
+    if supplemental_precip.keyValue == 4 or supplemental_precip.keyValue == 18:
         # Data only available for 06/18 UTC cycles.
         cycle = current_arw_cycle
-        if cycle.hour != 6 and cycle.hour != 18:
+        if cycle.hour == 0 or cycle.hour == 12:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = f"Off-cycle ({cycle.hour}) PR/VI WRF-ARW requested, will use previous cycle where needed"
+                err_handler.log_msg(config_options, mpi_config)
+            current_arw_cycle -= datetime.timedelta(seconds=21600)  # shift back 6 hours
+            cycle_shift = 6
+        else:
             if mpi_config.rank == 0:
                 config_options.statusMsg = "No Puerto Rico WRF-ARW found for cycle {}. " \
                                            "No supplemental ARW precipitation will be used.".format(cycle)
@@ -1999,24 +2006,33 @@ def find_hourly_wrf_arw_neighbors(supplemental_precip, config_options, d_current
             return
         fcst_horizon = 48
 
-    if mpi_config.rank == 0:
-        config_options.statusMsg = "Current ARW forecast cycle being used: " + \
-                                   current_arw_cycle.strftime('%Y-%m-%d %H')
-        err_handler.log_msg(config_options, mpi_config)
-
     # Calculate the current forecast hour within this ARW cycle.
     dt_tmp = d_current - current_arw_cycle
     current_arw_hour = int(dt_tmp.days * 24) + int(dt_tmp.seconds / 3600.0)
 
     if current_arw_hour > fcst_horizon:
-        if mpi_config.rank == 0:
-            config_options.statusMsg = "Current ARW forecast hour greater than max allowed " \
-                                       "of: " + str(fcst_horizon)
-            err_handler.log_msg(config_options, mpi_config)
-            supplemental_precip.file_in2 = None
-            supplemental_precip.file_in1 = None
-            pass
+        if current_arw_hour <= (fcst_horizon+cycle_shift):
+            # if mpi_config.rank == 0:
+            #     config_options.statusMsg = f"DEBUG: Shifting for ARW hour {current_arw_hour}"
+            #     err_handler.log_msg(config_options, mpi_config)
+            # shift forward to the next cycle
+            current_arw_cycle += datetime.timedelta(seconds=43200)
+            dt_tmp = d_current - current_arw_cycle
+            current_arw_hour = int(dt_tmp.days * 24) + int(dt_tmp.seconds / 3600.0)
+        else:
+            if mpi_config.rank == 0:
+                config_options.statusMsg = f"Current ARW forecast hour ({current_arw_hour}) greater than max allowed " \
+                                           f"of: {fcst_horizon}"
+                err_handler.log_msg(config_options, mpi_config)
+                supplemental_precip.file_in2 = None
+                supplemental_precip.file_in1 = None
+                pass
     err_handler.check_program_status(config_options, mpi_config)
+
+    if mpi_config.rank == 0:
+        config_options.statusMsg = "Current ARW forecast cycle being used: " + \
+                                   current_arw_cycle.strftime('%Y-%m-%d %H')
+        err_handler.log_msg(config_options, mpi_config)
 
     # Calculate the previous file to process.
     min_since_last_output = (current_arw_hour * 60) % 60
@@ -2529,33 +2545,26 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
 
     # Calculate expected file paths.
     if supplemental_precip.keyValue == 8 or supplemental_precip.keyValue == 21:   # CONUS
-        tmp_file1 = supplemental_precip.inDir + "/blend." + \
-            current_nbm_cycle.strftime('%Y%m%d') + \
-            "/" + current_nbm_cycle.strftime('%H') + \
-            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext
-        tmp_file2 = supplemental_precip.inDir + "/blend." + \
-            current_nbm_cycle.strftime('%Y%m%d') + \
-            "/" + current_nbm_cycle.strftime('%H') + \
-            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".co" \
-            + supplemental_precip.file_ext
+        domain = "co"
     elif supplemental_precip.keyValue == 9:                                       # ALASKA
-        tmp_file1 = supplemental_precip.inDir + "/blend." + \
-            current_nbm_cycle.strftime('%Y%m%d') + \
-            "/" + current_nbm_cycle.strftime('%H') + \
-            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + ".ak" \
-            + supplemental_precip.file_ext
-        tmp_file2 = supplemental_precip.inDir + "/blend." + \
-            current_nbm_cycle.strftime('%Y%m%d') + \
-            "/" + current_nbm_cycle.strftime('%H') + \
-            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
-            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + ".ak" \
-            + supplemental_precip.file_ext
+        domain = "ak"
+    elif supplemental_precip.keyValue == 14:                                       # PR
+        domain = "pr"
     else:
-        tmp_file1 = tmp_file2 = ""
+        domain = "unknown"
+
+    tmp_file1 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(next_nbm_forecast_hour).zfill(3) + f".{domain}" \
+            + supplemental_precip.file_ext
+    tmp_file2 = supplemental_precip.inDir + "/blend." + \
+            current_nbm_cycle.strftime('%Y%m%d') + \
+            "/" + current_nbm_cycle.strftime('%H') + \
+            "/core/blend.t" + current_nbm_cycle.strftime('%H') + \
+            "z.core.f" + str(prev_nbm_forecast_hour).zfill(3) + f".{domain}" \
+            + supplemental_precip.file_ext
 
     if mpi_config.rank == 0:
         # config_options.statusMsg = "Prev NBM supplemental file: " + tmp_file2
