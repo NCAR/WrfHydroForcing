@@ -432,11 +432,11 @@ class input_forcings:
             2: None,
             3: None,
             4: None,
-            5: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18], 
-            6: [21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21], 
+            5: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18],
+            6: [21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21, 21, 21, 21, 39, 21, 21],
             7: None,
             8: None,
-            9: None, 
+            9: None,
             10: None,
             11: None,
             12: None,
@@ -450,7 +450,7 @@ class input_forcings:
             20: None,
             21: None,
             22: None,
-            23: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18]  
+            23: [18, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18, 36, 18, 18, 18, 18, 18]
         }
         self.forecast_horizons = forecast_horizons[self.keyValue]
 
@@ -468,8 +468,8 @@ class input_forcings:
         find_neighbor_files = {
             1: time_handling.find_nldas_neighbors,
             3: time_handling.find_gfs_neighbors,
-            5: time_handling.find_input_neighbors,
-            6: time_handling.find_input_neighbors,
+            5: time_handling.find_conus_hrrr_neighbors,
+            6: time_handling.find_conus_rap_neighbors,
             7: time_handling.find_cfsv2_neighbors,
             8: time_handling.find_hourly_wrf_arw_neighbors,
             9: time_handling.find_gfs_neighbors,
