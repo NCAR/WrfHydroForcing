@@ -420,7 +420,7 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
     # Fortunately, HRRR data is straightforward compared to GFS in terms of precip values, etc.
     if d_current >= datetime.datetime(2018, 10, 1):
         default_horizon = 18  # 18-hour forecasts.
-        six_hr_horizon = 36  # 36-hour forecasts every six hours.
+        six_hr_horizon = 48  # 36-hour forecasts every six hours.
     else:
         default_horizon = 18  # 18-hour forecasts.
         six_hr_horizon = 18  # 18-hour forecasts every six hours.
@@ -476,14 +476,14 @@ def find_conus_hrrr_neighbors(input_forcings, config_options, d_current, mpi_con
 
     # Calculate expected file paths.
     tmp_file1 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' + \
         str(prev_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous HRRR file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = input_forcings.inDir + '/hrrr.' + current_hrrr_cycle.strftime(
-        '%Y%m%d') + "/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
+        '%Y%m%d') + "/conus/hrrr.t" + current_hrrr_cycle.strftime('%H') + 'z.wrfsfcf' \
         + str(next_hrrr_forecast_hour).zfill(2) + input_forcings.file_ext
     if mpi_config.rank == 0:
         if mpi_config.rank == 0:
@@ -723,26 +723,27 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     """
     if d_current >= datetime.datetime(2018, 10, 1):
         default_horizon = 21   # 21-hour forecasts.
-        extra_hr_horizon = 39  # 39-hour forecasts at 3,9,15,21 UTC.
+        extra_hr_horizon = 51  # 39-hour forecasts at 3,9,15,21 UTC.
     else:
         default_horizon = 18   # 18-hour forecasts.
         extra_hr_horizon = 18  # 18-hour forecasts every six hours.
 
     # First find the current RAP forecast cycle that we are using.
-    ana_offset = 1 if config_options.ana_flag else 0
+    ana_offset = 1 if config_options.ana_flag else 3
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-            seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
+            seconds=(ana_offset + input_forcings.userCycleOffset) * 3600.0)
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
-        rap_horizon = default_horizon
-    else:
         rap_horizon = extra_hr_horizon
+    else:
+        rap_horizon = default_horizon
 
     # If the user has specified a forcing horizon that is greater than what is available
     # for this time period, throw an error.
     if (input_forcings.userFcstHorizon + input_forcings.userCycleOffset) / 60.0 > rap_horizon:
         config_options.errMsg = "User has specified a RAP CONUS 13km forecast horizon " + \
                                 "that is greater than the maximum allowed hours of: " + str(rap_horizon)
+        err_handler.check_program_status(config_options, mpi_config)
         return
 
     # Calculate the current forecast hour within this HRRR cycle.
