@@ -1,6 +1,11 @@
 import argparse
 import os
 
+try:
+   import ESMF
+except ImportError:
+   import esmpy as ESMF
+
 from core import config
 from core import err_handler
 from core import forcingInputMod
