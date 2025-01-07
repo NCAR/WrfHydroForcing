@@ -728,10 +728,18 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         default_horizon = 18   # 18-hour forecasts.
         extra_hr_horizon = 18  # 18-hour forecasts every six hours.
 
-    # First find the current RAP forecast cycle that we are using.
-    ana_offset = 1 if config_options.ana_flag else 3
+    # First find the current RAP forecast cycle that we are using, and shift it if we're AnA or
+    # need an extended cycle
+
+    if config_options.ana_flag:
+        cycle_offset = 1
+    elif config_options.current_fcst_cycle.hour % 6 == 0:
+        cycle_offset = 3
+    else:
+        cycle_offset = 0
+
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-            seconds=(ana_offset + input_forcings.userCycleOffset) * 3600.0)
+            seconds=(cycle_offset + input_forcings.userCycleOffset) * 3600.0)
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
         rap_horizon = extra_hr_horizon
@@ -746,7 +754,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         err_handler.check_program_status(config_options, mpi_config)
         return
 
-    # Calculate the current forecast hour within this HRRR cycle.
+    # Calculate the current forecast hour within this RAP cycle.
     dt_tmp = d_current - current_rap_cycle
     current_rap_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
