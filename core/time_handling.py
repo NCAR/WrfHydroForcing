@@ -2594,20 +2594,15 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
         if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == 8) or (supplemental_precip.keyValue == 9)):
-            config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
-                    supplemental_precip.file_in2, supplemental_precip.file_in1)
-            err_handler.log_warning(config_options, mpi_config)
-            supplemental_precip.file_in2 = supplemental_precip.file_in1
-        if not os.path.isfile(supplemental_precip.file_in2):
-            if supplemental_precip.enforce == 1:
-                config_options.errMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + " not found."
-                err_handler.log_critical(config_options, mpi_config)
-            else:
-                config_options.statusMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + \
-                                           " not found. " + "Will not use in final layering."
-                err_handler.log_warning(config_options, mpi_config)
-                config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
-                err_handler.log_warning(config_options, mpi_config)
+            if config_options.use_data_at_current_time:
+                if supplemental_precip.enforce == 1:
+                    config_options.errMsg = "Required input NBM file: " + supplemental_precip.file_in2 + " not found."
+                    err_handler.log_critical(config_options, mpi_config)
+                else:
+                    config_options.statusMsg = f"Expected input NBM file: {supplemental_precip.file_in2} not available, will not use in final layering."
+                    err_handler.log_msg(config_options, mpi_config)
+                    # config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
+                    # err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
