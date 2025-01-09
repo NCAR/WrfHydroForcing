@@ -728,10 +728,18 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         default_horizon = 18   # 18-hour forecasts.
         extra_hr_horizon = 18  # 18-hour forecasts every six hours.
 
-    # First find the current RAP forecast cycle that we are using.
-    ana_offset = 1 if config_options.ana_flag else 3
+    # First find the current RAP forecast cycle that we are using, and shift it if we're AnA or
+    # need an extended cycle
+
+    if config_options.ana_flag:
+        cycle_offset = 2
+    elif config_options.current_fcst_cycle.hour % 6 == 0:
+        cycle_offset = 3
+    else:
+        cycle_offset = 0
+
     current_rap_cycle = config_options.current_fcst_cycle - datetime.timedelta(
-            seconds=(ana_offset + input_forcings.userCycleOffset) * 3600.0)
+            seconds=(cycle_offset + input_forcings.userCycleOffset) * 3600.0)
     if current_rap_cycle.hour == 3 or current_rap_cycle.hour == 9 or \
             current_rap_cycle.hour == 15 or current_rap_cycle.hour == 21:
         rap_horizon = extra_hr_horizon
@@ -746,7 +754,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         err_handler.check_program_status(config_options, mpi_config)
         return
 
-    # Calculate the current forecast hour within this HRRR cycle.
+    # Calculate the current forecast hour within this RAP cycle.
     dt_tmp = d_current - current_rap_cycle
     current_rap_hour = int(dt_tmp.days*24) + int(dt_tmp.seconds/3600.0)
 
@@ -2586,20 +2594,15 @@ def find_hourly_nbm_neighbors(supplemental_precip, config_options, d_current, mp
     # Ensure we have the necessary new file
     if mpi_config.rank == 0:
         if not os.path.isfile(supplemental_precip.file_in2) and ((supplemental_precip.keyValue == 8) or (supplemental_precip.keyValue == 9)):
-            config_options.statusMsg = "NBM file {} not found, will attempt to use {} instead.".format(
-                    supplemental_precip.file_in2, supplemental_precip.file_in1)
-            err_handler.log_warning(config_options, mpi_config)
-            supplemental_precip.file_in2 = supplemental_precip.file_in1
-        if not os.path.isfile(supplemental_precip.file_in2):
-            if supplemental_precip.enforce == 1:
-                config_options.errMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + " not found."
-                err_handler.log_critical(config_options, mpi_config)
-            else:
-                config_options.statusMsg = "Expected input NBM file: " + supplemental_precip.file_in2 + \
-                                           " not found. " + "Will not use in final layering."
-                err_handler.log_warning(config_options, mpi_config)
-                config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
-                err_handler.log_warning(config_options, mpi_config)
+            if config_options.use_data_at_current_time:
+                if supplemental_precip.enforce == 1:
+                    config_options.errMsg = "Required input NBM file: " + supplemental_precip.file_in2 + " not found."
+                    err_handler.log_critical(config_options, mpi_config)
+                else:
+                    config_options.statusMsg = f"Expected input NBM file: {supplemental_precip.file_in2} not available, will not use in final layering."
+                    err_handler.log_msg(config_options, mpi_config)
+                    # config_options.statusMsg = "You can use Util/pull_s3_grib_vars.py to Download NBM data from AWS-S3 archive."
+                    # err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # If the file is missing, set the local slab of arrays to missing.
