@@ -732,7 +732,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # need an extended cycle
 
     if config_options.ana_flag:
-        cycle_offset = 1
+        cycle_offset = 2
     elif config_options.current_fcst_cycle.hour % 6 == 0:
         cycle_offset = 3
     else:
