@@ -731,9 +731,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # First find the current RAP forecast cycle that we are using, and shift it if we're AnA or
     # need an extended cycle
 
-    if config_options.ana_flag:
-        cycle_offset = 2
-    elif config_options.current_fcst_cycle.hour % 6 == 0:
+    if config_options.current_fcst_cycle.hour % 6 == 0:
         cycle_offset = 3
     else:
         cycle_offset = 0
