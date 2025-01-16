@@ -731,7 +731,9 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # First find the current RAP forecast cycle that we are using, and shift it if we're AnA or
     # need an extended cycle
 
-    if config_options.current_fcst_cycle.hour % 6 == 0:
+    if config_options.ana_flag:
+        cycle_offset = 1
+    elif config_options.current_fcst_cycle.hour % 6 == 0:
         cycle_offset = 3
     else:
         cycle_offset = 0
@@ -772,9 +774,13 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
     # Calculate the output forecast hours needed based on the prev/next dates.
     dt_tmp = next_rap_date - current_rap_cycle
     next_rap_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    if config_options.ana_flag:
+        next_rap_forecast_hour -= 1    # for analysis vs forecast
     input_forcings.fcst_hour2 = next_rap_forecast_hour
     dt_tmp = prev_rap_date - current_rap_cycle
     prev_rap_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
+    if config_options.ana_flag:
+        prev_rap_forecast_hour -= 1    # for analysis vs forecast
     input_forcings.fcst_hour1 = prev_rap_forecast_hour
     # If we are on the first GFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
