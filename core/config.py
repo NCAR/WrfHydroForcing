@@ -872,6 +872,32 @@ class ConfigOptions:
                     err_handler.err_out_screen('Invalid HumidityDownscaling options specified in the configuration file.')
 
 
+            # Read in the precipitation downscaling options
+            try:
+                self.precipDownscaleOpt = json.loads(config['Downscaling']['PrecipDownscaling'])
+            except KeyError:
+                err_handler.err_out_screen('Unable to locate PrecipDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except configparser.NoOptionError:
+                err_handler.err_out_screen('Unable to locate PrecipDownscaling under the Downscaling '
+                                           'section of the configuration file.')
+            except json.decoder.JSONDecodeError:
+                err_handler.err_out_screen('Improper PrecipDownscaling options specified in the configuration file.')
+            
+            if len(self.precipDownscaleOpt) != self.number_inputs:
+                err_handler.err_out_screen('Please specify PrecipDownscaling values for each corresponding '
+                                               'input forcings in the configuration file.')
+
+            # Ensure the downscaling options chosen make sense.
+            count_tmp = 0
+            for optTmp in self.precipDownscaleOpt:
+                if optTmp < 0 or optTmp > 1:
+                    err_handler.err_out_screen('Invalid PrecipDownscaling options specified in the configuration file.')
+
+                if optTmp == 1:
+                    param_flag[count_tmp] = 1
+                count_tmp = count_tmp + 1
+
             # Read in the downscaling parameter directory.
             self.paramFlagArray = param_flag
             tmp_scale_param_dirs = []
@@ -903,7 +929,6 @@ class ConfigOptions:
                     self.dScaleParamDirs.append('NONE')
                 if param_flag[count_tmp] == 1:
                     self.dScaleParamDirs.append(tmp_scale_param_dirs[count_tmp])
-
             # if the directory was specified but not downscaling, set it anyway for bias correction etc.
             try:
                 if param_flag.sum() == 0 and len(config.get('Downscaling', 'DownscalingParamDirs').split(',')) == 1:
@@ -923,11 +948,6 @@ class ConfigOptions:
                                        'section of the configuration file.')
         except json.decoder.JSONDecodeError:
             err_handler.err_out_screen('Improper PrecipDownscaling options specified in the configuration file.')
-        if self.precip_only_flag == False:
-            if len(self.precipDownscaleOpt) != self.number_inputs:
-                err_handler.err_out_screen('Please specify PrecipDownscaling values for each corresponding '
-                                           'input forcings in the configuration file.')
-
 
         #   * Bias Correction Options *
 
