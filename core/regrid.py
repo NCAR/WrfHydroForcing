@@ -798,6 +798,9 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                     tmp_delta = tmp_top - var_tmp
                     dyn_lapse = -1000 * (tmp_delta / hgt_delta)
 
+                    # limit the dyn_lapse to the range (-10,10) TODO: this could be parameterized
+                    dyn_lapse = np.clip(dyn_lapse, -10, 10)
+
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract RAP HGT or TMP at hybrid level 12 from: " + id_tmp + \
                                             " (" + str(err) + ")"
