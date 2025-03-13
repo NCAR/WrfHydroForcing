@@ -343,9 +343,9 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.isfile(input_forcings.file_in2):
         if mpi_config.rank == 0:
-            config_options.statusMsg = "No HRRR in_2 file found for this timestep."
+            config_options.statusMsg = "No HRRR file found for this timestep."
             err_handler.log_msg(config_options, mpi_config)
-        err_handler.log_msg(config_options, mpi_config)
+        # err_handler.log_msg(config_options, mpi_config)
         return
 
     # Check to see if the regrid complete flag for this
@@ -355,7 +355,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         if mpi_config.rank == 0:
             config_options.statusMsg = "No HRRR regridding required for this timestep."
             err_handler.log_msg(config_options, mpi_config)
-        err_handler.log_msg(config_options, mpi_config)
+        # err_handler.log_msg(config_options, mpi_config)
         return
 
     # Create a path for a temporary NetCDF file
@@ -520,7 +520,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                     var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
                 if grib_var == 'CPOFP':
                     var_tmp[var_tmp >=0] = (100 - var_tmp[var_tmp >=0]) / 100  # convert frozen fraction to liquid fraction
-                    var_tmp[var_tmp < 0] = 1.0                                 # assume all liquid if not specifically given
+                    var_tmp[var_tmp < 0] = -1.0                                # flag as missing so we use temperature partitioning
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
                                         " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
@@ -551,6 +551,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
 
         try:
             input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
+
         except (ValueError, KeyError, AttributeError) as err:
             config_options.errMsg = "Unable to place input HRRR data into ESMF field: " + str(err)
             err_handler.log_critical(config_options, mpi_config)
@@ -654,19 +655,25 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                 config_options.statusMsg = "Converting CONUS RAP Variable: " + grib_var
                 err_handler.log_msg(config_options, mpi_config)
             time_str = "{}-{} hour acc fcst".format(input_forcings.fcst_hour1, input_forcings.fcst_hour2) \
-                if grib_var in ("APCP", "FROZR") else str(input_forcings.fcst_hour2) + " hour fcst"
+                if grib_var in ("APCP",) else str(input_forcings.fcst_hour2) + " hour fcst"
             fields.append(':' + grib_var + ':' +
                           input_forcings.grib_levels[force_count] + ':'
                           + time_str + ":")
         fields.append(":(HGT):(surface):")
 
+        # categorical precip for liquid fraction
+        fields.append(":(CFRZR):(surface):")
+        fields.append(":(CICEP):(surface):")
+        fields.append(":(CSNOW):(surface):")
+        fields.append(":(CRAIN):(surface):")
+
         if input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
             fields.append(":(HGT):(12 hybrid level):")
             fields.append(":(TMP):(12 hybrid level):")
 
-        # Create a temporary NetCDF file from the GRIB2 file.
-        cmd = '$WGRIB2 -match "(' + '|'.join(fields) + ')" ' + input_forcings.file_in2 + \
-              " -netcdf " + input_forcings.tmpFile
+        # Create a temporary NetCDF file from the bgrb/pgrb GRIB2 files.
+        cmd = f'cat {input_forcings.file_in2} {input_forcings.file_in2.replace("bgrb", "pgrb")} | ' + \
+              f'$WGRIB2 -match "(' + '|'.join(fields) + f')" -netcdf {input_forcings.tmpFile} -'
         id_tmp = ioMod.open_grib2(input_forcings.file_in2, input_forcings.tmpFile, cmd,
                                   config_options, mpi_config, inputVar=None)
         err_handler.check_program_status(config_options, mpi_config)
@@ -679,9 +686,12 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             config_options.statusMsg = "Processing Conus RAP Variable: " + grib_var
             err_handler.log_msg(config_options, mpi_config)
 
-        calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
-                                               config_options, wrf_hydro_geo_meta, mpi_config)
-        err_handler.check_program_status(config_options, mpi_config)
+        if grib_var != "LQFRAC":
+            calc_regrid_flag = check_regrid_status(id_tmp, force_count, input_forcings,
+                                                config_options, wrf_hydro_geo_meta, mpi_config)
+            err_handler.check_program_status(config_options, mpi_config)
+        else:
+            calc_regrid_flag = False
 
         if calc_regrid_flag:
             if mpi_config.rank == 0:
@@ -768,9 +778,18 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         var_tmp = None
         if mpi_config.rank == 0:
             try:
-                var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
-                if grib_var in ("APCP", "FROZR"):
-                    var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
+                if grib_var == "LQFRAC":
+                    var_tmp_CFRZR = id_tmp.variables['CFRZR_surface'][0, :, :]
+                    var_tmp_CICEP = id_tmp.variables['CICEP_surface'][0, :, :]
+                    var_tmp_CSNOW = id_tmp.variables['CSNOW_surface'][0, :, :]
+                    var_tmp_CRAIN = id_tmp.variables['CRAIN_surface'][0, :, :]
+
+                    var_tmp = var_tmp_CRAIN / (var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+1)
+                    var_tmp = np.where(var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+var_tmp_CRAIN == 0, -1, var_tmp)       # flag for temperature partitioning
+                else:
+                    var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
+                    if grib_var in ("APCP",):
+                        var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
                                         " from: " + input_forcings.tmpFile + \
@@ -797,6 +816,9 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                     hgt_delta = hgt_top - hgt_bot
                     tmp_delta = tmp_top - var_tmp
                     dyn_lapse = -1000 * (tmp_delta / hgt_delta)
+
+                    # limit the dyn_lapse to the range (-10,10) TODO: this could be parameterized
+                    dyn_lapse = np.clip(dyn_lapse, -10, 10)
 
                 except (ValueError, KeyError, AttributeError) as err:
                     config_options.errMsg = "Unable to extract RAP HGT or TMP at hybrid level 12 from: " + id_tmp + \
@@ -880,23 +902,13 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
 
-        if force_count < 8:
-            try:
-                input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
-                    input_forcings.esmf_field_out.data
-            except (ValueError, KeyError, AttributeError) as err:
-                config_options.errMsg = "Unable to place RAP ESMF data into local array: " + str(err)
-                err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
-        else:
-            # handle liquid-phase precip calculation
-            RAINRATE = 3  # TODO: determine this programmatically
-            total_pcp = ma.masked_values(input_forcings.regridded_forcings2[RAINRATE], config_options.globalNdv)
-            frozn_pcp = ma.masked_values(input_forcings.esmf_field_out.data, config_options.globalNdv)
-            # print(f"rank {mpi_config.rank} has {(frozn_pcp > total_pcp).sum()} instances of frozn_pcp > total_pcp", flush=True)
-            frz_fract = frozn_pcp / total_pcp
-            frz_fract[frz_fract > 1] = 1
-            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = (1 - frz_fract).filled(1.0)
+        try:
+            input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :] = \
+                input_forcings.esmf_field_out.data
+        except (ValueError, KeyError, AttributeError) as err:
+            config_options.errMsg = "Unable to place RAP ESMF data into local array: " + str(err)
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
 
         # If we are on the first timestep, set the previous regridded field to be
         # the latest as there are no states for time 0.
@@ -1604,7 +1616,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             if mpi_config.rank == 0:
                 # print(f"DEBUG: CPOFP stats, min={var_tmp[var_tmp > 0].min()} mean={var_tmp[var_tmp > 0].mean()} max={var_tmp[var_tmp > 0].max()}", flush=True)
                 var_tmp[var_tmp >=0] = (100 - var_tmp[var_tmp >=0]) / 100  # convert frozen fraction to liquid fraction
-                var_tmp[var_tmp < 0] = 1.0                         # assume all liquid if not specifically given
+                var_tmp[var_tmp < 0] = -1.0                                # flag as missing so we use temperature partitioning
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         mpi_config.comm.barrier()
@@ -3281,7 +3293,7 @@ def regrid_ndfd(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
         if ndfd_var == 'qpf':
             try:
                 ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
-                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 3600.0
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 6
                 del ind_valid
             except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
                 config_options.errMsg = f"Unable to run NDV search on NDFD QPF precipitation: {npe}"
