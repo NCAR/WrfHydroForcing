@@ -128,9 +128,10 @@ def regrid_ak_ext_ana(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             err_handler.log_critical(config_options, mpi_config)
         err_handler.check_program_status(config_options, mpi_config)
         # Create out regridded numpy arrays to hold the regridded data.
-        input_forcings.regridded_forcings1 = np.empty([9, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
+        force_count = 9 if config_options.include_lqfrac else 8
+        input_forcings.regridded_forcings1 = np.empty([force_count, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
-        input_forcings.regridded_forcings2 = np.empty([9, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
+        input_forcings.regridded_forcings2 = np.empty([force_count, wrf_hydro_geo_meta.ny_local, wrf_hydro_geo_meta.nx_local],
                                                       np.float32)
 
     for force_count, nc_var in enumerate(input_forcings.netcdf_var_names):
