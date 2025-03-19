@@ -3295,7 +3295,7 @@ def regrid_ndfd(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             try:
                 hours = 6
                 ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
-                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / hours*3600.0
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / (hours*3600.0)
                 del ind_valid
             except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
                 config_options.errMsg = f"Unable to run NDV search on NDFD QPF precipitation: {npe}"
