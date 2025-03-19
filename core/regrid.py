@@ -2335,7 +2335,7 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
     err_handler.check_program_status(config_options, mpi_config)
 
     try:
-        var_sub_tmp[var_sub_tmp <= 0] = 1.0         # all liquid if no other category
+        var_sub_tmp[var_sub_tmp <= 0] = -1.0        # flag for temperature partitioning if not specified
         var_sub_tmp[var_sub_tmp == 3] = 0.0         # snow
         var_sub_tmp[var_sub_tmp == 7] = 0.0         # hail
         var_sub_tmp[var_sub_tmp >  0] = 1.0         # all other liquid categories
@@ -2354,10 +2354,10 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
         err_handler.log_critical(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Set any missing data or pixel cells outside the input domain to a default of 100%
+    # Set any missing data or pixel cells outside the input domain to use temperature partitioning
     try:
-        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = 1.0
-        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = 1.0
+        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = config_options.globalNdv
+        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = config_options.globalNdv
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on MRMS PrecipFlag: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
@@ -3290,11 +3290,12 @@ def regrid_ndfd(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
                 err_handler.log_critical(config_options, mpi_config)
             err_handler.check_program_status(config_options, mpi_config)
 
-        # Convert the hourly precipitation total to a rate of mm/s
+        # Convert the 6-hourly precipitation total to a rate of mm/s
         if ndfd_var == 'qpf':
             try:
+                hours = 6
                 ind_valid = np.where(input_forcings.esmf_field_out.data != config_options.globalNdv)
-                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / 6
+                input_forcings.esmf_field_out.data[ind_valid] = input_forcings.esmf_field_out.data[ind_valid] / hours*3600.0
                 del ind_valid
             except (ValueError, ArithmeticError, AttributeError, KeyError) as npe:
                 config_options.errMsg = f"Unable to run NDV search on NDFD QPF precipitation: {npe}"
