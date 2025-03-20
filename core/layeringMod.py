@@ -37,11 +37,12 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
             layerIn = input_forcings.final_forcings[force_idx,:,:]
             indSet = np.where(layerIn != ConfigOptions.globalNdv)
             outLayerCurrent[indSet] = layerIn[indSet]
+            if force_idx == 8:
+                indSet = np.where(np.logical_or(layerIn < 0, layerIn > 1))
+                outLayerCurrent[indSet] =  np.where(OutputObj.output_local[4,:,:] >= 273.15+2.2, 1.0, 0.0)[indSet] # 2.2C threshold for rain/snow
             OutputObj.output_local[force_idx, :, :] = outLayerCurrent
-
             # Reset for next iteration and memory efficiency.
             indSet = None
-    # MpiConfig.comm.barrier()
 
 
 def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, MpiConfig):

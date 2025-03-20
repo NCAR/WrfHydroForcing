@@ -134,11 +134,24 @@ def dynamic_lapse(input_forcings, config_options, geo_meta, mpi_config):
         err_handler.log_msg(config_options, mpi_config)
 
     if input_forcings.lapseGrid is None:
+        if not os.path.isfile(input_forcings.file_in2):
             if mpi_config.rank == 0:
                 config_options.errMsg = "Dynamic lapse rate downscaling enabled but no lapse grid available"
-                err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+                err_handler.log_warning(config_options, mpi_config)
+            return
+        if mpi_config.rank == 0:
+            config_options.errMsg = "Dynamic lapse rate downscaling enabled but no lapse grid available"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
     else:
+        # Calculate the elevation difference.
+        if input_forcings.height is None:
+            config_options.errMsg = "Unable to perform downscaling without terrain height input"
+            err_handler.log_critical(config_options, mpi_config)
+            return
+
+        elevDiff = input_forcings.height - geo_meta.height
+
         # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
         temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
         try:
@@ -156,8 +169,9 @@ def dynamic_lapse(input_forcings, config_options, geo_meta, mpi_config):
             err_handler.log_critical(config_options, mpi_config)
             return
         try:
-            temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + input_forcings.lapseGrid[indValid]
-        except:
+            temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
+                ((input_forcings.lapseGrid[indValid]/1000.0)*elevDiff[indValid])
+        except Exception as e:
             config_options.errMsg = "Unable to apply spatial lapse rate values to input " + \
                                      input_forcings.productName + " regridded temperature forcings."
             err_handler.log_critical(config_options, mpi_config)

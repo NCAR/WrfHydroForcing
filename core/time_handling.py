@@ -832,7 +832,7 @@ def find_conus_rap_neighbors(input_forcings, config_options, d_current, mpi_conf
         input_forcings.regridComplete = False
     err_handler.check_program_status(config_options, mpi_config)
 
-    # Ensure we have the necessary new file
+    # Ensure we have the necessary new files
     if not os.path.isfile(input_forcings.file_in2):
         # look for the `pgrb` equivalent:
         input_forcings.file_in2 = input_forcings.file_in2.replace("bgrb", "pgrb")

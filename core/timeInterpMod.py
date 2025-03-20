@@ -16,10 +16,11 @@ def no_interpolation(input_forcings,ConfigOptions,MpiConfig):
     :return:
     """
     # Check to make sure we have valid grids.
-    if input_forcings.regridded_forcings2 is None:
-        input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
-    else:
-        input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
+    with np.errstate(invalid='ignore'):
+        if input_forcings.regridded_forcings2 is None:
+            input_forcings.final_forcings[:, :, :] = ConfigOptions.globalNdv
+        else:
+            input_forcings.final_forcings[:,:,:] = input_forcings.regridded_forcings2[:,:,:]
 
 def no_interpolation_supp_pcp(supplemental_precip,ConfigOptions,MpiConfig):
     """
@@ -31,11 +32,12 @@ def no_interpolation_supp_pcp(supplemental_precip,ConfigOptions,MpiConfig):
     :param MpiConfig:
     :return:
     """
-    if supplemental_precip.regridded_precip2 is not None:
-        supplemental_precip.final_supp_precip[:,:] = supplemental_precip.regridded_precip2[:,:]
-    else:
-        # We have missing files.
-        supplemental_precip.final_supp_precip[:,:] = ConfigOptions.globalNdv
+    with np.errstate(invalid='ignore'):
+        if supplemental_precip.regridded_precip2 is not None:
+            supplemental_precip.final_supp_precip[:,:] = supplemental_precip.regridded_precip2[:,:]
+        else:
+            # We have missing files.
+            supplemental_precip.final_supp_precip[:,:] = ConfigOptions.globalNdv
 
 def nearest_neighbor(input_forcings,ConfigOptions,MpiConfig):
     """
