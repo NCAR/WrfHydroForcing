@@ -134,11 +134,24 @@ def dynamic_lapse(input_forcings, config_options, geo_meta, mpi_config):
         err_handler.log_msg(config_options, mpi_config)
 
     if input_forcings.lapseGrid is None:
+        if not os.path.isfile(input_forcings.file_in2):
             if mpi_config.rank == 0:
                 config_options.errMsg = "Dynamic lapse rate downscaling enabled but no lapse grid available"
-                err_handler.log_critical(config_options, mpi_config)
-            err_handler.check_program_status(config_options, mpi_config)
+                err_handler.log_warning(config_options, mpi_config)
+            return
+        if mpi_config.rank == 0:
+            config_options.errMsg = "Dynamic lapse rate downscaling enabled but no lapse grid available"
+            err_handler.log_critical(config_options, mpi_config)
+        err_handler.check_program_status(config_options, mpi_config)
     else:
+        # Calculate the elevation difference.
+        if input_forcings.height is None:
+            config_options.errMsg = "Unable to perform downscaling without terrain height input"
+            err_handler.log_critical(config_options, mpi_config)
+            return
+
+        elevDiff = input_forcings.height - geo_meta.height
+
         # Apply the local lapse rate grid to our local slab of 2-meter temperature data.
         temperature_grid_tmp = input_forcings.final_forcings[4, :, :]
         try:
@@ -156,8 +169,9 @@ def dynamic_lapse(input_forcings, config_options, geo_meta, mpi_config):
             err_handler.log_critical(config_options, mpi_config)
             return
         try:
-            temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + input_forcings.lapseGrid[indValid]
-        except:
+            temperature_grid_tmp[indValid] = temperature_grid_tmp[indValid] + \
+                ((input_forcings.lapseGrid[indValid]/1000.0)*elevDiff[indValid])
+        except Exception as e:
             config_options.errMsg = "Unable to apply spatial lapse rate values to input " + \
                                      input_forcings.productName + " regridded temperature forcings."
             err_handler.log_critical(config_options, mpi_config)
@@ -420,6 +434,11 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     # 2.) We have switched months from the last timestep. In this case, we need
     #     to re-initialize the grids for the current month.
     initialize_flag = False
+    mmVersion = 2
+    if mmVersion == None:
+        ConfigOptions.errMsg = "Invalid Mountain Mapper Precip Downscaling option\n"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+
     if input_forcings.nwmPRISM_denGrid is None and input_forcings.nwmPRISM_numGrid is None:
         # We are on situation 1 - This is the first output step.
         initialize_flag = True
@@ -429,20 +448,16 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         # PRISM grids.
         initialize_flag = True
         # print('MONTH CHANGE.... NEED TO READ IN NEW PRISM GRIDS.')
-
     if initialize_flag is True:
         while (True):
             # First reset the local PRISM grids to be safe.
             input_forcings.nwmPRISM_numGrid = None
             input_forcings.nwmPRISM_denGrid = None
 
-            # Compose paths to the expected files.
             numeratorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
                             ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Numer.nc'
             denominatorPath = input_forcings.paramDir + "/PRISM_Precip_Clim_" + \
                               ConfigOptions.current_output_date.strftime('%h') + '_NWM_Mtn_Mapper_Denom.nc'
-            #print(numeratorPath)
-            #print(denominatorPath)
 
             # Make sure files exist.
             if not os.path.isfile(numeratorPath):
@@ -560,55 +575,83 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
         # Scatter the array out to the local processors
         input_forcings.nwmPRISM_numGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, numDataTmp, ConfigOptions)
         err_handler.check_program_status(ConfigOptions, MpiConfig)
-
         input_forcings.nwmPRISM_denGrid = MpiConfig.scatter_array(GeoMetaWrfHydro, denDataTmp, ConfigOptions)
         err_handler.check_program_status(ConfigOptions, MpiConfig)
 
     # Create temporary grids from the local slabs of params/precip forcings.
+    hourlyGrid = input_forcings.final_forcings[3,:,:]
+    tmpGrid = np.full([GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local], -9999.0, dtype=float)
+    ratioRainGrid = np.full([GeoMetaWrfHydro.ny_local, GeoMetaWrfHydro.nx_local], -9999.0, dtype=float)
+
     localRainRate = input_forcings.final_forcings[3,:,:]
-    numLocal = input_forcings.nwmPRISM_numGrid[:,:]
-    denLocal = input_forcings.nwmPRISM_denGrid[:,:]
+    numLocal = input_forcings.nwmPRISM_numGrid
+    denLocal = input_forcings.nwmPRISM_denGrid
 
     # Establish index of where we have valid data.
     try:
-        indValid = np.where((localRainRate > 0.0) & (denLocal > 0.0) & (numLocal > 0.0))
+        indValid = np.where((localRainRate != -9999.0) & (denLocal != -9999.0) & (denLocal > 1.0))
     except:
         ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
                                "param grid in mountain mapper downscaling"
         err_handler.log_critical(ConfigOptions, MpiConfig)
     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-    # Convert precipitation rate, which is mm/s to mm, which is needed to run the PRISM downscaling.
     try:
-        localRainRate[indValid] = localRainRate[indValid]*3600.0
-    except:
-        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm/s to mm."
-        err_handler.log_critical(ConfigOptions, MpiConfig)
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-    try:
-        localRainRate[indValid] = localRainRate[indValid] * numLocal[indValid]
-    except:
-        ConfigOptions.errMsg = "Unable to multiply precip by numerator in mountain mapper downscaling"
-        err_handler.log_critical(ConfigOptions, MpiConfig)
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-    try:
-        localRainRate[indValid] = localRainRate[indValid] / denLocal[indValid]
+        tmpGrid[indValid] = localRainRate[indValid] / denLocal[indValid]
     except:
         ConfigOptions.errMsg = "Unable to divide precip by denominator in mountain mapper downscaling"
         err_handler.log_critical(ConfigOptions, MpiConfig)
     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-    # Convert local precip back to a rate (mm/s)
+    # Establish index of where we have valid data.
     try:
-        localRainRate[indValid] = localRainRate[indValid]/3600.0
+        indValid = np.where((tmpGrid != -9999.0) & (numLocal != -9999.0))
+    except:
+        ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
+                               "param grid in mountain mapper downscaling"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+    err_handler.check_program_status(ConfigOptions, MpiConfig)
+    try:
+        ratioRainGrid[indValid] = tmpGrid[indValid] * numLocal[indValid]
+    except:
+        ConfigOptions.errMsg = "Unable to multiply precip by numerator in mountain mapper downscaling"
+        err_handler.log_critical(ConfigOptions, MpiConfig)
+    err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+    count = 0
+    try:
+       indValid = np.where((ratioRainGrid == -9999.0) &
+                   (numLocal != -9999.0) &
+                   (hourlyGrid != -9999.0))
+    except:
+       ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
+                              "param grid in mountain mapper downscaling"
+       err_handler.log_critical(ConfigOptions, MpiConfig)
+    err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+    count = len(indValid[0])
+    if count > 0:
+        ratioRainGrid[indValid] = hourlyGrid[indValid]/3600
+
+    try:
+       indValid = np.where(ratioRainGrid != -9999.0)
+
+    except:
+       ConfigOptions.errMsg = "Unable to run numpy search for valid values on precip and " \
+                              "param grid in mountain mapper downscaling"
+       err_handler.log_critical(ConfigOptions, MpiConfig)
+    err_handler.check_program_status(ConfigOptions, MpiConfig)
+
+
+    ## Convert local precip back to a rate (mm/s)
+    try:
+        ratioRainGrid[indValid] = ratioRainGrid[indValid]/3600
+
     except:
         ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm to mm/s."
         err_handler.log_critical(ConfigOptions, MpiConfig)
     err_handler.check_program_status(ConfigOptions, MpiConfig)
-
-    input_forcings.final_forcings[3, :, :] = localRainRate
+    input_forcings.final_forcings[3, :, :] = ratioRainGrid
 
     # Reset variables for memory efficiency
     idDenom = None
