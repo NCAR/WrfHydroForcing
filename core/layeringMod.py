@@ -37,9 +37,14 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
             layerIn = input_forcings.final_forcings[force_idx,:,:]
             indSet = np.where(layerIn != ConfigOptions.globalNdv)
             outLayerCurrent[indSet] = layerIn[indSet]
+
             if force_idx == 8:
-                indSet = np.where(np.logical_or(layerIn < 0, layerIn > 1))
-                outLayerCurrent[indSet] =  np.where(OutputObj.output_local[4,:,:] >= 273.15+2.2, 1.0, 0.0)[indSet] # 2.2C threshold for rain/snow
+                calcSet = np.where(np.logical_and(outLayerCurrent != ConfigOptions.globalNdv, np.logical_or(outLayerCurrent < 0, outLayerCurrent > 1)))
+                # if calcSet[0].size > 0:
+                #     print(f"WARNING: Liquid fraction of precipitation outside of valid range [0..1] detected. {indSet[0].size} values found.")
+                #     print(f"{np.histogram(np.where(outLayerCurrent[calcSet] < 0, outLayerCurrent[calcSet], 0), 2)}")
+                outLayerCurrent[calcSet] =  np.where(OutputObj.output_local[4,:,:] >= 273.15+2.2, 1.0, 0.0)[calcSet] # 2.2C threshold for rain/snow
+
             OutputObj.output_local[force_idx, :, :] = outLayerCurrent
             # Reset for next iteration and memory efficiency.
             indSet = None

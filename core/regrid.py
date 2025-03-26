@@ -521,7 +521,6 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                     var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
                 if grib_var == 'CPOFP':
                     var_tmp[var_tmp >=0] = (100 - var_tmp[var_tmp >=0]) / 100  # convert frozen fraction to liquid fraction
-                    var_tmp[var_tmp < 0] = -1.0                                # flag as missing so we use temperature partitioning
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
                                         " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
@@ -530,6 +529,12 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
+
+        # mask out missing frozen fraction
+        mask = input_forcings.esmf_grid_in.get_item(ESMF.GridItem.MASK)
+        prev_mask = np.copy(mask)
+        if grib_var == 'CPOFP':
+            mask[np.where(var_sub_tmp < 0)] = 0
 
         if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate from RAP
             # if input_forcings.lapseGrid is None:
@@ -573,6 +578,8 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         try:
             input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
                 config_options.globalNdv
+            #if grib_var == 'CPOFP':
+            #    input_forcings.esmf_field_out.data[np.where(input_forcings.esmf_field_out.data < 0)] = -1
         except (ValueError, ArithmeticError) as npe:
             config_options.errMsg = "Unable to perform mask test on regridded HRRR forcings: " + str(npe)
             err_handler.log_critical(config_options, mpi_config)
@@ -592,6 +599,9 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
             input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
         # mpi_config.comm.barrier()
+
+        # reset mask
+        mask = prev_mask
 
     # Close the temporary NetCDF file and remove it.
     if mpi_config.rank == 0:
