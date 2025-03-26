@@ -601,7 +601,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         # mpi_config.comm.barrier()
 
         # reset mask
-        mask = prev_mask
+        mask[:] = prev_mask
 
     # Close the temporary NetCDF file and remove it.
     if mpi_config.rank == 0:
@@ -796,7 +796,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                     var_tmp_CRAIN = id_tmp.variables['CRAIN_surface'][0, :, :]
 
                     var_tmp = var_tmp_CRAIN / (var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+1)
-                    var_tmp = np.where(var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+var_tmp_CRAIN == 0, -1, var_tmp)       # flag for temperature partitioning
+                    var_tmp = np.where(var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+var_tmp_CRAIN == 0, -50, var_tmp)       # flag for temperature partitioning
                 else:
                     var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
                     if grib_var in ("APCP",):
@@ -811,6 +811,12 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         err_handler.check_program_status(config_options, mpi_config)
+
+        # mask out missing frozen fraction
+        mask = input_forcings.esmf_grid_in.get_item(ESMF.GridItem.MASK)
+        prev_mask = np.copy(mask)
+        if grib_var == 'LQFRAC':
+            mask[np.where(var_sub_tmp < 0)] = 0
 
         if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
             dyn_lapse = None
@@ -934,6 +940,9 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
             input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
         err_handler.check_program_status(config_options, mpi_config)
+
+        # reset mask
+        mask[:] = prev_mask
 
     # Close the temporary NetCDF file and remove it.
     if mpi_config.rank == 0:
@@ -2344,8 +2353,13 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
     var_sub_tmp = mpi_config.scatter_array(supplemental_precip, var_tmp, config_options)
     err_handler.check_program_status(config_options, mpi_config)
 
+    # mask out missing frozen fraction
+    mask = supplemental_precip.esmf_grid_in.get_item(ESMF.GridItem.MASK)
+    prev_mask = np.copy(mask)
+    mask[np.where(var_sub_tmp < 0)] = 0
+
     try:
-        var_sub_tmp[var_sub_tmp <= 0] = -1.0        # flag for temperature partitioning if not specified
+        var_sub_tmp[var_sub_tmp <= 0] = -50         # flag for temperature partitioning if not specified
         var_sub_tmp[var_sub_tmp == 3] = 0.0         # snow
         var_sub_tmp[var_sub_tmp == 7] = 0.0         # hail
         var_sub_tmp[var_sub_tmp >  0] = 1.0         # all other liquid categories
@@ -2382,6 +2396,9 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
         supplemental_precip.regridded_precip1[:] = \
             supplemental_precip.regridded_precip2[:]
     err_handler.check_program_status(config_options, mpi_config)
+
+    # reset mask
+    mask[:] = prev_mask
 
     # Close the NetCDF file
     if mpi_config.rank == 0:
@@ -3536,10 +3553,10 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
     err_handler.check_program_status(config_options, mpi_config)
 
     # check if we're doing border trimming and set up mask
+    mask = input_forcings.esmf_grid_in.add_item(ESMF.GridItem.MASK, ESMF.StaggerLoc.CENTER)
     border = input_forcings.border  # // 5  # HRRR is a 3 km product
     if border > 0:
         try:
-            mask = input_forcings.esmf_grid_in.add_item(ESMF.GridItem.MASK, ESMF.StaggerLoc.CENTER)
             if mpi_config.rank == 0:
                 config_options.statusMsg = "Trimming input forcing `{}` by {} grid cells".format(
                         input_forcings.productName,
@@ -3773,6 +3790,8 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
                                                                supplemental_precip.nx_global]),
                                                      staggerloc=ESMF.StaggerLoc.CENTER,
                                                      coord_sys=ESMF.CoordSys.SPH_DEG)
+        supplemental_precip.esmf_grid_in.add_item(ESMF.GridItem.MASK, ESMF.StaggerLoc.CENTER)
+
     except ESMF.ESMPyException as esmf_error:
         config_options.errMsg = "Unable to create source ESMF grid from temporary file: " + \
                                 tmp_file + " (" + str(esmf_error) + ")"
