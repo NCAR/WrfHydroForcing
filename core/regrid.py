@@ -521,6 +521,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
                     var_tmp /= 3600     # convert hourly accumulated precip to instantaneous rate
                 if grib_var == 'CPOFP':
                     var_tmp[var_tmp >=0] = (100 - var_tmp[var_tmp >=0]) / 100  # convert frozen fraction to liquid fraction
+                    var_tmp[var_tmp < 0] = np.nan
             except (ValueError, KeyError, AttributeError) as err:
                 config_options.errMsg = "Unable to extract: " + input_forcings.netcdf_var_names[force_count] + \
                                         " from: " + input_forcings.tmpFile + " (" + str(err) + ")"
@@ -534,7 +535,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         mask = input_forcings.esmf_grid_in.get_item(ESMF.GridItem.MASK)
         prev_mask = np.copy(mask)
         if grib_var == 'CPOFP':
-            mask[np.where(var_sub_tmp < 0)] = 0
+            mask[np.isnan(var_sub_tmp)] = 0
 
         if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate from RAP
             # if input_forcings.lapseGrid is None:
@@ -578,8 +579,7 @@ def regrid_conus_hrrr(input_forcings, config_options, wrf_hydro_geo_meta, mpi_co
         try:
             input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
                 config_options.globalNdv
-            #if grib_var == 'CPOFP':
-            #    input_forcings.esmf_field_out.data[np.where(input_forcings.esmf_field_out.data < 0)] = -1
+            input_forcings.esmf_field_out.data[np.isnan(input_forcings.esmf_field_out.data)] = -50
         except (ValueError, ArithmeticError) as npe:
             config_options.errMsg = "Unable to perform mask test on regridded HRRR forcings: " + str(npe)
             err_handler.log_critical(config_options, mpi_config)
@@ -796,7 +796,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
                     var_tmp_CRAIN = id_tmp.variables['CRAIN_surface'][0, :, :]
 
                     var_tmp = var_tmp_CRAIN / (var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+1)
-                    var_tmp = np.where(var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+var_tmp_CRAIN == 0, -50, var_tmp)       # flag for temperature partitioning
+                    var_tmp = np.where(var_tmp_CFRZR+var_tmp_CSNOW+var_tmp_CICEP+var_tmp_CRAIN == 0, np.nan, var_tmp)       # flag for temperature partitioning
                 else:
                     var_tmp = id_tmp.variables[input_forcings.netcdf_var_names[force_count]][0, :, :]
                     if grib_var in ("APCP",):
@@ -816,7 +816,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
         mask = input_forcings.esmf_grid_in.get_item(ESMF.GridItem.MASK)
         prev_mask = np.copy(mask)
         if grib_var == 'LQFRAC':
-            mask[np.where(var_sub_tmp < 0)] = 0
+            mask[np.where(np.isnan(var_sub_tmp))] = 0
 
         if grib_var == 'TMP' and input_forcings.t2dDownscaleOpt == 3:         # dynamic lapse rate
             dyn_lapse = None
@@ -911,6 +911,7 @@ def regrid_conus_rap(input_forcings, config_options, wrf_hydro_geo_meta, mpi_con
 
         # Set any pixel cells outside the input domain to the global missing value.
         try:
+            input_forcings.esmf_field_out.data[np.isnan(input_forcings.esmf_field_out.data)] = -50
             input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
                 config_options.globalNdv
         except (ValueError, ArithmeticError) as npe:
@@ -2359,7 +2360,7 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
     mask[np.where(var_sub_tmp < 0)] = 0
 
     try:
-        var_sub_tmp[var_sub_tmp <= 0] = -50         # flag for temperature partitioning if not specified
+        var_sub_tmp[var_sub_tmp <= 0] = np.nan         # flag for temperature partitioning if not specified
         var_sub_tmp[var_sub_tmp == 3] = 0.0         # snow
         var_sub_tmp[var_sub_tmp == 7] = 0.0         # hail
         var_sub_tmp[var_sub_tmp >  0] = 1.0         # all other liquid categories
@@ -2381,7 +2382,7 @@ def regrid_mrms_precip_flag(supplemental_precip, config_options, wrf_hydro_geo_m
     # Set any missing data or pixel cells outside the input domain to use temperature partitioning
     try:
         supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.regridded_mask == 0)] = config_options.globalNdv
-        supplemental_precip.esmf_field_out.data[np.where(supplemental_precip.esmf_field_out.data < 0)] = config_options.globalNdv
+        supplemental_precip.esmf_field_out.data[np.isnan(supplemental_precip.esmf_field_out.data)] = config_options.globalNdv
     except (ValueError, ArithmeticError) as npe:
         config_options.errMsg = "Unable to run mask search on MRMS PrecipFlag: " + str(npe)
         err_handler.log_critical(config_options, mpi_config)
@@ -3554,6 +3555,7 @@ def calculate_weights(id_tmp, force_count, input_forcings, config_options, mpi_c
 
     # check if we're doing border trimming and set up mask
     mask = input_forcings.esmf_grid_in.add_item(ESMF.GridItem.MASK, ESMF.StaggerLoc.CENTER)
+    mask[:] = np.ones(mask.shape)
     border = input_forcings.border  # // 5  # HRRR is a 3 km product
     if border > 0:
         try:
