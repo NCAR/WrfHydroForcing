@@ -1637,11 +1637,17 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             if mpi_config.rank == 0:
                 # print(f"DEBUG: CPOFP stats, min={var_tmp[var_tmp > 0].min()} mean={var_tmp[var_tmp > 0].mean()} max={var_tmp[var_tmp > 0].max()}", flush=True)
                 var_tmp[var_tmp >=0] = (100 - var_tmp[var_tmp >=0]) / 100  # convert frozen fraction to liquid fraction
-                var_tmp[var_tmp < 0] = -1.0                                # flag as missing so we use temperature partitioning
+                var_tmp[var_tmp < 0] = np.nan                              # flag as missing so we use temperature partitioning
 
         var_sub_tmp = mpi_config.scatter_array(input_forcings, var_tmp, config_options)
         mpi_config.comm.barrier()
         err_handler.check_program_status(config_options, mpi_config)
+
+        # mask out missing frozen fraction
+        mask = input_forcings.esmf_grid_in.get_item(ESMF.GridItem.MASK)
+        prev_mask = np.copy(mask)
+        if grib_var == 'CPOFP':
+            mask[np.isnan(var_sub_tmp)] = 0
 
         try:
             input_forcings.esmf_field_in.data[:, :] = var_sub_tmp
@@ -1672,6 +1678,7 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
         try:
             input_forcings.esmf_field_out.data[np.where(input_forcings.regridded_mask == 0)] = \
                 config_options.globalNdv
+            input_forcings.esmf_field_out.data[np.isnan(input_forcings.esmf_field_out.data)] = -50
         except (ValueError, ArithmeticError) as npe:
             config_options.errMsg = "Unable to run mask search on GFS variable: " + \
                                     input_forcings.netcdf_var_names[force_count] + " (" + str(npe) + ")"
@@ -1692,6 +1699,9 @@ def regrid_gfs(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
             input_forcings.regridded_forcings1[input_forcings.input_map_output[force_count], :, :] = \
                 input_forcings.regridded_forcings2[input_forcings.input_map_output[force_count], :, :]
         err_handler.check_program_status(config_options, mpi_config)
+
+        # reset mask
+        mask[:] = prev_mask
 
     # Close the temporary NetCDF file and remove it.
     if mpi_config.rank == 0:
