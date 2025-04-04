@@ -587,6 +587,9 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
     numLocal = input_forcings.nwmPRISM_numGrid
     denLocal = input_forcings.nwmPRISM_denGrid
 
+    # initialize downscale grid to initial grid
+    ratioRainGrid[:] = localRainRate
+
     # Establish index of where we have valid data.
     try:
         indValid = np.where((localRainRate != -9999.0) & (denLocal != -9999.0) & (denLocal > 1.0))
