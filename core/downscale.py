@@ -645,15 +645,6 @@ def nwm_monthly_PRISM_downscale(input_forcings,ConfigOptions,GeoMetaWrfHydro,Mpi
        err_handler.log_critical(ConfigOptions, MpiConfig)
     err_handler.check_program_status(ConfigOptions, MpiConfig)
 
-
-    ## Convert local precip back to a rate (mm/s)
-    try:
-        ratioRainGrid[indValid] = ratioRainGrid[indValid]/3600
-
-    except:
-        ConfigOptions.errMsg = "Unable to convert temporary precip rate from mm to mm/s."
-        err_handler.log_critical(ConfigOptions, MpiConfig)
-    err_handler.check_program_status(ConfigOptions, MpiConfig)
     input_forcings.final_forcings[3, :, :] = ratioRainGrid
 
     # Reset variables for memory efficiency
