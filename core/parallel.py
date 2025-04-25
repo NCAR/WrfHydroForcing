@@ -1,6 +1,5 @@
 import numpy as np
 import mpi4py
-mpi4py.rc.threaded = False
 from mpi4py import MPI
 
 from core import err_handler
