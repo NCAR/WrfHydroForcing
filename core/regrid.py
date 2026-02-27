@@ -4647,7 +4647,7 @@ def calculate_supp_pcp_weights(supplemental_precip, id_tmp, tmp_file, config_opt
 
 def regrid_rrfs_na(input_forcings, config_options, wrf_hydro_geo_meta, mpi_config):
     """
-    Function for handling regridding of HRRR data.
+    Function for handling regridding of RRFS data.
     :param input_forcings:
     :param config_options:
     :param wrf_hydro_geo_meta:
@@ -4658,7 +4658,7 @@ def regrid_rrfs_na(input_forcings, config_options, wrf_hydro_geo_meta, mpi_confi
     # exit out of this routine as the regridded fields have already been set to NDV.
     if not os.path.isfile(input_forcings.file_in2):
         if mpi_config.rank == 0:
-             config_options.statusMsg = "No RAP regridding required for this timestep."
+             config_options.statusMsg = "No RRFS regridding required for this timestep."
              err_handler.log_msg(config_options, mpi_config)
         return
 
@@ -5179,7 +5179,7 @@ def regrid_rrfs_hi(input_forcings, config_options, wrf_hydro_geo_meta, mpi_confi
         return
 
     # Create a path for a temporary NetCDF file
-    input_forcings.tmpFile = config_options.scratch_dir + "/" + "NAM_NEST_TMP-{}.nc".format(mkfilename())
+    input_forcings.tmpFile = config_options.scratch_dir + "/" + "RRFS_HI_TMP-{}.nc".format(mkfilename())
     err_handler.check_program_status(config_options, mpi_config)
     if input_forcings.fileType != NETCDF:
 

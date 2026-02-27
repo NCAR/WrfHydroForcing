@@ -713,7 +713,7 @@ def find_ak_hrrr_neighbors(input_forcings, config_options, d_current, mpi_config
 
 def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and after HRRR conus cycles based on the current timestep.
+    Function to calculate the previous and after RRFS conus cycles based on the current timestep.
     :param input_forcings:
     :param config_options:
     :param d_current:
@@ -721,14 +721,14 @@ def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config
     :return:
     """
     if mpi_config.rank == 0:
-        config_options.statusMsg = "Processing Conus HRRR Data. Calculating neighboring " \
+        config_options.statusMsg = "Processing Conus RRFS NA Data. Calculating neighboring " \
                                    "files for this output timestep"
         err_handler.log_msg(config_options, mpi_config)
 
     default_horizon = 18  # 18-hour forecasts.
     six_hr_horizon = 84  # 84-hour forecasts every six hours.
 
-    # First find the current HRRR forecast cycle that we are using.
+    # First find the current RRFS forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_rrfs_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
@@ -765,7 +765,7 @@ def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config
     input_forcings.fcst_date2 = next_rrfs_date
 
     # Calculate the output forecast hours needed based on the prev/next dates.
-    dt_tmp = next_hrrr_date - current_rrfs_cycle
+    dt_tmp = next_rrfs_date - current_rrfs_cycle
     next_rrfs_forecast_hour = int(dt_tmp.days * 24.0) + int(dt_tmp.seconds / 3600.0)
     input_forcings.fcst_hour2 = next_rrfs_forecast_hour
     dt_tmp = prev_rrfs_date - current_rrfs_cycle
@@ -781,17 +781,16 @@ def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = \
-        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{prev_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.3km.f{str(prev_rrfs_forecast_hour).zfill(3)}.na.grib2"
+        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.3km.f{str(prev_rrfs_forecast_hour).zfill(3)}.na.grib2"
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous RRFS file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
 
     tmp_file2 = \
-        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.3km.f{str(current_rrfs_forecast_hour).zfill(3)}.na.grib2"
+        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.3km.f{str(next_rrfs_forecast_hour).zfill(3)}.na.grib2"
     if mpi_config.rank == 0:
-        if mpi_config.rank == 0:
-            config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
-            err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Check to see if files are already set. If not, then reset, grids and
@@ -820,7 +819,7 @@ def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config
                 input_forcings.fcst_date2 = input_forcings.fcst_date1
                 input_forcings.fcst_hour2 = input_forcings.fcst_hour1
             else:
-                # The HRRR window has shifted. Reset fields 2 to
+                # The RRFS window has shifted. Reset fields 2 to
                 # be fields 1.
                 input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
                 input_forcings.file_in1 = tmp_file1
@@ -849,7 +848,7 @@ def find_rrfs_na_neighbors(input_forcings, config_options, d_current, mpi_config
 
 def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and after HRRR conus cycles based on the current timestep.
+    Function to calculate the previous and after RRFS PR cycles based on the current timestep.
     :param input_forcings:
     :param config_options:
     :param d_current:
@@ -863,7 +862,7 @@ def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config
 
     rrfs_horizon = 84
 
-    # First find the current HRRR forecast cycle that we are using.
+    # First find the current RRFS forecast cycle that we are using.
     ana_offset = 1 if config_options.ana_flag else 0
     current_rrfs_cycle = config_options.current_fcst_cycle - datetime.timedelta(
         seconds=(ana_offset + input_forcings.userCycleOffset) * 60.0)
@@ -908,7 +907,7 @@ def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config
     input_forcings.fcst_hour1 = prev_rrfs_forecast_hour
     err_handler.check_program_status(config_options, mpi_config)
 
-    # If we are on the first HRRR forecast hour (1), and we have calculated the previous forecast
+    # If we are on the first RRFS forecast hour (1), and we have calculated the previous forecast
     # hour to be 0, simply set both hours to be 1. Hour 0 will not produce the fields we need, and
     # no interpolation is required.
     if prev_rrfs_forecast_hour == 0:
@@ -924,9 +923,8 @@ def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config
     tmp_file2 = \
         f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.2p5km.f{str(next_rrfs_forecast_hour).zfill(3)}.pr.grib2"
     if mpi_config.rank == 0:
-        if mpi_config.rank == 0:
-            config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
-            err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Check to see if files are already set. If not, then reset, grids and
@@ -955,7 +953,7 @@ def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config
                 input_forcings.fcst_date2 = input_forcings.fcst_date1
                 input_forcings.fcst_hour2 = input_forcings.fcst_hour1
             else:
-                # The HRRR window has shifted. Reset fields 2 to
+                # The RRFS window has shifted. Reset fields 2 to
                 # be fields 1.
                 input_forcings.regridded_forcings1[:, :, :] = input_forcings.regridded_forcings2[:, :, :]
                 input_forcings.file_in1 = tmp_file1
@@ -984,7 +982,7 @@ def find_rrfs_pr_neighbors(input_forcings, config_options, d_current, mpi_config
 
 def find_rrfs_hi_neighbors(input_forcings, config_options, d_current, mpi_config):
     """
-    Function to calculate the previous and after HRRR conus cycles based on the current timestep.
+    Function to calculate the previous and after HRRR PR cycles based on the current timestep.
     :param input_forcings:
     :param config_options:
     :param d_current:
@@ -1051,7 +1049,7 @@ def find_rrfs_hi_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = \
-        f"{input_forcings.inDir}/rrfs.{prev_rrfs_date.strftime('%Y%m%d')}/{prev_rrfs_date.strftime('%H')}/rrfs.t{prev_rrfs_date.strftime('%H')}z.prslev.2p5km.f{str(prev_rrfs_forecast_hour).zfill(3)}.hi.grib2"
+        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.2p5km.f{str(prev_rrfs_forecast_hour).zfill(3)}.hi.grib2"
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous RRFS file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
@@ -1059,9 +1057,8 @@ def find_rrfs_hi_neighbors(input_forcings, config_options, d_current, mpi_config
     tmp_file2 = \
         f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.2p5km.f{str(current_rrfs_hour).zfill(3)}.hi.grib2"
     if mpi_config.rank == 0:
-        if mpi_config.rank == 0:
-            config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
-            err_handler.log_msg(config_options, mpi_config)
+        config_options.statusMsg = "Next RRFS file being used: " + tmp_file2
+        err_handler.log_msg(config_options, mpi_config)
     err_handler.check_program_status(config_options, mpi_config)
 
     # Check to see if files are already set. If not, then reset, grids and
