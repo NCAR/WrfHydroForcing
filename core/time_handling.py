@@ -1052,7 +1052,7 @@ def find_rrfs_hi_neighbors(input_forcings, config_options, d_current, mpi_config
 
     # Calculate expected file paths.
     tmp_file1 = \
-        f"{input_forcings.inDir}/rrfs.{prev_rrfs_date.strftime('%Y%m%d')}/{prev_rrfs_date.strftime('%H')}/rrfs.t{prev_rrfs_date.strftime('%H')}z.prslev.2p5km.f{str(prev_rrfs_forecast_hour).zfill(3)}.hi.grib2"
+        f"{input_forcings.inDir}/rrfs.{current_rrfs_cycle.strftime('%Y%m%d')}/{current_rrfs_cycle.strftime('%H')}/rrfs.t{current_rrfs_cycle.strftime('%H')}z.prslev.2p5km.f{str(prev_rrfs_forecast_hour).zfill(3)}.hi.grib2"
     if mpi_config.rank == 0:
         config_options.statusMsg = "Previous RRFS file being used: " + tmp_file1
         err_handler.log_msg(config_options, mpi_config)
