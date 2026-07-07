@@ -5,6 +5,36 @@ Future functionality may include blenidng, etc.
 import numpy as np
 from core import err_handler
 
+
+def _apply_lqfrac_temperature_qc(layer_lqfrac, temperature_k, global_ndv, warning_msg):
+    """
+    Enforce physical consistency for liquid fraction of precipitation.
+    """
+
+    C_TO_K = 273.15
+    qc_threshold_K = C_TO_K + 5
+    rain_snow_threshold_K = C_TO_K + 2.2
+    non_liquid_lqfrac_tol = 0.001
+
+    # First, sanitize values that are out of the valid [0..1] range.
+    calcSet = np.where(np.logical_and(layer_lqfrac != global_ndv,
+                                      np.logical_or(layer_lqfrac < 0, layer_lqfrac > 1)))
+    layer_lqfrac[calcSet] = np.where(temperature_k >= rain_snow_threshold_K, 1.0, 0.0)[calcSet]
+
+    # Then force fully liquid where non-liquid precip is inconsistent with warm temperatures.
+    warmNonLiquidSet = np.where(
+        np.logical_and.reduce((
+            layer_lqfrac != global_ndv,
+            layer_lqfrac < (1.0 - non_liquid_lqfrac_tol),
+            temperature_k > qc_threshold_K
+        ))
+    )
+    if warmNonLiquidSet[0].size > 0:
+        print(f"{warning_msg} {warmNonLiquidSet[0].size} values found.", flush=True)
+        layer_lqfrac[warmNonLiquidSet] = 1.0
+
+    return layer_lqfrac
+
 def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
     """
     Function to perform basic layering of input forcings as they are processed. The logic
@@ -39,11 +69,12 @@ def layer_final_forcings(OutputObj,input_forcings,ConfigOptions,MpiConfig):
             outLayerCurrent[indSet] = layerIn[indSet]
 
             if force_idx == 8:
-                calcSet = np.where(np.logical_and(outLayerCurrent != ConfigOptions.globalNdv, np.logical_or(outLayerCurrent < 0, outLayerCurrent > 1)))
-                # if calcSet[0].size > 0:
-                #     print(f"WARNING: Liquid fraction of precipitation outside of valid range [0..1] detected. {indSet[0].size} values found.")
-                #     print(f"{np.histogram(np.where(outLayerCurrent[calcSet] < 0, outLayerCurrent[calcSet], 0), 2)}")
-                outLayerCurrent[calcSet] =  np.where(OutputObj.output_local[4,:,:] >= 273.15+2.2, 1.0, 0.0)[calcSet] # 2.2C threshold for rain/snow
+                outLayerCurrent = _apply_lqfrac_temperature_qc(
+                    outLayerCurrent,
+                    OutputObj.output_local[4, :, :],
+                    ConfigOptions.globalNdv,
+                    "WARNING: LQFRAC indicates frozen/mixed precipitation but temperature is above the QC threshold."
+                )
 
             OutputObj.output_local[force_idx, :, :] = outLayerCurrent
             # Reset for next iteration and memory efficiency.
@@ -76,6 +107,14 @@ def layer_supplemental_forcing(OutputObj, supplemental_precip, ConfigOptions, Mp
     else:
         # We have all missing data for the supplemental precip for this step.
         layerOut = layerOut
+
+    if supplemental_precip.output_var_idx == 8:
+        layerOut = _apply_lqfrac_temperature_qc(
+            layerOut,
+            OutputObj.output_local[4, :, :],
+            ConfigOptions.globalNdv,
+            f"WARNING: Supplemental LQFRAC warm non-liquid inconsistency detected for {supplemental_precip.productName}."
+        )
 
     # TODO: test that even does anything...?s
     OutputObj.output_local[supplemental_precip.output_var_idx, :, :] = layerOut

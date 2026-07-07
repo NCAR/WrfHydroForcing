@@ -29,6 +29,8 @@ class OutputObj:
         self.outDate = None
         self.out_ndv = -999999
         self.suppOutPath = None
+        self.x_lower_bound = GeoMetaWrfHydro.x_lower_bound
+        self.y_lower_bound = GeoMetaWrfHydro.y_lower_bound
 
         # Create local "slabs" to hold final output grids. These
         # will be collected during the output routine below.
